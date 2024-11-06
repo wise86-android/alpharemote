@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="viewModel"
+            type="org.staacks.alpharemote.ui.camera.CameraViewModel" />
+        <import type="android.view.View"/>
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+        android:id="@+id/button_shutter_half"
+        app:button="SHUTTER_HALF"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/button_record"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/button_shutter"
+        app:layout_constraintHorizontal_weight="0.25"
+        app:layout_constraintDimensionRatio="H,1:1"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ca_shutter_half"
+        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+        app:tint="?attr/colorCustomButton" />
+
+    <TextView
+        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/button_shutter_half"
+        app:layout_constraintStart_toStartOf="@id/button_shutter_half"
+        app:layout_constraintEnd_toEndOf="@id/button_shutter_half"
+        android:textAlignment="center"
+        android:text="@string/camera_button_half_shutter"
+        />
+
+    <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+        android:id="@+id/button_shutter"
+        app:button="SHUTTER"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/button_record"
+        app:layout_constraintStart_toEndOf="@id/button_shutter_half"
+        app:layout_constraintEnd_toStartOf="@id/button_selftimer_3s"
+        app:layout_constraintHorizontal_weight="0.5"
+        app:layout_constraintVertical_weight="0.4"
+        app:layout_constraintDimensionRatio="H,1:1"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ca_shutter"
+        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+        app:tint="?attr/colorCustomButton" />
+
+    <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+        android:id="@+id/button_selftimer_3s"
+        app:button="SELFTIMER_3S"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/button_record"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/button_shutter"
+        app:layout_constraintHorizontal_weight="0.25"
+        app:layout_constraintDimensionRatio="H,1:1"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ca_timer_3s"
+        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+        app:tint="?attr/colorCustomButton" />
+
+    <TextView
+        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/button_selftimer_3s"
+        app:layout_constraintBottom_toBottomOf="@id/button_selftimer_3s"
+        app:layout_constraintStart_toStartOf="@id/button_selftimer_3s"
+        app:layout_constraintEnd_toEndOf="@id/button_selftimer_3s"
+        android:textAlignment="center"
+        android:text="@string/camera_button_selftimer_3s"
+        />
+
+    <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+        android:id="@+id/button_record"
+        app:button="RECORD"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/button_shutter"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="@id/button_shutter"
+        app:layout_constraintEnd_toEndOf="@id/button_shutter"
+        app:layout_constraintVertical_weight="0.2"
+        app:layout_constraintDimensionRatio="V,1:1"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ca_record"
+        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+        />
+
+    <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+        android:id="@+id/button_af_on"
+        app:button="AF_ON"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@id/button_record"
+        app:layout_constraintStart_toEndOf="@id/buttons_focus"
+        app:layout_constraintEnd_toStartOf="@id/button_record"
+        app:layout_constraintBottom_toBottomOf="@id/button_record"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ca_af_on"
+        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+        app:tint="?attr/colorCustomButton" />
+
+    <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+        android:id="@+id/button_c1"
+        app:button="C1"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@id/button_record"
+        app:layout_constraintStart_toEndOf="@id/button_record"
+        app:layout_constraintEnd_toStartOf="@id/buttons_zoom"
+        app:layout_constraintBottom_toBottomOf="@id/button_record"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ca_c1"
+        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+        app:tint="?attr/colorCustomButton" />
+
+    <androidx.cardview.widget.CardView
+        xmlns:card_view="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/buttons_focus"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@id/button_record"
+        app:layout_constraintBottom_toBottomOf="@id/button_c1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/button_af_on"
+        app:layout_constraintDimensionRatio="H,3:1"
+        android:layout_margin="10dp"
+        card_view:cardCornerRadius="5dp"
+        card_view:cardBackgroundColor="?attr/colorZoomFocusBG">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+                android:id="@+id/button_focus_near"
+                app:button="FOCUS_NEAR"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ca_focus_near"
+                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+                app:tint="?attr/colorCustomButton" />
+
+            <TextView
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:textAlignment="gravity"
+                android:gravity="center"
+                android:text="@string/camera_button_focus" />
+
+            <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+                android:id="@+id/button_focus_far"
+                app:button="FOCUS_FAR"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ca_focus_far"
+                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+                app:tint="?attr/colorCustomButton" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        xmlns:card_view="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/buttons_zoom"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@id/button_record"
+        app:layout_constraintBottom_toBottomOf="@id/button_c1"
+        app:layout_constraintStart_toEndOf="@id/button_c1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintDimensionRatio="H,3:1"
+        android:layout_margin="10dp"
+        card_view:cardCornerRadius="5dp"
+        card_view:cardBackgroundColor="?attr/colorZoomFocusBG">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+                android:id="@+id/button_zoom_out"
+                app:button="ZOOM_OUT"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ca_zoom_out"
+                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+                app:tint="?attr/colorCustomButton" />
+
+            <TextView
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:textAlignment="gravity"
+                android:gravity="center"
+                android:text="@string/camera_button_zoom" />
+
+            <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
+                android:id="@+id/button_zoom_in"
+                app:button="ZOOM_IN"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.5"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ca_zoom_in"
+                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
+                app:tint="?attr/colorCustomButton" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

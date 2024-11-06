@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="viewModel"
+            type="org.staacks.alpharemote.ui.settings.SettingsViewModel" />
+        <variable
+            name="fragment"
+            type="org.staacks.alpharemote.ui.settings.SettingsFragment" />
+        <import type="android.view.View"/>
+        <import type="org.staacks.alpharemote.ui.settings.SettingsViewModel.SettingsUICameraState" />
+    </data>
+
+<ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fillViewport="true"
+    tools:context=".ui.settings.SettingsFragment">
+
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/fragment_margin"
+        android:animateLayoutChanges="true"
+        android:orientation="vertical"
+        >
+
+        <TextView
+            android:id="@+id/custom_buttons_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/title_settings"
+            android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+        <!-- Missing permissions -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/headline_margin_top"
+            android:layout_marginBottom="@dimen/headline_margin_bottom"
+            android:textColor="?attr/colorSecondary"
+            android:text="@string/settings_missing_permission_title"
+            android:visibility="@{viewModel.uiState.cameraState != SettingsUICameraState.NOT_ASSOCIATED &amp;&amp; (!viewModel.uiState.notificationPermissionGranted || !viewModel.uiState.bluetoothPermissionGranted) ? View.VISIBLE : View.GONE}"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorSecondary"
+            android:visibility="@{viewModel.uiState.cameraState != SettingsUICameraState.NOT_ASSOCIATED &amp;&amp; !viewModel.uiState.bluetoothPermissionGranted ? View.VISIBLE : View.GONE}"
+            android:text="@string/settings_missing_bluetooth_permission_warning" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_horizontal|center_vertical"
+            app:icon="@drawable/button_ble_scan"
+            android:backgroundTint="?attr/colorSecondary"
+            android:visibility="@{viewModel.uiState.cameraState != SettingsUICameraState.NOT_ASSOCIATED &amp;&amp; !viewModel.uiState.bluetoothPermissionGranted ? View.VISIBLE : View.GONE}"
+            android:onClick="@{() -> viewModel.requestBluetoothPermission()}"
+            android:text="@string/settings_bluetooth_permission_button" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorSecondary"
+            android:visibility="@{viewModel.uiState.cameraState != SettingsUICameraState.NOT_ASSOCIATED &amp;&amp; !viewModel.uiState.notificationPermissionGranted ? View.VISIBLE : View.GONE}"
+            android:text="@string/settings_missing_notification_permission_warning" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center_horizontal|center_vertical"
+            android:backgroundTint="?attr/colorSecondary"
+            app:icon="@drawable/button_notifications"
+            android:visibility="@{viewModel.uiState.cameraState != SettingsUICameraState.NOT_ASSOCIATED &amp;&amp; !viewModel.uiState.notificationPermissionGranted ? View.VISIBLE : View.GONE}"
+            android:onClick="@{() -> viewModel.requestNotificationPermission()}"
+            android:text="@string/settings_notification_permission_button" />
+
+        <!-- Camera -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/headline_margin_top"
+            android:layout_marginBottom="@dimen/headline_margin_bottom"
+            android:text="@string/settings_camera"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="@{viewModel.uiState.cameraState == SettingsUICameraState.OFFLINE ? View.VISIBLE : View.GONE}"
+            android:text="@{@string/settings_camera_offline(viewModel.uiState.cameraName == null ? @string/settings_camera_unknown_name : viewModel.uiState.cameraName)}" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorTextConnected"
+            android:visibility="@{viewModel.uiState.cameraState == SettingsUICameraState.CONNECTED ? View.VISIBLE : View.GONE}"
+            android:text="@{@string/settings_camera_connected(viewModel.uiState.cameraName == null ? @string/settings_camera_unknown_name : viewModel.uiState.cameraName)}" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorTextError"
+            android:visibility='@{viewModel.uiState.cameraError != null ? View.VISIBLE : View.GONE}'
+            android:text="@{@string/settings_camera_error(viewModel.uiState.cameraError)}" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility='@{viewModel.uiState.cameraState == SettingsUICameraState.NOT_ASSOCIATED ? View.VISIBLE : View.GONE}'
+            android:text="@string/settings_camera_not_associated" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorTextError"
+            android:visibility='@{viewModel.uiState.cameraState == SettingsUICameraState.NOT_BONDED ? View.VISIBLE : View.GONE}'
+            android:text="@{@string/settings_camera_not_bonded}" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?android:buttonBarStyle">
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" >
+            </Space>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal|center_vertical"
+                app:icon="@drawable/button_ble_scan"
+                android:visibility='@{viewModel.uiState.cameraState == SettingsUICameraState.NOT_ASSOCIATED ? View.VISIBLE : View.GONE}'
+                android:onClick="@{() -> viewModel.pair()}"
+                android:text="@string/settings_camera_add" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal|center_vertical"
+                app:icon="@drawable/baseline_remove_circle_outline_24"
+                android:visibility='@{viewModel.uiState.cameraState != SettingsUICameraState.NOT_ASSOCIATED ? View.VISIBLE : View.GONE}'
+                android:onClick="@{() -> viewModel.unpair()}"
+                android:text="@string/settings_camera_remove" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" >
+            </Space>
+
+            <Button
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/help"
+                android:gravity="center_horizontal|center_vertical"
+                app:icon="@drawable/baseline_help_24"
+                android:onClick="@{() -> viewModel.helpConnection()}"
+                >
+            </Button>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" >
+            </Space>
+
+        </LinearLayout>
+
+        <!-- Custom buttons -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/headline_margin_top"
+            android:layout_marginBottom="@dimen/headline_margin_bottom"
+            android:text="@string/settings_custom_buttons"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/settings_custom_buttons_explanation"
+            />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/custom_buttons_list"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?android:buttonBarStyle">
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" >
+            </Space>
+
+            <Button
+                android:id="@+id/add_custom_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:onClick="@{() -> viewModel.addCustomButton()}"
+                android:text="@string/settings_custom_buttons_add" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" >
+            </Space>
+
+            <Button
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/help"
+                android:gravity="center_horizontal|center_vertical"
+                app:icon="@drawable/baseline_help_24"
+                android:onClick="@{() -> viewModel.helpCustomButtons()}"
+                >
+            </Button>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" >
+            </Space>
+
+        </LinearLayout>
+
+        <!-- Notification button size -->
+
+        <TextView
+            android:id="@+id/button_size_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/headline_margin_bottom"
+            android:layout_marginTop="@dimen/headline_margin_top"
+            android:text="@string/settings_button_size"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_button_size_explanation"
+            />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+
+            <TextView
+                android:id="@+id/button_scale_smaller"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:text="@string/settings_button_size_smaller"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+            <SeekBar
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                style="@style/Widget.AppCompat.SeekBar.Discrete"
+                android:max="@{viewModel.buttonScaleSteps.size()-1}"
+                android:progress="@{viewModel.buttonScaleIndex}"
+                android:onProgressChanged="@{viewModel::setButtonScale}"
+                android:layout_toEndOf="@id/button_scale_smaller"
+                android:layout_toStartOf="@id/button_scale_larger"
+                android:layout_centerVertical="true"
+                android:layout_alignBottom="@id/button_scale_smaller"
+                />
+
+            <TextView
+                android:id="@+id/button_scale_larger"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                android:text="@string/settings_button_size_larger"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+        </RelativeLayout>
+
+        <!-- Broadcast control -->
+
+        <TextView
+            android:id="@+id/broadcast_control_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/headline_margin_bottom"
+            android:layout_marginTop="@dimen/headline_margin_top"
+            android:text="@string/settings_broadcast_control"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_broadcast_control_explanation"
+            />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_broadcast_control_toggle"
+            android:checked="@{viewModel.broadcastControl}"
+            android:onCheckedChanged="@{viewModel::setBroadcastControl}"
+            />
+
+        <Button
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_broadcast_control_more_label"
+            android:gravity="center_horizontal|center_vertical"
+            app:icon="@drawable/button_documentation"
+            android:layout_gravity="end"
+            android:onClick="@{() -> fragment.openURL(@string/settings_broadcast_control_more_url)}"
+            >
+        </Button>
+
+    </LinearLayout>
+
+</ScrollView>
+</layout>

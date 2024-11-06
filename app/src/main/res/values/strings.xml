@@ -1,0 +1,119 @@
+<resources>
+    <string name="app_name">α-Remote</string>
+
+    <string name="title_about">About</string>
+    <string name="title_camera">Camera</string>
+    <string name="title_settings">Settings</string>
+
+    <string name="camera_not_connected">No camera connected.\n\nPlease turn on your camera or check the connection in the settings tab.</string>
+
+    <string name="camera_button_half_shutter">Focus</string>
+    <string name="camera_button_shutter">Shutter</string>
+    <string name="camera_button_selftimer_3s">Timer</string>
+    <string name="camera_button_record">Record</string>
+    <string name="camera_button_focus">Focus</string>
+    <string name="camera_button_zoom">Zoom</string>
+
+    <string name="permission_bluetooth_rationale">As the app communicates with the camera via Bluetooth it needs permission to use Bluetooth.</string>
+    <string name="permission_notification_rationale">If you want to control your camera from the notification area, you need to allow this app to show notifications.</string>
+
+    <string name="settings_missing_permission_title">Permission required</string>
+    <string name="settings_missing_notification_permission_warning">Warning: The app needs permission to show notifications. Without this permission, the remote works, but the buttons will not show up in your phone\'s notification area.</string>
+    <string name="settings_notification_permission_button">Allow notifications</string>
+    <string name="settings_missing_bluetooth_permission_warning">Error: The app communicates with your camera via Bluetooth. It cannot work unless you grant the permission to search for nearby devices.</string>
+    <string name="settings_bluetooth_permission_button">Allow Bluetooth</string>
+
+    <string name="settings_camera">Camera</string>
+    <string name="settings_camera_offline">\"%s\" is offline.</string>
+    <string name="settings_camera_connected">Connected to \"%s\".</string>
+    <string name="settings_camera_error">Error: %s</string>
+    <string name="settings_camera_not_associated">The app is currently not associated with a camera.</string>
+    <string name="settings_camera_not_bonded">The app has been associated with a camera, but the pairing was not completed. Please connect the camera again and make sure to confirm the pairing with your phone on the camera.</string>
+    <string name="settings_camera_unknown_name">unknown</string>
+
+    <string name="settings_camera_add">Add Camera</string>
+    <string name="settings_camera_add_info">1. Please check on your camera that the setting \"Bluetooth remote control\" is set to \"On\".\n\n2. Start Bluetooth pairing on your camera from the \"Bluetooth Settings\" menu.\n\n3. Press \"Search Camera\" below.\n\n4. Confirm pairing on camera (if prompted).</string>
+    <string name="settings_camera_add_confirm">Search Camera</string>
+
+    <string name="settings_camera_remove">Remove Camera</string>
+    <string name="settings_camera_remove_question">Do you want to remove this camera from the app?</string>
+    <string name="settings_camera_remove_confirm">Remove Camera</string>
+
+    <string name="settings_custom_buttons">Custom buttons</string>
+    <string name="settings_custom_buttons_explanation">Here you can define and edit custom buttons. Rearrange them by dragging the handle or remove buttons by dragging them to the side.</string>
+    <string name="settings_custom_buttons_add">Add new button</string>
+    <string name="settings_custom_buttons_handle_accessibility">Drag this handle to rearrange or remove custom buttons.</string>
+
+    <string name="settings_button_size">Notification button size</string>
+    <string name="settings_button_size_explanation">Adjust the size of the custom buttons in the notification area.</string>
+    <string name="settings_button_size_smaller">−</string>
+    <string name="settings_button_size_larger">+</string>
+
+    <string name="settings_broadcast_control">Broadcast control</string>
+    <string name="settings_broadcast_control_explanation">Allow other apps to send camera control commands via broadcasted intents? This allows automation through apps like "Tasker".</string>
+    <string name="settings_broadcast_control_more_label">Documentation</string>
+    <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/ble-camera-remote-app</string>
+    <string name="settings_broadcast_control_toggle">Allow broadcast control</string>
+
+    <string name="about_author_title">Author</string>
+    <string name="about_author_text">This app has been created by Sebastian Staacks. You can find out more about me and my projects in my blog "there.oughta.be" or its accompanying Youtube channel.</string>
+    <string name="about_blog_label">Blog</string>
+    <string name="about_blog_url">https://there.oughta.be</string>
+    <string name="about_youtube_label">YouTube</string>
+    <string name="about_youtube_url">https://youtube.com/c/thereoughtabe</string>
+
+    <string name="about_support_title">Support me</string>
+    <string name="about_support_text">If you like what I do and want to support my work, you can buy me a coffee.</string>
+    <string name="about_coffee_label">Buy me a coffee</string>
+    <string name="about_coffee_url">https://buymeacoffee.com/there.oughta.be</string>
+
+    <string name="about_license_title">License</string>
+    <string name="about_license_text">The source code of this app has not yet been released, but will be published under the GNU GPL v3 license soon when the beta phase ends. </string>
+
+    <string name="about_github_title">Source and bug reports</string>
+    <string name="about_github_text">Upon release, the source code can be found on GitHub. There you can also find the issue tracker where you can report bugs.</string>
+    <string name="about_github_code_label">Source code</string>
+    <string name="about_github_code_url">https://github.com/Staacks/alpharemote</string>
+    <string name="about_github_issues_label">Report an issue</string>
+    <string name="about_github_issues_url">https://github.com/Staacks/alpharemote/issues</string>
+
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="action">Action</string>
+    <string name="self_timer">Self timer</string>
+    <string name="hold_button">Hold button</string>
+    <string name="toggle_button">Toggle button</string>
+    <string name="speed">Speed</string>
+    <string name="toggle">Toggle</string>
+
+    <string name="status_offline">Offline</string>
+    <string name="status_error">Error</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_focus">Focus status</string>
+    <string name="status_shutter">Shutter status</string>
+    <string name="status_recording">Recording status</string>
+
+    <string name="seconds">%.1f s</string>
+
+    <string name="action_name_none">None</string>
+    <string name="action_name_shutter_half">Focus</string>
+    <string name="action_name_shutter">Shutter</string>
+    <string name="action_name_trigger_once">Trigger Once</string>
+    <string name="action_name_record">Record</string>
+    <string name="action_name_af_on">AF On</string>
+    <string name="action_name_c1">C1</string>
+    <string name="action_name_zoom_in">Zoom In</string>
+    <string name="action_name_zoom_out">Zoom Out</string>
+    <string name="action_name_focus_far">Focus Far</string>
+    <string name="action_name_focus_near">Focus Near</string>
+
+    <string name="help">Help</string>
+    <string name="help_settings_connection_troubleshooting_title">Connection Troubleshooting</string>
+    <string name="help_settings_connection_troubleshooting_text">On your camera make sure that \"Bluetooth remote control\" is enabled. This is a separate setting that might get disabled if you enable other remote control methods (like IR remote).\n\nThe settings might have different names on different camera models or might be abbreviated like \"Camera Rmt Ctrl\". Please check your camera\'s manual to find all Bluetooth related settings.\n\nIf the camera does not offer pairing because it is already paired to your phone, check your phone\'s Bluetooth settings to remove an existing pairing that is not linked to this app.</string>
+    <string name="help_settings_custom_buttons_title">Custom Buttons</string>
+    <string name="help_settings_custom_buttons_text">Here you can pick the buttons that you want to show up in your phone\'s notification area.\n\nNote, that these buttons only support simple taps, but cannot be held down. Therefore, you can enable a toggle function (tap to press and tap again to release) and/or a hold duration. This is especially relevant for buttons that act as \"jogs\" like zoom buttons. Here you probably want to enable a short duration along with a high speed.\n\nMost of these functions act like the buttons or jogs on your camera, but there are two exceptions:\n\n\"Focus\" is equivalent to half-pressing the shutter button. If you add it as a toggle, using any of the shutter function will automatically release the focus button, too.\n\n\"Trigger once\" will fully press the shutter button and keep it pressed until the camera reports that the shutter has been opened. In contrast to the normal shutter button, this ensures that the shutter is released even if the camera takes a moment to focus. However, the response time of the shutter status for this function is too slow to prevent taking multiple pictures if the camera is set to burst mode.</string>
+    <string name="help_camera_remote_title">The remote</string>
+    <string name="help_camera_remote_text">In the top-left corner you can see the status of your camera, specifically the state of its focus, its shutter and its video recording state.\n\nThe buttons in the horizontal bar at the bottom are the same that you will find in your phone\'s notification area and they behave in the same way, including their limitation to only support simple taps, but not holding them down.\n\nIn contrast to this, the buttons on the main part of this screen match the buttons on your camera and you can actually hold them. With the exception being that \"AF ON\" is a toggle (it\'s a bit tricky to hold that and touch the trigger at the same time) as well as \"Focus\", which is the equivalent to half-pressing your shutter button.</string>
+
+</resources>

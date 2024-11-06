@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cyan">#FF0BA6D0</color>
+    <color name="midnight_light">#FF066079</color>
+    <color name="midnight">#FF054D61</color>
+    <color name="fulvous">#FFE98A15</color>
+    <color name="ochre">#FFC47412</color>
+    <color name="black">#FF000000</color>
+    <color name="gray10">#FF1a1a1a</color>
+    <color name="gray20">#FF333333</color>
+    <color name="gray30">#FF4d4d4d</color>
+    <color name="gray40">#FF666666</color>
+    <color name="gray50">#FF808080</color>
+    <color name="gray60">#FF999999</color>
+    <color name="gray70">#FFb3b3b3</color>
+    <color name="gray80">#FFcccccc</color>
+    <color name="gray90">#FFe6e6e6</color>
+    <color name="white">#FFFFFFFF</color>
+
+
+    <color name="dark_red">#800000</color>
+    <color name="light_red">#ff8080</color>
+    <color name="dark_green">#008000</color>
+    <color name="light_green">#80ff80</color>
+</resources>

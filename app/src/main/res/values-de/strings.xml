@@ -1,0 +1,118 @@
+<resources>
+    <string name="app_name">α-Remote</string>
+    <string name="title_about">Über</string>
+    <string name="title_camera">Kamera</string>
+    <string name="title_settings">Einstellungen</string>
+
+    <string name="camera_not_connected">Keine Kamera verbunden.\n\nBitte schalte die Kamera ein oder prüfe die Verbindung im Einstellungen-Tab.</string>
+
+    <string name="camera_button_half_shutter">Fokus</string>
+    <string name="camera_button_shutter">Auslöser</string>
+    <string name="camera_button_selftimer_3s">Selbstauslöser</string>
+    <string name="camera_button_record">Aufnahme</string>
+    <string name="camera_button_focus">Fokus</string>
+    <string name="camera_button_zoom">Zoom</string>
+
+    <string name="permission_bluetooth_rationale">Da die App mittels Bluetooth mit der Kamera kommuniziert, wird die Bluetooth-Berechtigung benötigt.</string>
+    <string name="permission_notification_rationale">Wenn du die Kamera aus dem Benachrichtigungsbereich deines Handys steuern möchtest, musst du der App erlauben, Benachrichtigungen anzuzeigen.</string>
+
+    <string name="settings_missing_permission_title">Berechtigung fehlt</string>
+    <string name="settings_missing_notification_permission_warning">Achtung: Diese App benötigt eine Berechtigung um Benachrichtigungen anzuzeigen. Ohne diese Berechtigung funktioniert die Fernbedienung zwar, aber die Tasten werden nicht im Benachrichtigungsbereich deines Handys angezeigt.</string>
+    <string name="settings_notification_permission_button">Benachrichtigungen zulassen</string>
+    <string name="settings_missing_bluetooth_permission_warning">Fehler: Diese App kommuniziert mit deiner Kamera über Bluetooth. Sie kann nicht funktionieren solange sie nicht die Berechtigung hat, nach Geräten in der Nähe zu suchen.</string>
+    <string name="settings_bluetooth_permission_button">Bluetooth zulassen</string>
+
+    <string name="settings_camera">Kamera</string>
+    <string name="settings_camera_offline">„%s“ ist offline.</string>
+    <string name="settings_camera_connected">Verbunden mit „%s“.</string>
+    <string name="settings_camera_error">Fehler: %s</string>
+    <string name="settings_camera_not_associated">Die App ist derzeit nicht mit einer Kamera verknüpft.</string>
+    <string name="settings_camera_not_bonded">Die App wurde mit einer Kamera verknüpft, aber nicht gekoppelt. Bitte verbinde die Kamera erneut und achte darauf, auch auf der Kamera die Kopplung mit deinem Handy zu bestätigen.</string>
+    <string name="settings_camera_unknown_name">unbekannt</string>
+
+    <string name="settings_camera_add">Kamera hinzufügen</string>
+    <string name="settings_camera_add_info">1. Überprüfe an deiner Kamera, dass die Einstellung „Bluetooth-Fernbedienung“ auf „Ein“ gesetzt ist.\n\n2. Starte die Bluetooth-Kopplung an deiner Kamera im Menü „Bluetooth-Einstellungen“.\n\n3. Drücke unten auf „Kamera suchen“.\n\n4. Kopplung auf Kamera bestätigen (falls diese danach fragt).</string>
+    <string name="settings_camera_add_confirm">Kamera suchen</string>
+
+    <string name="settings_camera_remove">Kamera entfernen</string>
+    <string name="settings_camera_remove_question">Möchtest du diese Kamera aus der App entfernen?</string>
+    <string name="settings_camera_remove_confirm">Kamera entfernen</string>
+
+    <string name="settings_custom_buttons">Eigene Tasten</string>
+    <string name="settings_custom_buttons_explanation">Hier kannst du eigene Tasten festlegen und bearbeiten. Ordne sie neu an, indem du an den zwei Strichen ziehst oder entferne sie durch Wischen zur Seite.</string>
+    <string name="settings_custom_buttons_add">Taste hinzufügen</string>
+    <string name="settings_custom_buttons_handle_accessibility">Ziehe hier um die Einträge neu anzuordnen oder zu entfernen/.</string>
+
+    <string name="settings_button_size">Benachrichtigungs-Tastengröße</string>
+    <string name="settings_button_size_explanation">Ändere die Größe der eigenen Tasten im Benachrichtigungsbereich.</string>
+    <string name="settings_button_size_smaller">−</string>
+    <string name="settings_button_size_larger">+</string>
+
+    <string name="settings_broadcast_control">Broadcast-Steuerung</string>
+    <string name="settings_broadcast_control_explanation">Erlaube anderen Apps, über Broadcast Intents Steuerbefehle an die Kamera zu senden? Dies ermöglicht Automatisierungen durch Apps wie "Tasker".</string>
+    <string name="settings_broadcast_control_more_label">Dokumentation</string>
+    <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/ble-camera-remote-app</string>
+    <string name="settings_broadcast_control_toggle">Broadcast-Steuerung erlauben</string>
+
+    <string name="about_author_title">Autor</string>
+    <string name="about_author_text">Diese App wurde von Sebastian Staacks entwickelt. In meinem Blog „there.oughta.be“ oder dem zugehörigen Youtube-Kanal kannst du mehr über mich und meine Projekte erfahren.</string>
+    <string name="about_blog_label">Blog</string>
+    <string name="about_blog_url">https://there.oughta.be</string>
+    <string name="about_youtube_label">YouTube</string>
+    <string name="about_youtube_url">https://youtube.com/c/thereoughtabe</string>
+
+    <string name="about_support_title">Unterstütze mich</string>
+    <string name="about_support_text">Wenn du mich und meine Arbeit unterstützen möchtest, kannst du mir einen Kaffee ausgeben.</string>
+    <string name="about_coffee_label">Buy me a coffee</string>
+    <string name="about_coffee_url">https://buymeacoffee.com/there.oughta.be</string>
+
+    <string name="about_license_title">Lizenz</string>
+    <string name="about_license_text">Der Quellcode dieser App wurde noch nicht freigegeben, wird aber unter der GNU GPL v3 Lizenz veröffentlicht sobald die Beta-Phase endet.</string>
+
+    <string name="about_github_title">Quellcode und Bug-Reports</string>
+    <string name="about_github_text">Nach Release wird der Quellcode auf GitHub zu finden sein. Fehler und Probleme kannst du dann dort im Issue-Tracker melden.</string>
+    <string name="about_github_code_label">Quellcode</string>
+    <string name="about_github_code_url">https://github.com/Staacks/alpharemote</string>
+    <string name="about_github_issues_label">Fehler melden</string>
+    <string name="about_github_issues_url">https://github.com/Staacks/alpharemote/issues</string>
+
+    <string name="save">Speichern</string>
+    <string name="cancel">Abbrechen</string>
+
+    <string name="action">Aktion</string>
+    <string name="self_timer">Selbstauslöser</string>
+    <string name="hold_button">Taste halten</string>
+    <string name="toggle_button">Taste umschalten</string>
+    <string name="speed">Geschwindigkeit</string>
+    <string name="toggle">umschalten</string>
+
+    <string name="status_offline">Offline</string>
+    <string name="status_error">Fehler</string>
+    <string name="status_connecting">Verbinde…</string>
+    <string name="status_focus">Status Fokus</string>
+    <string name="status_shutter">Status Verschluss</string>
+    <string name="status_recording">Status Aufnahme</string>
+
+    <string name="seconds">%.1f s</string>
+
+    <string name="action_name_none">Nichts</string>
+    <string name="action_name_shutter_half">Fokus</string>
+    <string name="action_name_shutter">Auslöser</string>
+    <string name="action_name_trigger_once">Einmal auslösen</string>
+    <string name="action_name_record">Aufnahme</string>
+    <string name="action_name_af_on">AF an</string>
+    <string name="action_name_c1">C1</string>
+    <string name="action_name_zoom_in">Reinzoomen</string>
+    <string name="action_name_zoom_out">Rauszoomen</string>
+    <string name="action_name_focus_far">Fokus fern</string>
+    <string name="action_name_focus_near">Fokus nah</string>
+
+    <string name="help">Hilfe</string>
+    <string name="help_settings_connection_troubleshooting_title">Problembehebung der Verbindung</string>
+    <string name="help_settings_connection_troubleshooting_text">Stelle sicher, dass auf deiner Kamera die Einstellung „Bluetooth-Fernbedienung“ aktiviert ist. Dies ist eine separate Einstellung, die möglicherweise deaktiviert wird, wenn du andere Fernsteuerungsmethoden (wie eine Infrarotfernbedienung) aktivierst.\n\nDie Einstellungen können bei verschiedenen Kameramodellen unterschiedliche Bezeichnungen haben oder abgekürzt sein, z.B. „Bluetooth-Fernbed.“. Bitte überprüfe das Handbuch deiner Kamera, um alle Bluetooth-bezogenen Einstellungen zu finden.\n\nFalls die Kamera keine Kopplung anbietet, weil sie bereits mit deinem Handy gekoppelt ist, überprüfe die Bluetooth-Einstellungen deines Handys und entferne eine vorhandene Kopplung, die nicht mit dieser App verknüpft ist.</string>
+    <string name="help_settings_custom_buttons_title">Eigene Tasten</string>
+    <string name="help_settings_custom_buttons_text">Hier kannst du die Tasten auswählen, die im Benachrichtigungsbereich deines Handys angezeigt werden sollen.\n\nBeachte, dass diese Tasten nur einfache Tippbefehle unterstützen und nicht gedrückt gehalten werden können. Daher kannst du eine Umschaltfunktion aktivieren (einmal tippen zum Halten und nochmal tippen zum Loslassen) und/oder eine Haltezeit einstellen. Das ist besonders relevant für Schaltflächen, die als Tippschalter dienen, wie etwa Zoom-Tasten. Hier möchtest du wahrscheinlich eine kurze Haltezeit mit einer hohen Geschwindigkeit aktivieren.\n\nDie meisten dieser Funktionen verhalten sich wie die Tasten oder Tippschalter an deiner Kamera. Es gibt jedoch zwei Ausnahmen:\n\n„Fokus“ entspricht dem halb gedrückten Auslöser. Wenn du ihn als Umschaltfunktion hinzufügst, wird jede Auslösung automatisch auch die Fokus-Taste loslassen.\n\n„Einmal auslösen“ drückt den Auslöser vollständig und hält ihn gedrückt, bis die Kamera meldet, dass der Verschluss geöffnet wurde. Im Gegensatz zur normalen Auslösetaste stellt dies sicher, dass der Verschluss ausgelöst wird, selbst wenn die Kamera einen Moment zum Fokussieren benötigt. Allerdings ist die Reaktionszeit des Auslöse-Status für diese Funktion zu langsam, um das Aufnehmen mehrerer Bilder zu verhindern, wenn die Kamera auf Serienaufnahme eingestellt ist.</string>
+    <string name="help_camera_remote_title">Die Fernbedienung</string>
+    <string name="help_camera_remote_text">In der oberen linken Ecke siehst du den Status deiner Kamera, konkret den Status des Fokus, den Verschluss und den Status der Videoaufnahme.\n\nDie Tasten in der horizontalen Leiste unten sind die gleichen, die du auch im Benachrichtigungsbereich deines Telefons findest, und sie verhalten sich auf die gleiche Weise, einschließlich der Einschränkung, dass sie nur einfache Tippbefehle unterstützen und nicht gehalten werden können.\n\nIm Gegensatz dazu entsprechen die Tasten im Hauptbereich dieses Bildschirms denen an deiner Kamera, und du kannst sie auch halten. Die Ausnahmen sind „AF an“, das als Umschalter fungiert (es ist etwas knifflig, diese Taste gedrückt zu halten und gleichzeitig den Auslöser zu bedienen), sowie „Fokus“, was dem halb gedrückten Auslöser entspricht.</string>
+
+</resources>

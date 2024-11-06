@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="colorTextConnected" format="reference" />
+    <attr name="colorTextError" format="reference" />
+    <attr name="colorCustomButton" format="reference" />
+    <attr name="colorCustomButtonBG" format="reference" />
+    <attr name="colorZoomFocusBG" format="reference" />
+
+    <declare-styleable name="DefaultRemoteButton">
+        <attr name="button" format="enum">
+            <!-- IMPORTANT! Make sure that this matches the enum in DefaultRemoteButton.kt -->
+            <enum name="SHUTTER" value="0" />
+            <enum name="SHUTTER_HALF" value="1" />
+            <enum name="SELFTIMER_3S" value="2" />
+            <enum name="RECORD" value="3" />
+            <enum name="C1" value="4" />
+            <enum name="AF_ON" value="5" />
+            <enum name="ZOOM_IN" value="6" />
+            <enum name="ZOOM_OUT" value="7" />
+            <enum name="FOCUS_FAR" value="8" />
+            <enum name="FOCUS_NEAR" value="9" />
+        </attr>
+    </declare-styleable>
+</resources>
