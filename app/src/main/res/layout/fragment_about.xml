@@ -145,25 +145,7 @@
             </Space>
 
         </LinearLayout>
-
-
-        <!-- License -->
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/headline_margin_top"
-            android:layout_marginBottom="@dimen/headline_margin_bottom"
-            android:text="@string/about_license_title"
-            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:text="@string/about_license_text"
-            />
-
+        
 
         <!-- Github -->
 

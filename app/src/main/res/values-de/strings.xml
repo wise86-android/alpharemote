@@ -66,11 +66,8 @@
     <string name="about_coffee_label">Buy me a coffee</string>
     <string name="about_coffee_url">https://buymeacoffee.com/there.oughta.be</string>
 
-    <string name="about_license_title">Lizenz</string>
-    <string name="about_license_text">Der Quellcode dieser App wurde noch nicht freigegeben, wird aber unter der GNU GPL v3 Lizenz veröffentlicht sobald die Beta-Phase endet.</string>
-
     <string name="about_github_title">Quellcode und Bug-Reports</string>
-    <string name="about_github_text">Nach Release wird der Quellcode auf GitHub zu finden sein. Fehler und Probleme kannst du dann dort im Issue-Tracker melden.</string>
+    <string name="about_github_text">Der Quellcode dieser App wurde unter der GNU GPL v3 Lizenz veröffentlicht und ist auf GitHub zu finden. Fehler und Probleme kannst du dort im Issue-Tracker melden.</string>
     <string name="about_github_code_label">Quellcode</string>
     <string name="about_github_code_url">https://github.com/Staacks/alpharemote</string>
     <string name="about_github_issues_label">Fehler melden</string>

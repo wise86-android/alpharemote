@@ -67,11 +67,8 @@
     <string name="about_coffee_label">Buy me a coffee</string>
     <string name="about_coffee_url">https://buymeacoffee.com/there.oughta.be</string>
 
-    <string name="about_license_title">License</string>
-    <string name="about_license_text">The source code of this app has not yet been released, but will be published under the GNU GPL v3 license soon when the beta phase ends. </string>
-
     <string name="about_github_title">Source and bug reports</string>
-    <string name="about_github_text">Upon release, the source code can be found on GitHub. There you can also find the issue tracker where you can report bugs.</string>
+    <string name="about_github_text">The source code of this app has been published under the GNU GPL v3 license and can be found on GitHub. There you can also find the issue tracker where you can report bugs.</string>
     <string name="about_github_code_label">Source code</string>
     <string name="about_github_code_url">https://github.com/Staacks/alpharemote</string>
     <string name="about_github_issues_label">Report an issue</string>
