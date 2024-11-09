@@ -1,0 +1,1 @@
+Erste Beta-Version für F-Droid mit Meta-Daten, Bildern und aktualisierten Links zum veröffentlichten Quellcode.

@@ -1,0 +1,2 @@
+Initial beta release for F-Droid with meta data and images and updated links to published source code.
+
