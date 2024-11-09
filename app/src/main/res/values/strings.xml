@@ -99,6 +99,7 @@
     <string name="action_name_shutter_half">Focus</string>
     <string name="action_name_shutter">Shutter</string>
     <string name="action_name_trigger_once">Trigger Once</string>
+    <string name="action_name_trigger_on_focus">Trigger on focus</string>
     <string name="action_name_record">Record</string>
     <string name="action_name_af_on">AF On</string>
     <string name="action_name_c1">C1</string>

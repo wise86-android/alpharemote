@@ -101,6 +101,15 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
         userOptions = setOf(CameraActionTemplateOption.SELFTIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
+    TRIGGER_ON_FOCUS(CameraActionTemplate(R.string.action_name_trigger_on_focus, R.drawable.ca_trigger_on_focus,
+        press = listOf(CAButton(true, ButtonCode.SHUTTER_HALF),
+            CAWaitFor(WaitTarget.FOCUS),
+            CAButton(true, ButtonCode.SHUTTER_FULL),
+            CAButton(false, ButtonCode.SHUTTER_FULL),
+            CAButton(false, ButtonCode.SHUTTER_HALF)),
+        userOptions = setOf(CameraActionTemplateOption.SELFTIMER),
+        referenceButton = ButtonCode.SHUTTER_FULL
+    )),
     RECORD(CameraActionTemplate(R.string.action_name_record, R.drawable.ca_record, true,
         press = listOf(CAButton(true, ButtonCode.RECORD)),
         release = listOf(CAButton(false, ButtonCode.RECORD)),

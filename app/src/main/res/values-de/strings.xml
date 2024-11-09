@@ -98,6 +98,7 @@
     <string name="action_name_shutter_half">Fokus</string>
     <string name="action_name_shutter">Auslöser</string>
     <string name="action_name_trigger_once">Einmal auslösen</string>
+    <string name="action_name_trigger_on_focus">Bei Fokus auslösen</string>
     <string name="action_name_record">Aufnahme</string>
     <string name="action_name_af_on">AF an</string>
     <string name="action_name_c1">C1</string>
