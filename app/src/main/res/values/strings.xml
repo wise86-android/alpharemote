@@ -17,6 +17,8 @@
     <string name="permission_bluetooth_rationale">As the app communicates with the camera via Bluetooth it needs permission to use Bluetooth.</string>
     <string name="permission_notification_rationale">If you want to control your camera from the notification area, you need to allow this app to show notifications.</string>
 
+    <string name="settings_bluetooth_disabled">Bluetooth is currently disabled. Please turn on Bluetooth to use this app.</string>
+
     <string name="settings_missing_permission_title">Permission required</string>
     <string name="settings_missing_notification_permission_warning">Warning: The app needs permission to show notifications. Without this permission, the remote works, but the buttons will not show up in your phone\'s notification area.</string>
     <string name="settings_notification_permission_button">Allow notifications</string>

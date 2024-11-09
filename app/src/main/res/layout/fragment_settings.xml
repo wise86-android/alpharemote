@@ -96,6 +96,13 @@
             android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorError"
+            android:text="@string/settings_bluetooth_disabled"
+            android:visibility="@{!viewModel.uiState.bluetoothEnabled ? View.VISIBLE : View.GONE}" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="@{viewModel.uiState.cameraState == SettingsUICameraState.OFFLINE ? View.VISIBLE : View.GONE}"
@@ -147,6 +154,7 @@
                 app:icon="@drawable/button_ble_scan"
                 android:visibility='@{viewModel.uiState.cameraState == SettingsUICameraState.NOT_ASSOCIATED ? View.VISIBLE : View.GONE}'
                 android:onClick="@{() -> viewModel.pair()}"
+                android:enabled="@{viewModel.uiState.bluetoothEnabled}"
                 android:text="@string/settings_camera_add" />
 
             <Button

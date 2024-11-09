@@ -125,7 +125,9 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         }
 
         context?.registerReceiver(bondStateReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
+        context?.registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
 
+        checkBluetoothState()
         checkBluetoothPermissionState()
         checkNotificationPermissionState()
         checkAssociations()
@@ -136,13 +138,21 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     override fun onDestroyView() {
         super.onDestroyView()
         context?.unregisterReceiver(bondStateReceiver)
+        context?.unregisterReceiver(bluetoothStateReceiver)
         _binding = null
     }
 
     private val bondStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d("companion", "Received ACTION_BOND_STATE_CHANGED.")
+            Log.d("companion", "Received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             checkAssociations()
+        }
+    }
+
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d("companion", "Received BluetoothAdapter.ACTION_STATE_CHANGED.")
+            checkBluetoothState()
         }
     }
 
@@ -270,6 +280,11 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         }
 
         binding.viewModel?.updateAssociationState(address, isAssociated, isBonded)
+    }
+
+    private fun checkBluetoothState() {
+        val enabled = BluetoothAdapter.getDefaultAdapter().state == BluetoothAdapter.STATE_ON
+        binding.viewModel?.updateBluetoothState(enabled)
     }
 
     private fun setupCustomButtonList(customButtonListFlow: MutableStateFlow<List<CameraAction>?>) {

@@ -28,12 +28,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private var isBonded: Boolean = false
     private var associationName: String? = null
 
+    private var bluetoothEnabled: Boolean = false
+
     data class SettingsUIState (
         var cameraState: SettingsUICameraState = SettingsUICameraState.OFFLINE,
         var cameraError: String?,
         var cameraName: String?,
         var bluetoothPermissionGranted: Boolean,
-        var notificationPermissionGranted: Boolean
+        var notificationPermissionGranted: Boolean,
+        var bluetoothEnabled: Boolean
     )
 
     enum class SettingsUICameraState {
@@ -54,7 +57,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         HELP_CUSTOM_BUTTONS
     }
 
-    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothPermissionGranted = true, notificationPermissionGranted = true))
+    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothPermissionGranted = true, notificationPermissionGranted = true, bluetoothEnabled = false))
     val uiState: StateFlow<SettingsUIState> = _uiState.asStateFlow()
 
     private val _uiAction = MutableSharedFlow<SettingsUIAction>()
@@ -149,6 +152,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             }
             state.cameraError = null
             _uiState.emit(state)
+        }
+    }
+
+    fun updateBluetoothState(enabled: Boolean) {
+        bluetoothEnabled = enabled
+        viewModelScope.launch {
+            _uiState.emit(uiState.value.copy(bluetoothEnabled = enabled))
         }
     }
 
