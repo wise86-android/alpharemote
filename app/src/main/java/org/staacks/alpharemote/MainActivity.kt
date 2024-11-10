@@ -6,8 +6,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
-import org.staacks.alpharemote.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import org.staacks.alpharemote.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
@@ -15,6 +15,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val NAVIGATE_TO_INTENT_EXTRA = "nav_to"
+        val TAG: String = "alpharemote"
     }
     val SELECTED_PAGE = "selected_page"
 

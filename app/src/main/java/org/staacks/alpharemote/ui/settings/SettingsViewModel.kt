@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.camera.CameraStateRemoteDisabled
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -143,7 +144,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateAssociationState(address: String?, isAssociated: Boolean, isBonded: Boolean) {
-        Log.d("companion", "Updated association state: $address associated=$isAssociated bonded=$isBonded")
+        Log.d(MainActivity.TAG, "Updated association state: $address associated=$isAssociated bonded=$isBonded")
         this.isAssociated = isAssociated
         this.isBonded = isBonded
         viewModelScope.launch {

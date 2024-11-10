@@ -45,6 +45,7 @@ import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.startObservingD
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.MainActivity
 
 interface CustomButtonListEventReceiver {
     fun startDragging(viewHolder: RecyclerView.ViewHolder)
@@ -61,7 +62,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     private var itemTouchHelper: ItemTouchHelper? = null
 
     val onDeviceFoundLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult  ->
-        Log.d("companion", "Activity Result: $activityResult")
+        Log.d(MainActivity.TAG, "Activity Result: $activityResult")
         if (activityResult.resultCode == Activity.RESULT_OK) {
             val scanResult: ScanResult? = activityResult.data?.getParcelableExtra(
                 CompanionDeviceManager.EXTRA_DEVICE) as? ScanResult
@@ -144,14 +145,14 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
     private val bondStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d("companion", "Received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
+            Log.d(MainActivity.TAG, "Received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             checkAssociations()
         }
     }
 
     private val bluetoothStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d("companion", "Received BluetoothAdapter.ACTION_STATE_CHANGED.")
+            Log.d(MainActivity.TAG, "Received BluetoothAdapter.ACTION_STATE_CHANGED.")
             checkBluetoothState()
         }
     }
@@ -171,12 +172,12 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             .setPositiveButton(R.string.settings_camera_add_confirm) { dialog, which ->
                 pairCompanionDevice(requireContext(), object : CompanionDeviceManager.Callback() {
                     override fun onDeviceFound(chooserLauncher: IntentSender) {
-                        Log.d("companion", "onDeviceFound")
+                        Log.d(MainActivity.TAG, "onDeviceFound")
                         onDeviceFoundLauncher.launch(IntentSenderRequest.Builder(chooserLauncher).build(), null)
                     }
 
                     override fun onFailure(error: CharSequence?) {
-                        Log.d("companion", "onFailure")
+                        Log.d(MainActivity.TAG, "onFailure")
                         binding.viewModel?.reportErrorState(error.toString())
                     }
                 })
@@ -243,29 +244,29 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
     private val bluetoothRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            Log.d("Permissions", "Bluetooth permission granted.")
+            Log.d(MainActivity.TAG, "Bluetooth permission granted.")
             checkBluetoothPermissionState()
         } else {
-            Log.w("Permissions", "Bluetooth permission denied.")
+            Log.w(MainActivity.TAG, "Bluetooth permission denied.")
         }
     }
 
     private val pairAfterBluetoothRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            Log.d("Permissions", "Bluetooth permission granted.")
+            Log.d(MainActivity.TAG, "Bluetooth permission granted.")
             checkBluetoothPermissionState()
             executePair()
         } else {
-            Log.w("Permissions", "Bluetooth permission denied.")
+            Log.w(MainActivity.TAG, "Bluetooth permission denied.")
         }
     }
 
     private val notificationsRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            Log.d("Permissions", "Notifications permission granted.")
+            Log.d(MainActivity.TAG, "Notifications permission granted.")
             checkNotificationPermissionState()
         } else {
-            Log.w("Permissions", "Notifications permission denied.")
+            Log.w(MainActivity.TAG, "Notifications permission denied.")
         }
     }
 

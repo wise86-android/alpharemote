@@ -70,13 +70,13 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     override fun onDeviceAppeared(address: String) {
-        Log.d("AlphaRemoteService", "Device appeared: $address")
+        Log.d(MainActivity.TAG, "Device appeared: $address")
         try {
             super.onDeviceAppeared(address) //This is abstract on Android 12
         } catch (_: AbstractMethodError) {}
 
         if (ActivityCompat.checkSelfPermission(applicationContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            Log.w("Permissions", "Missing Bluetooth permission. Launching activity instead.")
+            Log.w(MainActivity.TAG, "Missing Bluetooth permission. Launching activity instead.")
             val intent = Intent(applicationContext, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 putExtra(MainActivity.NAVIGATE_TO_INTENT_EXTRA, R.id.navigation_settings)
@@ -111,7 +111,7 @@ class AlphaRemoteService : CompanionDeviceService() {
                 }
             }
         } else {
-            Log.w("BLE", "onDeviceAppeared ignored as cameraBLE has already been instantiated.")
+            Log.w(MainActivity.TAG, "onDeviceAppeared ignored as cameraBLE has already been instantiated.")
             return
         }
 
@@ -142,7 +142,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     override fun onDeviceDisappeared(address: String) {
-        Log.d("AlphaRemoteService", "Device disappeared: $address")
+        Log.d(MainActivity.TAG, "Device disappeared: $address")
         try {
             super.onDeviceDisappeared(address) //This is abstract on Android 12
         } catch (_: AbstractMethodError) {}
@@ -150,7 +150,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     private fun onDisconnect() {
-        Log.d("AlphaRemoteService", "onDisconnect")
+        Log.d(MainActivity.TAG, "onDisconnect")
         _serviceState.value = ServiceStateGone()
         cameraBLE = null
         cancelPendingActionSteps()
@@ -184,7 +184,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("AlphaRemoteService", "onStartCommand: $intent")
+        Log.d(MainActivity.TAG, "onStartCommand: $intent")
         when (intent?.action) {
             BUTTON_INTENT_ACTION -> {
                 val cameraAction = intent.getSerializableExtra(BUTTON_INTENT_CAMERA_ACTION_EXTRA) as CameraAction

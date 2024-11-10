@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.MainActivity
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.experimental.and
@@ -55,12 +56,12 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            Log.d("BLE", "onConnectionStateChange: status $status, newState $newState")
+            Log.d(MainActivity.TAG, "onConnectionStateChange: status $status, newState $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 try {
                     gatt?.discoverServices()
                 } catch (e: SecurityException) {
-                    Log.e("SecurityException", e.toString())
+                    Log.e(MainActivity.TAG, e.toString())
                     _cameraState.value = CameraStateError(e)
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -69,7 +70,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            Log.d("BLE", "onServicesDiscovered")
+            Log.d(MainActivity.TAG, "onServicesDiscovered")
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 remoteService = gatt?.getService(remoteServiceUUID)
                 commandCharacteristic = remoteService?.getCharacteristic(commandCharacteristicUUID)
@@ -86,14 +87,14 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
                     }
                 } else {
                     _cameraState.value = CameraStateError(null, "Remote service not found.")
-                    Log.e("serviceNotFound", "remoteService: " + remoteService.toString())
-                    Log.e("serviceNotFound", "commandCharacteristic: " + commandCharacteristic.toString())
-                    Log.e("serviceNotFound", "statusCharacteristic: " + statusCharacteristic.toString())
-                    Log.e("serviceNotFound", "nameCharacteristic: " + nameCharacteristic.toString())
+                    Log.e(MainActivity.TAG, "remoteService: " + remoteService.toString())
+                    Log.e(MainActivity.TAG, "commandCharacteristic: " + commandCharacteristic.toString())
+                    Log.e(MainActivity.TAG, "statusCharacteristic: " + statusCharacteristic.toString())
+                    Log.e(MainActivity.TAG, "nameCharacteristic: " + nameCharacteristic.toString())
                     disconnectFromDevice()
                 }
             } else {
-                Log.e("serviceNotFound", "discovery failed: $status")
+                Log.e(MainActivity.TAG, "discovery failed: $status")
                 disconnectFromDevice()
             }
         }
@@ -137,7 +138,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     init {
-        Log.d("BLE", "init / connectToDevice")
+        Log.d(MainActivity.TAG, "init / connectToDevice")
         try {
             device = bluetoothAdapter.getRemoteDevice(address)
             if (device?.bondState == BluetoothDevice.BOND_BONDED) {
@@ -145,16 +146,16 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
                 gatt = device?.connectGatt(context, false, bluetoothGattCallback)
             } else {
                 _cameraState.value = CameraStateNotBonded()
-                Log.e("BLE", "Camera found, but not bonded.")
+                Log.e(MainActivity.TAG, "Camera found, but not bonded.")
             }
         } catch (e: SecurityException) {
             _cameraState.value = CameraStateError(e, e.toString())
-            Log.e("SecurityException", e.toString())
+            Log.e(MainActivity.TAG, e.toString())
         }
     }
 
     fun disconnectFromDevice() {
-        Log.d("BLE", "disconnectFromDevice")
+        Log.d(MainActivity.TAG, "disconnectFromDevice")
         try {
             _cameraState.value = CameraStateGone()
             gatt?.close()
@@ -166,7 +167,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             currentOperation = null
             onDisconnect()
         } catch (e: SecurityException) {
-            Log.e("SecurityException", e.toString())
+            Log.e(MainActivity.TAG, e.toString())
             _cameraState.value = CameraStateError(e)
             onDisconnect()
         }
@@ -192,7 +193,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             when (currentOperation) {
                 is CameraBLEWrite -> {
                     val op = currentOperation as CameraBLEWrite
-                    Log.d("BLE", "Writing: " + op.data.toHexString())
+                    Log.d(MainActivity.TAG, "Writing: " + op.data.toHexString())
                     op.characteristic.setValue(op.data)
                     gatt?.writeCharacteristic(op.characteristic)
                 }
@@ -213,7 +214,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             }
         } catch (e: SecurityException) {
             _cameraState.value = CameraStateError(e)
-            Log.e("SecurityException", e.toString())
+            Log.e(MainActivity.TAG, e.toString())
         }
     }
 
@@ -224,7 +225,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     fun cameraBLEWriteComplete(status: Int) {
-        Log.d("BLE", "Writing complete: $status")
+        Log.d(MainActivity.TAG, "Writing complete: $status")
         if (currentOperation is CameraBLEWrite) {
             operationComplete()
             if (status == 144) {
@@ -235,7 +236,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     fun cameraBLEReadComplete(status: Int, value: ByteArray) {
-        Log.d("BLE", "cameraBLEReadComplete: $status, $value")
+        Log.d(MainActivity.TAG, "cameraBLEReadComplete: $status, $value")
         if (currentOperation is CameraBLERead) {
             val callback = (currentOperation as CameraBLERead).resultCallback
             operationComplete()
@@ -244,12 +245,12 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     fun cameraBLESubscribeComplete(status: Int) {
-        Log.d("BLE", "cameraBLESubscribeComplete: $status")
+        Log.d(MainActivity.TAG, "cameraBLESubscribeComplete: $status")
         if (currentOperation is CameraBLESubscribe) {
             scope.launch {
                 val name = (cameraState.value as? CameraStateIdentified)?.name
                 if (name == null)
-                    Log.w("BLE", "Subscribe complete, but camera in unidentified state.")
+                    Log.w(MainActivity.TAG, "Subscribe complete, but camera in unidentified state.")
                 _cameraState.value = CameraStateReady(name, focus = false, shutter = false, recording = false, emptySet(), emptySet())
             }
             operationComplete()
@@ -274,11 +275,11 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             } else // This should not happen. If it happens, it is probably the result of the BLE communication running in parallel to whatever changed the state. In this case it is probably not recoverable and should be ignored
                 it
         }
-        Log.d("BLE", "Received status: " + value.toHexString())
+        Log.d(MainActivity.TAG, "Received status: " + value.toHexString())
     }
 
     fun executeCameraActionStep(action: CameraActionStep) {
-        Log.d("BLE", "executeCameraActionStep")
+        Log.d(MainActivity.TAG, "executeCameraActionStep")
         if (cameraState.value !is CameraStateReady)
             return
         try {
@@ -305,7 +306,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             }
         } catch (e: SecurityException) {
             _cameraState.value = CameraStateError(e)
-            Log.e("SecurityException", e.toString())
+            Log.e(MainActivity.TAG, e.toString())
         }
     }
 }

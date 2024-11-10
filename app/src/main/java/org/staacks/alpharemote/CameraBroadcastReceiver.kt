@@ -21,11 +21,11 @@ const val EXTERNAL_INTENT_UP_EXTRA = "up"
 
 class CameraBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
-        Log.d("intent", "BroadcastReceiver received: $intent")
+        Log.d(MainActivity.TAG, "BroadcastReceiver received: $intent")
 
         val ctx = context ?: return
         if (!AlphaRemoteService.broadcastControl) {
-            Log.w("intent", "Broadcast control not allowed by user.")
+            Log.w(MainActivity.TAG, "Broadcast control not allowed by user.")
             return
         }
 
@@ -55,7 +55,7 @@ class CameraBroadcastReceiver : BroadcastReceiver() {
                     }
                     ctx.startService(serviceIntent)
                 } catch (e: Exception) {
-                    Log.e("intent","Invalid intent:\nPreset = $presetIn\nToggle = $toggle\nSelftimer = $selftimerIn\nDuration = $durationIn\nStep = $stepIn\nError: $e")
+                    Log.e(MainActivity.TAG,"Invalid intent:\nPreset = $presetIn\nToggle = $toggle\nSelftimer = $selftimerIn\nDuration = $durationIn\nStep = $stepIn\nError: $e")
                 }
             }
         }

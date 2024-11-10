@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import org.staacks.alpharemote.MainActivity
 import java.util.concurrent.Executor
 
 //Massive thanks to coral for the documentation of the camera's BLE protocol at
@@ -59,7 +60,7 @@ object CompanionDeviceHelper {
 
         val deviceManager = context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
 
-        Log.d("companion", "Associating.")
+        Log.d(MainActivity.TAG, "Associating.")
         deviceManager.associate(pairingRequest, callback, null)
     }
 
@@ -73,7 +74,7 @@ object CompanionDeviceHelper {
                 return true
             }
         } catch (e: SecurityException) {
-            Log.e("SecurityException", e.toString())
+            Log.e(MainActivity.TAG, e.toString())
             //This should be impossible as we check the permission before attempting to pair with the companion device.
         }
         return false
@@ -83,7 +84,7 @@ object CompanionDeviceHelper {
         val deviceManager = context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
 
         for (address in deviceManager.associations) {
-            Log.d("companion", "Disassociating $address.")
+            Log.d(MainActivity.TAG, "Disassociating $address.")
             deviceManager.stopObservingDevicePresence(address)
             deviceManager.disassociate(address)
         }
