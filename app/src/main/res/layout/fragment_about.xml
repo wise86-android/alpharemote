@@ -7,6 +7,9 @@
         <variable
             name="fragment"
             type="org.staacks.alpharemote.ui.about.AboutFragment" />
+        <variable
+            name="viewModel"
+            type="org.staacks.alpharemote.ui.about.AboutViewModel" />
     </data>
 
 <ScrollView
@@ -212,6 +215,14 @@
             </Space>
 
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.AppCompat.Small"
+            android:textAlignment="textEnd"
+            android:text="@{@string/about_version_info(viewModel.versionName, viewModel.versionCode)}"
+            />
 
     </LinearLayout>
 </ScrollView>

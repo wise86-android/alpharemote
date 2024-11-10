@@ -1,9 +1,9 @@
 package org.staacks.alpharemote.ui.about
 
 import androidx.lifecycle.ViewModel
-
+import org.staacks.alpharemote.BuildConfig
 
 class AboutViewModel : ViewModel() {
-
-    //At the moment, this fragment just holds static content.
+    val versionCode = BuildConfig.VERSION_CODE
+    val versionName = BuildConfig.VERSION_NAME
 }

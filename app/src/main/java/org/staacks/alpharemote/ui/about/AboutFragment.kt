@@ -24,6 +24,7 @@ class AboutFragment : Fragment() {
 
         _binding = FragmentAboutBinding.inflate(inflater, container, false)
         binding.fragment = this
+        binding.viewModel = aboutViewModel
         val root: View = binding.root
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.linearLayout) { v, insets ->
