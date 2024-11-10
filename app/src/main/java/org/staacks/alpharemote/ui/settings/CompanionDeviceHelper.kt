@@ -35,7 +35,7 @@ object CompanionDeviceHelper {
                     ),
                     byteArrayOf(            //Filter bit mask
                         0xff.toByte(), 0xff.toByte(),               //Camera
-                        0xff.toByte(),                              //Protocol version
+                        0x00.toByte(),                              //Protocol version. For now we will ignore this as older models like the a6400 report 0x64 and models from around 2023 report 0x65. No idea what the differences are and when compatibility will break, but so far there does not seem to be a camera with Bluetooth support that is not compatible with the standard BLE remote from Sony. So, for now this seems to be fine.
                         0x00.toByte(),                              //Unknown
                         0x00.toByte(), 0x00.toByte(),               //Model
                         0xff.toByte(), 0x40.toByte(), 0x00.toByte() //Camera state, bit 0x40,  indicates ready to pair
