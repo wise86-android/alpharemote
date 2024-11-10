@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.LinkedList
 import java.util.Timer
@@ -101,13 +102,11 @@ class AlphaRemoteService : CompanionDeviceService() {
                     }
                 }
                 scope.launch {
-                    cameraState.collectLatest {
-                        (serviceState.value as? ServiceRunning)?.let { oldState ->
-                            _serviceState.emit(oldState.copy(cameraState = it))
-                        } ?: run {
-                            _serviceState.emit(ServiceRunning(it, null, null))
+                    cameraState.collectLatest { cameraState ->
+                        _serviceState.update {
+                            (it as? ServiceRunning)?.copy(cameraState = cameraState) ?: ServiceRunning(cameraState, null, null)
                         }
-                        notificationUI?.onCameraStateUpdate(it)
+                        notificationUI?.onCameraStateUpdate(cameraState)
                     }
                 }
             }
@@ -152,14 +151,12 @@ class AlphaRemoteService : CompanionDeviceService() {
 
     private fun onDisconnect() {
         Log.d("AlphaRemoteService", "onDisconnect")
+        _serviceState.value = ServiceStateGone()
         cameraBLE = null
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
-        scope.launch {
-            _serviceState.emit(ServiceStateGone())
-            job.cancelChildren()
-        }
+        job.cancelChildren()
         stopSelf()
     }
 
@@ -221,8 +218,8 @@ class AlphaRemoteService : CompanionDeviceService() {
                 cameraBLE?.executeCameraActionStep(CAButton(false, button))
             }
         }
-        (serviceState.value as? ServiceRunning)?.let { oldState ->
-            scope.launch { _serviceState.emit(oldState.copy(countdown = null, countdownLabel = null)) }
+        _serviceState.update {
+            (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
     }
@@ -241,17 +238,17 @@ class AlphaRemoteService : CompanionDeviceService() {
                 cameraBLE?.executeCameraActionStep(it)
             }
         }
-        (pendingActionSteps.peek() as? CACountdown)?.let {
-            val time = (it.duration * 1000).roundToLong()
+        (pendingActionSteps.peek() as? CACountdown)?.let { step ->
+            val time = (step.duration * 1000).roundToLong()
             timer?.cancel()
             timer = Timer().schedule(time) {
                 countdownActionComplete()
             }
             val targetTime = SystemClock.elapsedRealtime() + time
-            (serviceState.value as? ServiceRunning)?.let { oldState ->
-                scope.launch { _serviceState.emit(oldState.copy(countdown = targetTime, countdownLabel = it.label)) }
+            _serviceState.update {
+                (it as? ServiceRunning)?.copy(countdown = targetTime, countdownLabel = step.label) ?: it
             }
-            notificationUI?.showCountdown(targetTime, it.label)
+            notificationUI?.showCountdown(targetTime, step.label)
             return
         }
         (serviceState.value as? ServiceRunning)?.let {
@@ -263,8 +260,8 @@ class AlphaRemoteService : CompanionDeviceService() {
 
     @Synchronized
     fun countdownActionComplete() {
-        (serviceState.value as? ServiceRunning)?.let { oldState ->
-            scope.launch { _serviceState.emit(oldState.copy(countdown = null, countdownLabel = null)) }
+        _serviceState.update {
+            (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
         val nextAction = pendingActionSteps.peek()

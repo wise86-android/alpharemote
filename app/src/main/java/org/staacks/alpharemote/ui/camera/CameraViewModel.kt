@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class CameraViewModel : ViewModel() {
@@ -49,9 +50,9 @@ class CameraViewModel : ViewModel() {
         viewModelScope.launch {
             AlphaRemoteService.serviceState.collectLatest {
                 (it as? ServiceRunning)?.also { serviceRunning ->
-                    _uiState.emit(uiState.value.copy(serviceState = serviceRunning, cameraState = (serviceRunning.cameraState as? CameraStateReady), connected = (serviceRunning.cameraState is CameraStateReady)))
+                    _uiState.value = CameraUIState(serviceState = serviceRunning, cameraState = (serviceRunning.cameraState as? CameraStateReady), connected = (serviceRunning.cameraState is CameraStateReady))
                 } ?: run {
-                    _uiState.emit(uiState.value.copy(serviceState = null, cameraState = null, connected = false))
+                    _uiState.value = CameraUIState(serviceState = null, cameraState = null, connected = false)
                 }
             }
         }

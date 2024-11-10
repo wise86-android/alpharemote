@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 @SuppressLint("NotifyDataSetChanged")
-class CustomButtonRecyclerViewAdapter(private val dataSet: MutableStateFlow<List<CameraAction>?>, private val lifecycleOwner: LifecycleOwner, private val customButtonListEventReceiver: CustomButtonListEventReceiver) :
+class CustomButtonRecyclerViewAdapter(private val dataSet: MutableStateFlow<List<CameraAction>?>, lifecycleOwner: LifecycleOwner, private val customButtonListEventReceiver: CustomButtonListEventReceiver) :
     RecyclerView.Adapter<CustomButtonRecyclerViewAdapter.ViewHolder>() {
 
     var list: List<CameraAction>? = null
@@ -77,46 +77,42 @@ class CustomButtonRecyclerViewAdapter(private val dataSet: MutableStateFlow<List
         }
     }
 
+    @Synchronized
     fun moveItem(from: Int, to: Int) {
-        lifecycleOwner.lifecycleScope.launch{
-            list?.toMutableList()?.let {newList ->
-                val item = newList.removeAt(from)
-                newList.add(to, item)
-                list = newList
-                dataSet.emit(list)
-                notifyItemMoved(from, to)
-            }
+        list?.toMutableList()?.let {newList ->
+            val item = newList.removeAt(from)
+            newList.add(to, item)
+            list = newList
+            dataSet.value = list
+            notifyItemMoved(from, to)
         }
     }
 
+    @Synchronized
     fun removeItem(index: Int) {
-        lifecycleOwner.lifecycleScope.launch{
-            list?.toMutableList()?.let {newList ->
-                newList.removeAt(index)
-                list = newList
-                dataSet.emit(list)
-                notifyItemRemoved(index)
-            }
+        list?.toMutableList()?.let {newList ->
+            newList.removeAt(index)
+            dataSet.value = newList
+            notifyItemRemoved(index)
         }
     }
 
+    @Synchronized
     fun updateItem(index: Int, action: CameraAction) {
-        lifecycleOwner.lifecycleScope.launch {
-            list?.let {
-                if (index < 0) {
-                    val pos = it.count()
-                    list = it.toMutableList().apply {
-                        add(pos, action)
-                    }
-                    notifyItemInserted(pos)
-                } else {
-                    list = it.toMutableList().apply {
-                        set(index, action)
-                    }
-                    notifyItemChanged(index)
+        list?.let {
+            if (index < 0) {
+                val pos = it.count()
+                list = it.toMutableList().apply {
+                    add(pos, action)
                 }
-                dataSet.emit(list)
+                notifyItemInserted(pos)
+            } else {
+                list = it.toMutableList().apply {
+                    set(index, action)
+                }
+                notifyItemChanged(index)
             }
+            dataSet.value = list
         }
     }
 

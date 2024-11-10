@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraStateRemoteDisabled
 
@@ -84,15 +85,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             settingsStore.getNotificationButtonSize()?.let {
                 val i = buttonScaleSteps.indexOf(it)
                 if (i >= 0)
-                    buttonScaleIndex.emit(i)
+                    buttonScaleIndex.value = i
             }
+
             var customButtonList = settingsStore.getCustomButtonList()
             if (customButtonList == null) {
                 customButtonList = defaultCustomButtonList
                 settingsStore.saveCustomButtonList(defaultCustomButtonList)
             }
-            broadcastControl.emit(settingsStore.getBroadcastControl())
-            customButtonListFlow.emit(customButtonList)
+            customButtonListFlow.value = customButtonList
+
+            broadcastControl.value = settingsStore.getBroadcastControl()
+
             customButtonListFlow.collect{
                 it?.let {
                     settingsStore.saveCustomButtonList(it)
@@ -102,21 +106,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             AlphaRemoteService.serviceState.collectLatest { state ->
                 when (val camState = (state as? ServiceRunning)?.cameraState) {
-                    is CameraStateError -> _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description))
+                    is CameraStateError -> _uiState.update { it.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description) }
                     is CameraStateNotBonded -> { //Service was launched but cameraBLE detected that the device is not bonded
-                        _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null))
+                        _uiState.update{it.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)}
                     }
                     is CameraStateRemoteDisabled -> { //Service was launched but cameraBLE suspects that the remote function is disabled
-                        _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null))
+                        _uiState.update { it.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null)}
                     }
-                    is CameraStateReady -> _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name , cameraError = null))
+                    is CameraStateReady -> _uiState.update { it.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name , cameraError = null)}
                     else -> {
                         if (isBonded) {
-                            _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = associationName))
+                            _uiState.update{it.copy(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = associationName)}
                         } else if (isAssociated) { //Fragment detected that the camera is associated by not bonded
-                            _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null))
+                            _uiState.update { uiState.value.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)}
                         } else {
-                            _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.NOT_ASSOCIATED, cameraError = null, cameraName = null))
+                            _uiState.update { uiState.value.copy(cameraState = SettingsUICameraState.NOT_ASSOCIATED, cameraError = null, cameraName = null)}
                         }
                     }
                 }
@@ -127,14 +131,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun updateBluetoothPermissionState(granted: Boolean) {
         viewModelScope.launch {
             settingsStore.setBluetoothGranted(granted)
-            _uiState.emit(uiState.value.copy(bluetoothPermissionGranted = granted))
+            _uiState.update { it.copy(bluetoothPermissionGranted = granted)}
         }
     }
 
     fun updateNotificationPermissionState(granted: Boolean) {
         viewModelScope.launch {
             settingsStore.setNotificationGranted(granted)
-            _uiState.emit(uiState.value.copy(notificationPermissionGranted = granted))
+            _uiState.update {it.copy(notificationPermissionGranted = granted)}
         }
     }
 
@@ -148,23 +152,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 associationName = if (storedAddress == address) storedName else null
             }
 
-            val state = uiState.value.copy()
-            if (state.cameraState == SettingsUICameraState.NOT_ASSOCIATED || state.cameraState == SettingsUICameraState.NOT_BONDED || state.cameraState == SettingsUICameraState.OFFLINE) {
-                state.cameraState = if (isBonded) SettingsUICameraState.OFFLINE else if (isAssociated) SettingsUICameraState.NOT_BONDED else SettingsUICameraState.NOT_ASSOCIATED
+            _uiState.update {
+                val state = uiState.value.copy()
+                if (state.cameraState == SettingsUICameraState.NOT_ASSOCIATED || state.cameraState == SettingsUICameraState.NOT_BONDED || state.cameraState == SettingsUICameraState.OFFLINE) {
+                    state.cameraState = if (isBonded) SettingsUICameraState.OFFLINE else if (isAssociated) SettingsUICameraState.NOT_BONDED else SettingsUICameraState.NOT_ASSOCIATED
+                }
+                if (state.cameraState != SettingsUICameraState.CONNECTED) {
+                    state.cameraName = associationName
+                }
+                state.cameraError = null
+                state
             }
-            if (state.cameraState != SettingsUICameraState.CONNECTED) {
-                state.cameraName = associationName
-            }
-            state.cameraError = null
-            _uiState.emit(state)
         }
     }
 
     fun updateBluetoothState(enabled: Boolean) {
         bluetoothEnabled = enabled
-        viewModelScope.launch {
-            _uiState.emit(uiState.value.copy(bluetoothEnabled = enabled))
-        }
+        _uiState.update{it.copy(bluetoothEnabled = enabled)}
     }
 
     fun pair() {
@@ -180,9 +184,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun reportErrorState(msg: String) {
-        viewModelScope.launch {
-            _uiState.emit(uiState.value.copy(cameraError = msg))
-        }
+        _uiState.update { it.copy(cameraError = msg) }
     }
 
     fun requestBluetoothPermission() {
@@ -218,7 +220,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setButtonScale(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
         if (fromUser) {
             viewModelScope.launch {
-                buttonScaleIndex.emit(progressValue)
+                buttonScaleIndex.value = progressValue
                 settingsStore.setNotificationButtonSize(buttonScaleSteps[progressValue])
             }
         }
@@ -226,7 +228,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setBroadcastControl(button: CompoundButton, isChecked: Boolean) {
         viewModelScope.launch {
-            broadcastControl.emit(isChecked)
+            broadcastControl.value = isChecked
             settingsStore.setBroadcastControl(isChecked)
         }
     }
