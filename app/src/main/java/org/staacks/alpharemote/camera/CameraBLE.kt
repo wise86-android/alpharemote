@@ -273,6 +273,12 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
         Log.d("BLE", "Writing complete: $status")
         if (currentOperation is CameraBLEWrite) {
             operationComplete()
+            if (status == 144) {
+                //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
+                scope.launch {
+                    _cameraState.emit(CameraStateRemoteDisabled())
+                }
+            }
         }
     }
 

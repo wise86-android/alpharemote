@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.camera.CameraStateRemoteDisabled
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -44,7 +45,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         CONNECTED,
         ERROR,
         NOT_ASSOCIATED,
-        NOT_BONDED
+        NOT_BONDED,
+        REMOTE_DISABLED
     }
 
     enum class SettingsUIAction {
@@ -103,6 +105,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     is CameraStateError -> _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description))
                     is CameraStateNotBonded -> { //Service was launched but cameraBLE detected that the device is not bonded
                         _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null))
+                    }
+                    is CameraStateRemoteDisabled -> { //Service was launched but cameraBLE suspects that the remote function is disabled
+                        _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null))
                     }
                     is CameraStateReady -> _uiState.emit(uiState.value.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name , cameraError = null))
                     else -> {

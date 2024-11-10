@@ -31,6 +31,7 @@
     <string name="settings_camera_error">Error: %s</string>
     <string name="settings_camera_not_associated">The app is currently not associated with a camera.</string>
     <string name="settings_camera_not_bonded">The app has been associated with a camera, but the pairing was not completed. Please connect the camera again and make sure to confirm the pairing with your phone on the camera.</string>
+    <string name="settings_camera_remote_disabled">Sending a command failed. Please verify that the setting \"Bluetooth remote control\" is enabled. This settings is a separate one from the pairing menu and it is sometimes even found in a different menu on some camera models.</string>
     <string name="settings_camera_unknown_name">unknown</string>
 
     <string name="settings_camera_add">Add Camera</string>

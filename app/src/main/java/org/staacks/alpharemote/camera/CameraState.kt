@@ -6,6 +6,7 @@ class CameraStateGone : CameraState()
 class CameraStateConnecting : CameraState()
 
 class CameraStateNotBonded : CameraState()
+class CameraStateRemoteDisabled : CameraState()
 
 data class CameraStateIdentified(
     val name: String,

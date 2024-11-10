@@ -135,6 +135,13 @@
             android:visibility='@{viewModel.uiState.cameraState == SettingsUICameraState.NOT_BONDED ? View.VISIBLE : View.GONE}'
             android:text="@{@string/settings_camera_not_bonded}" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorTextError"
+            android:visibility='@{viewModel.uiState.cameraState == SettingsUICameraState.REMOTE_DISABLED ? View.VISIBLE : View.GONE}'
+            android:text="@{@string/settings_camera_remote_disabled}" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

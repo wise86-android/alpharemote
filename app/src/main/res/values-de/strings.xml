@@ -30,6 +30,7 @@
     <string name="settings_camera_error">Fehler: %s</string>
     <string name="settings_camera_not_associated">Die App ist derzeit nicht mit einer Kamera verknüpft.</string>
     <string name="settings_camera_not_bonded">Die App wurde mit einer Kamera verknüpft, aber nicht gekoppelt. Bitte verbinde die Kamera erneut und achte darauf, auch auf der Kamera die Kopplung mit deinem Handy zu bestätigen.</string>
+    <string name="settings_camera_remote_disabled">Das senden eines Befehls ist fehlgeschlagen. Bitte stelle sicher, dass die Option „Bluetooth-Fernbedienung“ eingeschaltet ist. Diese Einstellung ist unabhängig von den Einstellungen zum koppeln und befindet sich bei manchen Kameramodellen sogar in einem anderen Menü.</string>
     <string name="settings_camera_unknown_name">unbekannt</string>
 
     <string name="settings_camera_add">Kamera hinzufügen</string>
