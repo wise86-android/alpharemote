@@ -227,6 +227,26 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun incrementButtonScale() {
+        val newIndex = buttonScaleIndex.value + 1
+        if (newIndex < buttonScaleSteps.count()) {
+            viewModelScope.launch {
+                buttonScaleIndex.value = newIndex
+                settingsStore.setNotificationButtonSize(buttonScaleSteps[newIndex])
+            }
+        }
+    }
+
+    fun decrementButtonScale() {
+        val newIndex = buttonScaleIndex.value - 1
+        if (newIndex >= 0) {
+            viewModelScope.launch {
+                buttonScaleIndex.value = newIndex
+                settingsStore.setNotificationButtonSize(buttonScaleSteps[newIndex])
+            }
+        }
+    }
+
     fun setBroadcastControl(button: CompoundButton, isChecked: Boolean) {
         viewModelScope.launch {
             broadcastControl.value = isChecked
