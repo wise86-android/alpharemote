@@ -217,12 +217,17 @@
             android:text="@string/settings_custom_buttons_explanation"
             />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/custom_buttons_list"
-            android:layout_height="wrap_content"
+        <FrameLayout
             android:layout_width="match_parent"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            />
+            android:layout_height="wrap_content"
+            >
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/custom_buttons_list"
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
