@@ -11,7 +11,7 @@ data class CameraBLEWrite(
 
 data class CameraBLERead(
     val characteristic: BluetoothGattCharacteristic,
-    val resultCallback: (ByteArray) -> Unit
+    val resultCallback: (Int, ByteArray) -> Unit
 ) : CameraBLEOperation()
 
 data class CameraBLESubscribe(

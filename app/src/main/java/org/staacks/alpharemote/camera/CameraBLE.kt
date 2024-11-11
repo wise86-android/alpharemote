@@ -7,11 +7,13 @@ import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,7 +54,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
 
     private var name: String? = null
 
-    private var bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+    private var bluetoothAdapter: BluetoothAdapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
 
     private var device: BluetoothDevice? = null
     private var gatt: BluetoothGatt? = null
@@ -81,10 +83,12 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
                 val nameCharacteristic = gatt?.getService(genericAccessServiceUUID)?.getCharacteristic(nameCharacteristicUUID)
                 if (statusCharacteristic != null && commandCharacteristic != null && nameCharacteristic != null) {
                     statusCharacteristic?.let {
-                        enqueueOperation(CameraBLERead(nameCharacteristic){
-                            val newName = it.toString(Charsets.UTF_8)
-                            _cameraState.value = CameraStateIdentified(newName, address)
-                            name = newName
+                        enqueueOperation(CameraBLERead(nameCharacteristic){ status, value ->
+                            if (status == BluetoothGatt.GATT_SUCCESS) {
+                                val newName = value.toString(Charsets.UTF_8)
+                                _cameraState.value = CameraStateIdentified(newName, address)
+                                name = newName
+                            }
                         })
                         enqueueOperation(CameraBLESubscribe(it))
                     }
@@ -111,13 +115,29 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
             cameraBLEWriteComplete(status)
         }
 
+        @Deprecated("Deprecated in Java")
+        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
             super.onCharacteristicRead(gatt, characteristic, status)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                return //Use the new version of onCharacteristicRead instead
+            Log.d(MainActivity.TAG, "Deprecated onCharacteristicRead with status $status from ${characteristic.uuid}.")
             cameraBLEReadComplete(status, characteristic.value)
+        }
+
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+            status: Int
+        ) {
+            super.onCharacteristicRead(gatt, characteristic, value, status)
+            Log.d(MainActivity.TAG, "onCharacteristicRead with status $status from ${characteristic.uuid}.")
+            cameraBLEReadComplete(status, value)
         }
 
         override fun onDescriptorWrite(
@@ -129,13 +149,30 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
             cameraBLESubscribeComplete(status)
         }
 
+        @Deprecated("Deprecated in Java")
+        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                return //Use the new version of onCharacteristicRead instead
+            Log.d(MainActivity.TAG, "Deprecated onCharacteristicChanged from ${characteristic.uuid}.")
             if (characteristic == statusCharacteristic) {
                 onCameraStatusUpdate(characteristic.value)
+            }
+        }
+
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray
+        ) {
+            super.onCharacteristicChanged(gatt, characteristic, value)
+            Log.d(MainActivity.TAG, "onCharacteristicChanged from ${characteristic.uuid}.")
+            if (characteristic == statusCharacteristic) {
+                onCameraStatusUpdate(value)
             }
         }
     }
@@ -221,8 +258,14 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
                 is CameraBLEWrite -> {
                     val op = currentOperation as CameraBLEWrite
                     Log.d(MainActivity.TAG, "Writing: 0x${op.data.toHexString()}")
-                    op.characteristic.setValue(op.data)
-                    gatt?.writeCharacteristic(op.characteristic)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        gatt?.writeCharacteristic(op.characteristic, op.data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+                    } else {
+                        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
+                        op.characteristic.setValue(op.data)
+                        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
+                        gatt?.writeCharacteristic(op.characteristic)
+                    }
                 }
 
                 is CameraBLERead -> {
@@ -233,8 +276,14 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
                     val op = currentOperation as CameraBLESubscribe
                     gatt?.setCharacteristicNotification(op.characteristic, true)
                     val descriptor = op.characteristic.getDescriptor(configDescriptorUUID)
-                    descriptor?.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
-                    gatt?.writeDescriptor(descriptor)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        gatt?.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                    } else {
+                        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
+                        descriptor?.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
+                        gatt?.writeDescriptor(descriptor)
+                    }
                 }
 
                 else -> return
@@ -258,7 +307,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
             if (status == 144) {
                 //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
                 _cameraState.value = CameraStateRemoteDisabled()
-            }
+            } //Other results are ignored. If this fails for any other reason - well if the button was not pressed, the user has to try again, but it does not change anything for this app.
         }
     }
 
@@ -268,19 +317,17 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
         if (currentOperation is CameraBLERead) {
             val callback = (currentOperation as CameraBLERead).resultCallback
             operationComplete()
-            callback(value)
+            callback(status, value)
         }
     }
 
     fun cameraBLESubscribeComplete(status: Int) {
         Log.d(MainActivity.TAG, "cameraBLESubscribeComplete: $status")
-        if (currentOperation is CameraBLESubscribe) {
-            scope.launch {
-                val name = (cameraState.value as? CameraStateIdentified)?.name
-                if (name == null)
-                    Log.w(MainActivity.TAG, "Subscribe complete, but camera in unidentified state.")
-                _cameraState.value = CameraStateReady(name, focus = false, shutter = false, recording = false, emptySet(), emptySet())
-            }
+        if (currentOperation is CameraBLESubscribe) { //Note: We do not check the status. If subscribing failed for some reason, the camera status is not reported. If this is due to a disconnect, the service will be terminated anyway, but if there is another reason, the rest of the app might still be usable
+            val name = (cameraState.value as? CameraStateIdentified)?.name
+            if (name == null)
+                Log.w(MainActivity.TAG, "Subscribe complete, but camera in unidentified state.")
+            _cameraState.value = CameraStateReady(name, focus = false, shutter = false, recording = false, emptySet(), emptySet())
             operationComplete()
         }
     }
