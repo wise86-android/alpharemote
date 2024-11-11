@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import org.staacks.alpharemote.MainActivity
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -88,7 +87,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
                                 val newName = value.toString(Charsets.UTF_8)
                                 _cameraState.value = CameraStateIdentified(newName, address)
                                 name = newName
-                            }
+                            } // Fail state ignored. This commonly fails if a camera sends an onStateChange few ms after connection and Android restarts service discovery just when we are trying to read this value. After the new service discovery we will get back here anyway. If this fails for a different reason, not knowing the model name is not fatal.
                         })
                         enqueueOperation(CameraBLESubscribe(it))
                     }
@@ -102,7 +101,21 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
                 }
             } else {
                 Log.e(MainActivity.TAG, "discovery failed: $status")
-                disconnectFromDevice()
+                _cameraState.value = CameraStateError(null, "Service discovery failed.")
+                //Note, at this point the service will not be usable, but we stay connected as this might be recoverable.
+                //In fact, newer cameras seem to send an onServiceChanged to bonded devices after few ms, which triggers Android to restart discovery.
+                //If this was the reason for this discovery to fail, onServiceChanged will be called soon where discoverServices will be called again.
+            }
+        }
+
+        override fun onServiceChanged(gatt: BluetoothGatt) {
+            super.onServiceChanged(gatt)
+            Log.d(MainActivity.TAG, "onServiceChanged")
+            try {
+                gatt.discoverServices()
+            }  catch (e: SecurityException) {
+                Log.e(MainActivity.TAG, e.toString())
+                _cameraState.value = CameraStateError(e)
             }
         }
 
@@ -222,6 +235,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
         Log.d(MainActivity.TAG, "disconnectFromDevice")
         try {
             _cameraState.value = CameraStateGone()
+            gatt?.disconnect()
             gatt?.close()
             gatt = null
             remoteService = null
@@ -270,10 +284,12 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
 
                 is CameraBLERead -> {
                     val op = currentOperation as CameraBLERead
+                    Log.d(MainActivity.TAG, "Reading from: ${op.characteristic.uuid}")
                     gatt?.readCharacteristic(op.characteristic)
                 }
                 is CameraBLESubscribe -> {
                     val op = currentOperation as CameraBLESubscribe
+                    Log.d(MainActivity.TAG, "Subscribing to: ${op.characteristic.uuid}")
                     gatt?.setCharacteristicNotification(op.characteristic, true)
                     val descriptor = op.characteristic.getDescriptor(configDescriptorUUID)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
