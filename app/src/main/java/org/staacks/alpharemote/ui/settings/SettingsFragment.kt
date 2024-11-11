@@ -145,14 +145,14 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
     private val bondStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(MainActivity.TAG, "Received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
+            Log.d(MainActivity.TAG, "SettingsFragment received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             checkAssociations()
         }
     }
 
     private val bluetoothStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(MainActivity.TAG, "Received BluetoothAdapter.ACTION_STATE_CHANGED.")
+            Log.d(MainActivity.TAG, "SettingsFragment received BluetoothAdapter.ACTION_STATE_CHANGED.")
             checkBluetoothState()
         }
     }
