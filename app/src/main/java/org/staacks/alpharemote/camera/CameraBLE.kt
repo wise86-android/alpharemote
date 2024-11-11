@@ -193,7 +193,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             when (currentOperation) {
                 is CameraBLEWrite -> {
                     val op = currentOperation as CameraBLEWrite
-                    Log.d(MainActivity.TAG, "Writing: " + op.data.toHexString())
+                    Log.d(MainActivity.TAG, "Writing: 0x${op.data.toHexString()}")
                     op.characteristic.setValue(op.data)
                     gatt?.writeCharacteristic(op.characteristic)
                 }
@@ -235,8 +235,9 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
         }
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     fun cameraBLEReadComplete(status: Int, value: ByteArray) {
-        Log.d(MainActivity.TAG, "cameraBLEReadComplete: $status, $value")
+        Log.d(MainActivity.TAG, "cameraBLEReadComplete: $status, 0x${value.toHexString()}")
         if (currentOperation is CameraBLERead) {
             val callback = (currentOperation as CameraBLERead).resultCallback
             operationComplete()
@@ -275,7 +276,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             } else // This should not happen. If it happens, it is probably the result of the BLE communication running in parallel to whatever changed the state. In this case it is probably not recoverable and should be ignored
                 it
         }
-        Log.d(MainActivity.TAG, "Received status: " + value.toHexString())
+        Log.d(MainActivity.TAG, "Received status: 0x${value.toHexString()}")
     }
 
     fun executeCameraActionStep(action: CameraActionStep) {
