@@ -85,6 +85,7 @@ class CustomButtonRecyclerViewAdapter(private val dataSet: MutableStateFlow<List
             list = newList
             dataSet.value = list
             notifyItemMoved(from, to)
+
         }
     }
 
@@ -92,7 +93,8 @@ class CustomButtonRecyclerViewAdapter(private val dataSet: MutableStateFlow<List
     fun removeItem(index: Int) {
         list?.toMutableList()?.let {newList ->
             newList.removeAt(index)
-            dataSet.value = newList
+            list = newList
+            dataSet.value = list
             notifyItemRemoved(index)
         }
     }
