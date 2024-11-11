@@ -210,23 +210,38 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     @Synchronized
-    fun cancelPendingActionSteps() {
+    fun cancelPendingActionSteps(): Boolean {
+        var pendingStepsCancelled = false
         timer?.cancel()
         if (pendingActionSteps.isNotEmpty()) {
             pendingActionSteps.clear()
             for (button in ButtonCode.entries) {
                 cameraBLE?.executeCameraActionStep(CAButton(false, button))
             }
+            pendingStepsCancelled = true
         }
         _serviceState.update {
             (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
+        return pendingStepsCancelled
+    }
+
+    private fun isLongRunningSequence(steps: List<CameraActionStep>): Boolean {
+        for (step in steps) {
+            when (step) {
+                is CACountdown -> return true
+                is CAWaitFor -> return true
+                else -> {}
+            }
+        }
+        return false
     }
 
     @Synchronized
     fun startCameraAction(steps: List<CameraActionStep>) {
-        cancelPendingActionSteps()
+        if (cancelPendingActionSteps() && isLongRunningSequence(steps))
+            return //If this is more than a simple button press and there were pending action, this button press is only used as a cancellation of the previous sequence
         pendingActionSteps.addAll(steps)
         executeNextCameraActionStep()
     }
