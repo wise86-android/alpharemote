@@ -32,6 +32,18 @@
         android:gravity="center_vertical"
         android:textAppearance="@style/TextAppearance.AppCompat.Body2" />
 
+    <ImageButton
+        android:id="@+id/cap_delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:src="@drawable/baseline_delete_24"
+        android:backgroundTint="?attr/colorSecondary"
+        app:tint="?attr/colorOnSecondary"
+        android:visibility="gone"
+        android:text="@string/delete" />
+
     <androidx.constraintlayout.widget.Group
         android:id="@+id/cap_action_group"
         android:layout_width="wrap_content"
@@ -196,6 +208,5 @@
         app:layout_constraintEnd_toStartOf="@id/cap_save"
         app:layout_constraintTop_toBottomOf="@id/cap_speed"
         android:text="@string/cancel" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -334,7 +334,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     override fun itemTouched(index: Int, oldCameraAction: CameraAction) {
-        val cameraActionPicker = CameraActionPicker.newInstance(index, oldCameraAction)
+        val cameraActionPicker = CameraActionPicker.newInstance(index, oldCameraAction, showDelete = true)
         cameraActionPicker.show(childFragmentManager, null)
     }
 
@@ -348,6 +348,10 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     override fun onCancelCameraActionPicker() {
+    }
+
+    override fun onDeleteCameraActionPicker(index: Int) {
+        adapter.removeItem(index)
     }
 
     fun openURL(target: String) {

@@ -80,6 +80,7 @@
 
     <string name="save">Speichern</string>
     <string name="cancel">Abbrechen</string>
+    <string name="delete">Löschen</string>
 
     <string name="action">Aktion</string>
     <string name="self_timer">Selbstauslöser</string>

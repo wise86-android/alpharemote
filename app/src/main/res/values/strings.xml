@@ -81,6 +81,7 @@
 
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
 
     <string name="action">Action</string>
     <string name="self_timer">Self timer</string>

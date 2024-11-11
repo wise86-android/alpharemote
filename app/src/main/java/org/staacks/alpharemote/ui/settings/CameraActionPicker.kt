@@ -5,6 +5,8 @@ import android.app.Dialog
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.SeekBar
@@ -23,6 +25,7 @@ import kotlin.math.roundToInt
 interface CameraActionPickerListener {
     fun onConfirmCameraActionPicker(index: Int, cameraAction: CameraAction)
     fun onCancelCameraActionPicker()
+    fun onDeleteCameraActionPicker(index: Int)
 }
 
 class CameraActionPicker : DialogFragment() {
@@ -69,11 +72,13 @@ class CameraActionPicker : DialogFragment() {
     companion object {
         const val CAMERA_ACTION_KEY = "cameraAction"
         const val INDEX_KEY = "index"
-        fun newInstance(index: Int, cameraAction: CameraAction?): CameraActionPicker {
+        const val SHOW_DELETE_KEY = "showDelete"
+        fun newInstance(index: Int, cameraAction: CameraAction?, showDelete: Boolean): CameraActionPicker {
             val newInstance = CameraActionPicker()
             val args = Bundle()
             args.putSerializable(CAMERA_ACTION_KEY, cameraAction)
             args.putInt(INDEX_KEY, index)
+            args.putBoolean(SHOW_DELETE_KEY, showDelete)
             newInstance.setArguments(args)
             return newInstance
         }
@@ -85,6 +90,8 @@ class CameraActionPicker : DialogFragment() {
         index = arguments?.getInt(INDEX_KEY) ?: -1
         val oldAction = arguments?.getSerializable(CAMERA_ACTION_KEY) as? CameraAction
         val startAction = oldAction ?: defaultAction
+
+        val showDelete = arguments?.getBoolean(SHOW_DELETE_KEY) ?: false
 
         cameraAction = MutableStateFlow(startAction)
 
@@ -219,16 +226,24 @@ class CameraActionPicker : DialogFragment() {
             )
             dismiss()
         }
+        if (showDelete) {
+            binding.capDelete.setOnClickListener {
+                (parentFragment as? CameraActionPickerListener)?.onDeleteCameraActionPicker(index)
+                dismiss()
+            }
+            binding.capDelete.visibility = VISIBLE
+        } else
+            binding.capDelete.visibility = GONE
 
         lifecycleScope.launch {
             cameraAction.collect{
                 binding.capIcon.setImageDrawable(it.getIcon(requireContext()))
                 binding.capTitle.text = it.getName(requireContext())
 
-                binding.capSelftimerGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.SELFTIMER)) View.VISIBLE else View.GONE
-                binding.capHoldGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.VARIABLE_DURATION)) View.VISIBLE else View.GONE
-                binding.capToggle.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.TOGGLE)) View.VISIBLE else View.GONE
-                binding.capSpeedGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.ADJUST_SPEED)) View.VISIBLE else View.GONE
+                binding.capSelftimerGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.SELFTIMER)) VISIBLE else GONE
+                binding.capHoldGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.VARIABLE_DURATION)) VISIBLE else GONE
+                binding.capToggle.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.TOGGLE)) VISIBLE else GONE
+                binding.capSpeedGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.ADJUST_SPEED)) VISIBLE else GONE
 
                 binding.capAction.setSelection(it.preset.ordinal)
 
