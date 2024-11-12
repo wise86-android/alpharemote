@@ -1,0 +1,13 @@
+- New "Trigger on focus" button: Half holds shutter button until camera reports focus-acquired and then fully presses the shutter.
+- Check if Bluetooth is enabled. Show warning and block pairing if Bluetooth is disabled.
+- Detect failed button commands and warn user that the "Bluetooth remote" setting on the camera is probably disabled.
+- Add delete button to custom button dialog (in addition to swipe-delete in the list).
+- Show version on about page.
+- Improved focus far/near icons.
+- Custom key size slider labels are now buttons.
+- If a sequence with a countdown is active, pressing buttons that contain steps with a countdown only act to cancel the active sequence without starting themselves.
+- Fix: Detect newer camera models released around 2022.
+- Fix: Device shown as offline after pairing.
+- Improved stability (Fix several possible race conditions in app state handling. Handle service change indication from camera.)
+- Improved debug log output.
+

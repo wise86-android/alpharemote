@@ -1,0 +1,13 @@
+- Neuer Button "Bei Fokus auslösen bei Fokus": Hält den Auslöser halb gedrückt, bis die Kamera einen erfolgreichen Fokus meldet, und drückt dann den Auslöser vollständig.
+- Die App prüft jetzt, ob Bluetooth aktiviert ist und zeigt eine Warnung an und blockiert das Koppeln, falls nicht.
+- Fehlgeschlagene Bluetooth befehle werden erkannt und der User gewarnt, dass die Einstellung "Bluetooth-Fernbedienung" an der Kamera wahrscheinlich deaktiviert ist.
+- Löschen-Button zum benutzerdefinierten Tasten-Dialog hinzugefügt (zusätzlich zum Wischen-Löschen in der Liste).
+- Version wird auf der "Über"-Seite angezeigt.
+- Verbesserte Symbole für Fokus fern/nah.
+- Die Beschriftungen des Schiebereglers für die Tastenanpassung sind jetzt Schaltflächen.
+- Wenn eine Sequenz mit Countdown aktiv ist, wird durch Drücken von Tasten mit Countdown-Schritten nur die aktive Sequenz abgebrochen, ohne dass die neue Taste selbst gestartet wird.
+- Fix: Erkenne neuere Kameramodelle, die etwa 2022 veröffentlicht wurden.
+- Fix: Gerät wird nach dem Koppeln als offline angezeigt.
+- Verbesserte Stabilität (Mehrere mögliche Race-Conditions im App-Status-Handling behoben. Verarbeitung von Service Changed Indications der Kamera).
+- Verbesserte Ausgabe des Debug-Protokolls.
+
