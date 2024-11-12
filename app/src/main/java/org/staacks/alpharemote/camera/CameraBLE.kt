@@ -111,6 +111,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
         override fun onServiceChanged(gatt: BluetoothGatt) {
             super.onServiceChanged(gatt)
             Log.d(MainActivity.TAG, "onServiceChanged")
+            resetOperationQueue()
             try {
                 gatt.discoverServices()
             }  catch (e: SecurityException) {
@@ -241,7 +242,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
             remoteService = null
             commandCharacteristic = null
             statusCharacteristic = null
-            operationQueue.clear()
+            resetOperationQueue()
             currentOperation = null
             onDisconnect()
         } catch (e: SecurityException) {
@@ -257,6 +258,12 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
         if (currentOperation == null) {
             executeNextOperation()
         }
+    }
+
+    @Synchronized
+    fun resetOperationQueue() {
+        operationQueue.clear()
+        currentOperation = null
     }
 
     @OptIn(ExperimentalStdlibApi::class)
