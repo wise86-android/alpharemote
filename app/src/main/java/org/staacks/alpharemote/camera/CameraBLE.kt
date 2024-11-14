@@ -30,7 +30,7 @@ import kotlin.experimental.and
 // and to Greg Leeds at
 // https://gregleeds.com/reverse-engineering-sony-camera-bluetooth/
 
-class CameraBLE(val scope: CoroutineScope, val context: Context, val address: String, val onDisconnect: () -> Unit) {
+class CameraBLE(val scope: CoroutineScope, context: Context, val address: String, val onDisconnect: () -> Unit) {
 
     val genericAccessServiceUUID = UUID.fromString("00001800-0000-1000-8000-00805f9b34fb")!!
     val nameCharacteristicUUID = UUID.fromString("00002a00-0000-1000-8000-00805f9b34fb")!!
@@ -192,7 +192,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
     }
 
     private val bondStateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
+        override fun onReceive(context: Context, intent: Intent) {
             Log.d(MainActivity.TAG, "CameraBLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             try {
                 if (cameraState.value is CameraStateReady && device?.bondState != BluetoothDevice.BOND_BONDED) {
@@ -200,7 +200,7 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
                     Log.e(MainActivity.TAG, "Camera became unbonded while in use.")
                 } else if (cameraState.value is CameraStateNotBonded && device?.bondState == BluetoothDevice.BOND_BONDED) {
                     Log.e(MainActivity.TAG, "Camera is now bonded.")
-                    connectToDevice()
+                    connectToDevice(context)
                 }
             } catch (e: SecurityException) {
                 _cameraState.value = CameraStateError(e, e.toString())
@@ -212,10 +212,10 @@ class CameraBLE(val scope: CoroutineScope, val context: Context, val address: St
     init {
         Log.d(MainActivity.TAG, "init")
         context.registerReceiver(bondStateReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
-        connectToDevice()
+        connectToDevice(context)
     }
 
-    fun connectToDevice() {
+    fun connectToDevice(context: Context) {
         Log.d(MainActivity.TAG, "connectToDevice")
         try {
             device = bluetoothAdapter.getRemoteDevice(address)
