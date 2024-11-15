@@ -55,7 +55,7 @@
     <string name="settings_broadcast_control">Broadcast control</string>
     <string name="settings_broadcast_control_explanation">Allow other apps to send camera control commands via broadcasted intents? This allows automation through apps like "Tasker".</string>
     <string name="settings_broadcast_control_more_label">Documentation</string>
-    <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/ble-camera-remote-app</string>
+    <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/bluetooth-remote</string>
     <string name="settings_broadcast_control_toggle">Allow broadcast control</string>
 
     <string name="about_author_title">Author</string>

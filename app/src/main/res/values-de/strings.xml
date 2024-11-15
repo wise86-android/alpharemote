@@ -54,7 +54,7 @@
     <string name="settings_broadcast_control">Broadcast-Steuerung</string>
     <string name="settings_broadcast_control_explanation">Erlaube anderen Apps, über Broadcast Intents Steuerbefehle an die Kamera zu senden? Dies ermöglicht Automatisierungen durch Apps wie "Tasker".</string>
     <string name="settings_broadcast_control_more_label">Dokumentation</string>
-    <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/ble-camera-remote-app</string>
+    <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/bluetooth-remote</string>
     <string name="settings_broadcast_control_toggle">Broadcast-Steuerung erlauben</string>
 
     <string name="about_author_title">Autor</string>
