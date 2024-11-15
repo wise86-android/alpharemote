@@ -89,9 +89,15 @@ Please let me know if your camera works if it has not yet been confirmed here.
 </details>
 
 <details>
-  <summary>The app connects to my camera, but the buttons do not work!</summary>
+  <summary>I cannot enable the Bluetooth remote control function on my camera although it is listed as compatible!</summary>
 
-  You probably only enabled Bluetooth, but not the "Bluetooth Remote". This is a separate setting in your camera's settings menu and on some cameras it is not even on the same page as the Bluetooth settings. Make sure you have enabled it, because otherwise your camera will allow a connection (for example for GPS), but it will not allow control.
+  Make sure you have the latest firmware for your camera. Models released around 2018/2019 (for example the a6400 or the a7III) were released without this feature and received it in a firmware update.
+</details>
+
+<details>
+  <summary>Button xy does not have the function it should have!</summary>
+
+  The app can only send button presses, but not status commands. It can press the "AF ON" button, but if cannot tell the camera to go to manual focus. The virtual "AF ON" button will do whatever your physical button does. So, if it does something unexpected, this is either a quirk from your camera model, it is because you changed its function or it might be in that mode. (This especially gives the "C1" button a very special role as the most versatile one supported by the remote.)
 </details>
 
 
