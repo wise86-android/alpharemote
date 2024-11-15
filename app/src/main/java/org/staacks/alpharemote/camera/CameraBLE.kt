@@ -221,7 +221,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             device = bluetoothAdapter.getRemoteDevice(address)
             if (device?.bondState == BluetoothDevice.BOND_BONDED) {
                 _cameraState.value = CameraStateConnecting()
-                gatt = device?.connectGatt(context, false, bluetoothGattCallback)
+                gatt = device?.connectGatt(context, true, bluetoothGattCallback)
             } else {
                 _cameraState.value = CameraStateNotBonded()
                 Log.e(MainActivity.TAG, "Camera found, but not bonded.")

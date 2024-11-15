@@ -1,6 +1,7 @@
 package org.staacks.alpharemote.service
 
 import android.Manifest
+import android.companion.AssociationInfo
 import android.companion.CompanionDeviceService
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -52,6 +53,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     companion object {
 
         private var cameraBLE: CameraBLE? = null
+        private var ignoredDeviceAppeared = 0
 
         private val _serviceState = MutableStateFlow<ServiceState>(ServiceStateGone())
         val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
@@ -91,6 +93,7 @@ class AlphaRemoteService : CompanionDeviceService() {
 
         if (cameraBLE == null) {
             cancelPendingActionSteps()
+            ignoredDeviceAppeared = 0
             cameraBLE = CameraBLE(scope, application, address, ::onDisconnect).apply {
                 scope.launch {
                     cameraState.collect {
@@ -112,6 +115,7 @@ class AlphaRemoteService : CompanionDeviceService() {
             }
         } else {
             Log.w(MainActivity.TAG, "onDeviceAppeared ignored as cameraBLE has already been instantiated.")
+            ignoredDeviceAppeared++
             return
         }
 
@@ -141,12 +145,25 @@ class AlphaRemoteService : CompanionDeviceService() {
         }
     }
 
+    override fun onDeviceAppeared(associationInfo: AssociationInfo) {
+        super.onDeviceAppeared(associationInfo)
+        Log.d(MainActivity.TAG, "API33 onDeviceAppeared: $associationInfo")
+    }
+
     override fun onDeviceDisappeared(address: String) {
         Log.d(MainActivity.TAG, "Device disappeared: $address")
         try {
             super.onDeviceDisappeared(address) //This is abstract on Android 12
         } catch (_: AbstractMethodError) {}
-        cameraBLE?.disconnectFromDevice()
+        if (ignoredDeviceAppeared > 0)
+            ignoredDeviceAppeared--
+        else
+            cameraBLE?.disconnectFromDevice()
+    }
+
+    override fun onDeviceDisappeared(associationInfo: AssociationInfo) {
+        super.onDeviceDisappeared(associationInfo)
+        Log.d(MainActivity.TAG, "API33 onDeviceDisappeared: $associationInfo")
     }
 
     private fun onDisconnect() {
