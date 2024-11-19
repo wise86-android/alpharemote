@@ -164,7 +164,7 @@ class SettingsStore(context: Context) {
                 data[keySelftimer],
                 data[keyDuration],
                 data[keyStep],
-                CameraActionPreset.valueOf(data[keyPreset] ?: CameraActionPreset.NONE.name)
+                CameraActionPreset.valueOf(data[keyPreset] ?: CameraActionPreset.STOP.name)
             ))
 
             i++

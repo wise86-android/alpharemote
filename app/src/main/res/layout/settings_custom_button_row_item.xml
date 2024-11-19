@@ -15,7 +15,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintDimensionRatio="1:1"
         android:scaleType="fitCenter"
-        app:srcCompat="@drawable/ca_none"
+        app:srcCompat="@drawable/ca_stop"
         app:tint="?android:colorForeground"
         android:importantForAccessibility="no" />
 
@@ -23,7 +23,7 @@
         android:id="@+id/title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/action_name_none"
+        android:text="@string/action_name_stop"
         app:layout_constraintStart_toEndOf="@id/icon"
         android:layout_marginStart="4dp"
         app:layout_constraintEnd_toEndOf="@id/handle"

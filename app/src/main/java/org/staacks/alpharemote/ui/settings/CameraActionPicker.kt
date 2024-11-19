@@ -36,7 +36,7 @@ class CameraActionPicker : DialogFragment() {
     private var index = -1
 
     val defaultAction = CameraAction(
-        false, null, null, null, CameraActionPreset.NONE
+        false, null, null, null, CameraActionPreset.STOP
     )
 
     private lateinit var cameraAction: MutableStateFlow<CameraAction>

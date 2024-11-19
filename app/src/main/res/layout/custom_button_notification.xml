@@ -2,7 +2,7 @@
 <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:src="@drawable/ca_none"
+    android:src="@drawable/ca_stop"
     android:visibility="gone"
     android:clickable="true"
     android:background="?android:attr/selectableItemBackgroundBorderless"

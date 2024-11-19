@@ -99,7 +99,7 @@
 
     <string name="seconds">%.1f s</string>
 
-    <string name="action_name_none">None</string>
+    <string name="action_name_stop">Stop</string>
     <string name="action_name_shutter_half">Focus</string>
     <string name="action_name_shutter">Shutter</string>
     <string name="action_name_trigger_once">Trigger Once</string>

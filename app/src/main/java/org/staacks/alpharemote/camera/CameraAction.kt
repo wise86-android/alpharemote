@@ -75,7 +75,7 @@ enum class CameraActionTemplateOption {
 }
 
 enum class CameraActionPreset(val template: CameraActionTemplate) {
-    NONE(CameraActionTemplate(R.string.action_name_none, R.drawable.ca_none, false,
+    STOP(CameraActionTemplate(R.string.action_name_stop, R.drawable.ca_stop, false,
         listOf(), listOf(), setOf(), null
     )),
     SHUTTER_HALF(CameraActionTemplate(R.string.action_name_shutter_half, R.drawable.ca_shutter_half,
