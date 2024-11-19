@@ -41,9 +41,9 @@ class CameraActionPicker : DialogFragment() {
 
     private lateinit var cameraAction: MutableStateFlow<CameraAction>
 
-    object SeekBarTimeMap {
+    class SeekBarTimeMap(min: Int, max: Int) {
 
-        private val mapping = generateSequence(0) {
+        private val mapping = generateSequence(min) {
             if (it < 10)
                 it + 1
             else if (it < 50)
@@ -54,20 +54,23 @@ class CameraActionPicker : DialogFragment() {
                 it + 50
             else
                 it + 100
-        }.takeWhile { it <= 600 }.toList()
+        }.takeWhile { it <= max }.toList()
 
         fun getMax(): Int {
-            return mapping.count()-1
+            return mapping.count() - 1
         }
 
         fun indexToTime(i: Int): Float {
-            return mapping[i]/10.0f
+            return mapping[i] / 10.0f
         }
 
         fun timeToIndex(t: Float): Int {
-            return mapping.indexOf((t*10.0f).roundToInt())
+            return mapping.indexOf((t * 10.0f).roundToInt())
         }
     }
+
+    val selftimerSeekBarTimeMap = SeekBarTimeMap(10, 600)
+    val holdSeekBarTimeMap = SeekBarTimeMap(0, 100)
 
     companion object {
         const val CAMERA_ACTION_KEY = "cameraAction"
@@ -130,17 +133,17 @@ class CameraActionPicker : DialogFragment() {
         binding.capSelftimerEnable.setOnCheckedChangeListener { buttonView, isChecked ->
             lifecycleScope.launch {
                 cameraAction.emit(cameraAction.value.copy(
-                    selftimer = if (isChecked) (SeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
+                    selftimer = if (isChecked) (selftimerSeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
                 ))
             }
         }
-        binding.capSelftimer.max = SeekBarTimeMap.getMax()
+        binding.capSelftimer.max = selftimerSeekBarTimeMap.getMax()
         binding.capSelftimer.setOnSeekBarChangeListener(object: OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 lifecycleScope.launch {
                     cameraAction.emit(
                         cameraAction.value.copy(
-                            selftimer = SeekBarTimeMap.indexToTime(progress)
+                            selftimer = selftimerSeekBarTimeMap.indexToTime(progress)
                         )
                     )
                 }
@@ -157,17 +160,17 @@ class CameraActionPicker : DialogFragment() {
         binding.capHoldEnable.setOnCheckedChangeListener { buttonView, isChecked ->
             lifecycleScope.launch {
                 cameraAction.emit(cameraAction.value.copy(
-                    duration = if (isChecked) (SeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
+                    duration = if (isChecked) (holdSeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
                 ))
             }
         }
-        binding.capHold.max = SeekBarTimeMap.getMax()
+        binding.capHold.max = holdSeekBarTimeMap.getMax()
         binding.capHold.setOnSeekBarChangeListener(object: OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 lifecycleScope.launch {
                     cameraAction.emit(
                         cameraAction.value.copy(
-                            duration = SeekBarTimeMap.indexToTime(progress)
+                            duration = holdSeekBarTimeMap.indexToTime(progress)
                         )
                     )
                 }
@@ -250,7 +253,7 @@ class CameraActionPicker : DialogFragment() {
                 binding.capSelftimerEnable.isChecked = (it.selftimer != null)
                 if (binding.capSelftimerEnable.isChecked) {
                     binding.capSelftimer.alpha = 1.0f
-                    binding.capSelftimer.progress = SeekBarTimeMap.timeToIndex (it.selftimer ?: 3.0f)
+                    binding.capSelftimer.progress = selftimerSeekBarTimeMap.timeToIndex (it.selftimer ?: 3.0f)
                     binding.capSelftimerSeconds.text = String.format(getString(R.string.seconds),it.selftimer ?: 3.0f)
                 } else {
                     binding.capSelftimer.alpha = 0.5f
@@ -259,7 +262,7 @@ class CameraActionPicker : DialogFragment() {
                 binding.capHoldEnable.isChecked = (it.duration != null)
                 if (binding.capHoldEnable.isChecked) {
                     binding.capHold.alpha = 1.0f
-                    binding.capHold.progress = SeekBarTimeMap.timeToIndex (it.duration ?: 3.0f)
+                    binding.capHold.progress = holdSeekBarTimeMap.timeToIndex (it.duration ?: 3.0f)
                     binding.capHoldSeconds.text = String.format(getString(R.string.seconds),it.duration ?: 3.0f)
                 } else {
                     binding.capHold.alpha = 0.5f
