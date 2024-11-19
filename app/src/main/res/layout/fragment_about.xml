@@ -221,6 +221,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="@style/TextAppearance.AppCompat.Small"
             android:textAlignment="textEnd"
+            android:layout_marginTop="30dp"
             android:text="@{@string/about_version_info(viewModel.versionName, viewModel.versionCode)}"
             />
 

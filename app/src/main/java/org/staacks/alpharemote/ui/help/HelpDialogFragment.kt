@@ -1,5 +1,7 @@
 package org.staacks.alpharemote.ui.help
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -30,11 +32,18 @@ class HelpDialogFragment : BottomSheetDialogFragment() {
 
         _binding = DialogFragmentHelpBinding.inflate(layoutInflater)
         binding.viewModel = helpViewModel
+        binding.fragment = this
         return binding.root
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    fun openURL(target: String) {
+        val uri = Uri.parse(target)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+        startActivity(intent)
     }
 }
