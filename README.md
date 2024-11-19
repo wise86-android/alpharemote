@@ -17,7 +17,7 @@ This app should work with any camera that is compatible with Sonys small physica
 
 So far, this has been confirmed for the following models:
 
-ILCE-6400 (α6400), ILCE-6700 (α6700), ILCE-7M3 (α7 III), ILCE-7RM3 (α7R III), ILCE-7M4 (α7 IV), ILCE-9 (α9), ZV-E10
+ILCE-6400 (α6400), ILCE-6700 (α6700), ILCE-7M3 (α7 III), ILCE-7CM2 (α7C II), ILCE-7M4 (α7 IV), ILCE-7RM3 (α7R III), ILCE-9 (α9), ZV-E10
 
 It is expected to also work with the following models:
 
