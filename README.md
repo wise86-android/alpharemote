@@ -48,7 +48,7 @@ Please let me know if your camera works if it has not yet been confirmed here.
 <details>
   <summary>Is this app compatible with geotagging via Bluetooth?</summary>
   
-  Unfortunately, no, at least at the moment. It is high on my todo list to implement geotagging, but right now it is not supported.
+  Unfortunately, no, at least at the moment. For some reason my α6400 does not support Bluetooth remote and geotagging via Bluetooth at the same time. So, if geotagging is important to you, neither this app nor any physical Bluetooth remote is a good solution. I plan to eventually support geotagging in this app, so you can at least switch between both functions on the camera, but since I expect that the same limitation applies to all Sony cameras, it is of limited use and therefore low priority.
 </details>
 
 ## Trigger behavior
