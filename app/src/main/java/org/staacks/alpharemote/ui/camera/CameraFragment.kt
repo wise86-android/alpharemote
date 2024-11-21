@@ -3,6 +3,7 @@ package org.staacks.alpharemote.ui.camera
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -10,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -18,21 +20,27 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.SettingsStore
+import org.staacks.alpharemote.camera.ButtonCode
+import org.staacks.alpharemote.camera.CAButton
+import org.staacks.alpharemote.camera.CACountdown
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
+import org.staacks.alpharemote.camera.CameraActionStep
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.databinding.FragmentCameraBinding
 import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.service.ServiceRunning
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.io.Serializable
 
 
@@ -61,6 +69,8 @@ class CameraFragment : Fragment() {
                                     R.string.help_camera_remote_title,
                                     R.string.help_camera_remote_text
                                 ).show(childFragmentManager, null)
+                            CameraViewModel.GenericCameraUIActionType.START_BULB -> startBulb()
+                            CameraViewModel.GenericCameraUIActionType.START_INTERVAL -> startInterval()
                         }
                     }
                     is CameraViewModel.DefaultRemoteButtonCameraUIAction -> {
@@ -100,7 +110,10 @@ class CameraFragment : Fragment() {
         val binding = _binding!!
         binding.lifecycleOwner = viewLifecycleOwner
         binding.viewModel = cameraViewModel
+        binding.defaultRemote.lifecycleOwner = viewLifecycleOwner
         binding.defaultRemote.viewModel = cameraViewModel
+        binding.advancedControls.lifecycleOwner = viewLifecycleOwner
+        binding.advancedControls.viewModel = cameraViewModel
 
         viewLifecycleOwner.lifecycleScope.launch {
             cameraViewModel?.uiState?.collect{ state ->
@@ -174,9 +187,9 @@ class CameraFragment : Fragment() {
         //We basically just recreate the NotificationUI, but do not have to use remoteViews.
 
         _binding?.let { binding ->
-            binding.customButtons.removeAllViews()
-            val context = binding.customButtons.context
-            val parentID = binding.customButtons.id
+            binding.advancedControls.customButtons.removeAllViews()
+            val context = binding.advancedControls.customButtons.context
+            val parentID = binding.advancedControls.customButtons.id
             val unset = ConstraintLayout.LayoutParams.UNSET
             var previousID = -1
             var nextID = -1
@@ -185,6 +198,7 @@ class CameraFragment : Fragment() {
             context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, ripple,true)
 
             val colorAttr = TypedValue()
+            context.theme.resolveAttribute(R.attr.colorCustomButton, colorAttr,true)
             context.theme.resolveAttribute(R.attr.colorCustomButton, colorAttr,true)
             val color = context.getColor(colorAttr.resourceId)
 
@@ -216,7 +230,7 @@ class CameraFragment : Fragment() {
                     }
                     previousID = imageView.id
 
-                    binding.customButtons.addView(imageView)
+                    binding.advancedControls.customButtons.addView(imageView)
                 }
             }
         }
@@ -243,13 +257,13 @@ class CameraFragment : Fragment() {
                             } else {
                                 disabledColor
                             }
-                            (binding.customButtons.getChildAt(i) as? ImageView)?.let{ v ->
+                            (binding.advancedControls.customButtons.getChildAt(i) as? ImageView)?.let{ v ->
                                 v.imageTintList = ColorStateList.valueOf(color)
                                 v.invalidate()
                             }
                         }
                     }
-                    binding.customButtons.invalidate()
+                    binding.advancedControls.customButtons.invalidate()
                 }
             }
         }
@@ -258,4 +272,45 @@ class CameraFragment : Fragment() {
     private fun gotoDeviceSettings() {
         (activity as MainActivity).navigateTo(R.id.navigation_settings)
     }
+
+    private fun startBulb() {
+        if (AlphaRemoteService.serviceState.value !is ServiceRunning)
+            return
+
+        try {
+            _binding?.advancedControls?.bulbDuration?.text?.toString()?.toFloat()?.let { duration ->
+                val intent = Intent(context, AlphaRemoteService::class.java).apply {
+                    action = AlphaRemoteService.BULB_INTENT_ACTION
+                    putExtra(AlphaRemoteService.BULB_INTENT_DURATION_EXTRA, duration)
+                }
+                context?.startService(intent)
+            }
+        } catch (_: NumberFormatException) {
+            sendCameraActionToService(CameraAction(toggle = false, null, null, null, CameraActionPreset.STOP), null)
+            Log.w(MainActivity.TAG, "Bulb could not be started due to bad parameters.")
+        }
+    }
+
+    private fun startInterval() {
+        if (AlphaRemoteService.serviceState.value !is ServiceRunning)
+            return
+
+        try {
+            _binding?.advancedControls?.intervalDuration?.text?.toString()?.toFloat()?.let { duration ->
+                _binding?.advancedControls?.intervalCount?.text?.toString()?.toInt()?.let { count ->
+                    val intent = Intent(context, AlphaRemoteService::class.java).apply {
+                        action = AlphaRemoteService.INTERVAL_INTENT_ACTION
+                        putExtra(AlphaRemoteService.INTERVAL_INTENT_DURATION_EXTRA, duration)
+                        putExtra(AlphaRemoteService.INTERVAL_INTENT_COUNT_EXTRA, count)
+                    }
+                    context?.startService(intent)
+                }
+            }
+        } catch (_: NumberFormatException) {
+            sendCameraActionToService(CameraAction(toggle = false, null, null, null, CameraActionPreset.STOP), null)
+            Log.w(MainActivity.TAG, "Interval could not be started due to bad parameters.")
+        }
+    }
+
+
 }

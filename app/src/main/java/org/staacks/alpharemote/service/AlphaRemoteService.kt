@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.camera.CameraActionPreset
 import java.util.LinkedList
 import java.util.Timer
 import java.util.TimerTask
@@ -66,6 +67,13 @@ class AlphaRemoteService : CompanionDeviceService() {
         const val BUTTON_INTENT_CAMERA_ACTION_EXTRA = "camera_action"
         const val BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA = "down"
         const val BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA = "up"
+
+        const val BULB_INTENT_ACTION = "BULB"
+        const val BULB_INTENT_DURATION_EXTRA = "duration"
+
+        const val INTERVAL_INTENT_ACTION = "INTERVAL"
+        const val INTERVAL_INTENT_DURATION_EXTRA = "interval"
+        const val INTERVAL_INTENT_COUNT_EXTRA = "count"
 
         private var pendingActionSteps = LinkedList<CameraActionStep>()
         var broadcastControl = false
@@ -209,6 +217,29 @@ class AlphaRemoteService : CompanionDeviceService() {
                 val up = intent.getBooleanExtra(BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA, true)
 
                 executeCameraAction(cameraAction, down, up)
+            }
+            BULB_INTENT_ACTION -> {
+                val duration = intent.getSerializableExtra(BULB_INTENT_DURATION_EXTRA) as Float
+                startCameraAction(
+                    CameraAction(false,null,null,null,CameraActionPreset.TRIGGER_ONCE).getClickStepList(this)
+                            + CACountdown(getString(R.string.camera_advanced_bulb_timer_label), duration)
+                            + CameraAction(false,null,null,null, CameraActionPreset.SHUTTER).getClickStepList(this)
+                )
+            }
+            INTERVAL_INTENT_ACTION -> {
+                val duration = intent.getSerializableExtra(INTERVAL_INTENT_DURATION_EXTRA) as Float
+                val count = intent.getSerializableExtra(INTERVAL_INTENT_COUNT_EXTRA) as Int
+                startCameraAction(
+                    List(count) {
+                        listOf(
+                            CAButton(pressed = true, ButtonCode.SHUTTER_HALF),
+                            CACountdown(getString(R.string.camera_advanced_interval_timer_label), duration),
+                            CAButton(pressed = true, ButtonCode.SHUTTER_FULL),
+                            CAButton(pressed = false, ButtonCode.SHUTTER_FULL),
+                            CAButton(pressed = false, ButtonCode.SHUTTER_HALF)
+                        )
+                    }.flatten()
+                )
             }
         }
 

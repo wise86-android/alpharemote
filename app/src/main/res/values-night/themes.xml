@@ -18,6 +18,9 @@
         <item name="colorCustomButton">@color/white</item>
         <item name="colorCustomButtonBG">@color/gray10</item>
         <item name="colorZoomFocusBG">@color/gray20</item>
+
+        <!-- Workaround for drag handle in Material 2 theme, https://stackoverflow.com/a/75389707/8068814 -->
+        <item name="bottomSheetDragHandleStyle">@style/Widget.MaterialComponents.BottomSheet.DragHandle</item>
     </style>
 
 </resources>

@@ -32,7 +32,9 @@ class CameraViewModel : ViewModel() {
 
     enum class GenericCameraUIActionType {
         GOTO_DEVICE_SETTINGS,
-        HELP_REMOTE
+        HELP_REMOTE,
+        START_BULB,
+        START_INTERVAL
     }
 
     data class DefaultRemoteButtonCameraUIAction (
@@ -83,6 +85,18 @@ class CameraViewModel : ViewModel() {
         }
 
         return true
+    }
+
+    fun startBulb() {
+        viewModelScope.launch {
+            _uiAction.emit(GenericCameraUIAction(GenericCameraUIActionType.START_BULB))
+        }
+    }
+
+    fun startInterval() {
+        viewModelScope.launch {
+            _uiAction.emit(GenericCameraUIAction(GenericCameraUIActionType.START_INTERVAL))
+        }
     }
 
 }

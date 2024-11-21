@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Workaround for drag handle in Material 2 theme, https://stackoverflow.com/a/75389707/8068814 -->
+    <style name="Widget.MaterialComponents.BottomSheet.DragHandle" parent="Widget.Material3.BottomSheet.DragHandle">
+        <item name="tint">?colorOnSurface</item>
+        <item name="android:alpha">0.3</item>
+    </style>
+</resources>

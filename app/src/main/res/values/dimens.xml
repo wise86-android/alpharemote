@@ -8,6 +8,7 @@
     <dimen name="notification_status_name_size">12sp</dimen>
     <dimen name="help_padding">16dp</dimen>
     <dimen name="custom_button_height_in_activity">60dp</dimen>
+    <dimen name="advanced_controls_drawer_peek">110dp</dimen> <!-- custom button height + 48dp handle + 2dp padding -->
     <dimen name="activity_status_size">32dp</dimen>
 
 </resources>

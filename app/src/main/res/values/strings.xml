@@ -14,6 +14,16 @@
     <string name="camera_button_focus">Focus</string>
     <string name="camera_button_zoom">Zoom</string>
 
+    <string name="camera_advanced_bulb_title">Timer for bulb mode</string>
+    <string name="camera_advanced_bulb_duration">Duration</string>
+    <string name="camera_advanced_bulb_timer_label">Bulb</string>
+    <string name="camera_advanced_interval_title">Intervalometer</string>
+    <string name="camera_advanced_interval_duration">Interval</string>
+    <string name="camera_advanced_interval_count">Number of exposures</string>
+    <string name="camera_advanced_interval_timer_label">Interval</string>
+    <string name="camera_advanced_start">Start</string>
+    <string name="camera_advanced_abort">Abort</string>
+
     <string name="permission_bluetooth_rationale">As the app communicates with the camera via Bluetooth it needs permission to use Bluetooth.</string>
     <string name="permission_notification_rationale">If you want to control your camera from the notification area, you need to allow this app to show notifications.</string>
 
@@ -97,7 +107,8 @@
     <string name="status_shutter">Shutter status</string>
     <string name="status_recording">Recording status</string>
 
-    <string name="seconds">%.1f s</string>
+    <string name="seconds">s</string>
+    <string name="seconds_formatted">%.1f s</string>
 
     <string name="action_name_stop">Stop</string>
     <string name="action_name_shutter_half">Focus</string>

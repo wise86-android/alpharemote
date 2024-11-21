@@ -254,7 +254,7 @@ class CameraActionPicker : DialogFragment() {
                 if (binding.capSelftimerEnable.isChecked) {
                     binding.capSelftimer.alpha = 1.0f
                     binding.capSelftimer.progress = selftimerSeekBarTimeMap.timeToIndex (it.selftimer ?: 3.0f)
-                    binding.capSelftimerSeconds.text = String.format(getString(R.string.seconds),it.selftimer ?: 3.0f)
+                    binding.capSelftimerSeconds.text = String.format(getString(R.string.seconds_formatted),it.selftimer ?: 3.0f)
                 } else {
                     binding.capSelftimer.alpha = 0.5f
                     binding.capSelftimerSeconds.text = "-"
@@ -263,7 +263,7 @@ class CameraActionPicker : DialogFragment() {
                 if (binding.capHoldEnable.isChecked) {
                     binding.capHold.alpha = 1.0f
                     binding.capHold.progress = holdSeekBarTimeMap.timeToIndex (it.duration ?: 3.0f)
-                    binding.capHoldSeconds.text = String.format(getString(R.string.seconds),it.duration ?: 3.0f)
+                    binding.capHoldSeconds.text = String.format(getString(R.string.seconds_formatted),it.duration ?: 3.0f)
                 } else {
                     binding.capHold.alpha = 0.5f
                     binding.capHoldSeconds.text = "-"
