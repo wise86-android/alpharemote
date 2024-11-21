@@ -1,0 +1,6 @@
+- Werkzeuge für Bulb-Modus und Intervalometer (die eignenen Tasten im Hauptbildschirm nach oben ziehen)
+- Tastentyp "None" in "Stop" umbenannt (kann genutzt werden um Aktionen wie Selbstauslöser-Countdowns zu stoppen)
+- Auswahlbereiche für Selbstauslöser und Halte-Dauer reduziert um besser bestimmte Werte wählen zu können
+- Leichte Verbesserungen der Hilfe-Texte und Link auf die FAQ
+- Fix: Instabile Verbindung auf dem Pixel 9 Pro
+

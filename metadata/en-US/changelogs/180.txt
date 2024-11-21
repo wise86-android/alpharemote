@@ -1,0 +1,6 @@
+- Tools for bulb mode and intervalometer (swipe up the custom buttons on the main remote screen)
+- Renamed custom button type "None" to "Stop" (can be used to stop things like self-timer countdowns)
+- Limit slider ranges for selftimer and hold duration to make it easier to pick values
+- Some improvements of help texts and link to FAQ
+- Fix: Unstable connection on Pixel 9 Pro
+

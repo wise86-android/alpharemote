@@ -11,8 +11,8 @@ android {
         applicationId = "org.staacks.alpharemote"
         minSdk = 31
         targetSdk = 35
-        versionCode = 171
-        versionName = "0.17a"
+        versionCode = 180
+        versionName = "0.180"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
