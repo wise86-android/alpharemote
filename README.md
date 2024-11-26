@@ -59,13 +59,7 @@ Please let me know if your camera works if it has not yet been confirmed here.
   "Trigger once" presses the shutter button all the way down and waits until the camera reports that the shutter is closed. When it receives that status report, it releases the shutter button immediately. Unfortunately, the feedback via Bluetooth is slower than most burst mode settings, so if your camera is set to burst mode, this will take several pictures before the shutter is released.
 </details>
 <details>
-  <summary>Why does regular "shutter" not always take a picture?</summary>
-
-  The simple "shutter" corresponds to your camera's shutter button. But unlike the physical button on your camera, a button in the app cannot be half-pressed to focus. In the notification area it is even worse: Here you cannot even hold the button. With the physical button you would half-hold it to focus, then press it all the way until you hear/feel the shutter and release it. If you tap the icon in the notification area it will just blindly go to fully pressed and then to fully released - either immediately or if you set it up with a "hold" duration, it will stay pressed for a moment. This works in manual focus or if you half-pressed the shutter through another button, so the camera already has acquired its focus. But if it has not focussed yet, it will probably not be able to do this in the short time the shutter is pressed. Check out the "Trigger once" and "Trigger on focus" buttons which wait for the shutter or for the focus, respectively, before they release the shutter button.
-</details>
-
-<details>
-  <summary>Why does regular "shutter" not always take a picture?</summary>
+  <summary>Why does the regular "shutter" not always take a picture?</summary>
 
   The simple "shutter" corresponds to your camera's shutter button. But unlike the physical button on your camera, a button in the app cannot be half-pressed to focus. In the notification area it is even worse: Here you cannot even hold the button. With the physical button you would half-hold it to focus, then press it all the way until you hear/feel the shutter and release it. If you tap the icon in the notification area it will just blindly go to fully pressed and then to fully released - either immediately or if you set it up with a "hold" duration, it will stay pressed for a moment. This works in manual focus or if you half-pressed the shutter through another button, so the camera already has acquired its focus. But if it has not focussed yet, it will probably not be able to do this in the short time the shutter is pressed. Check out the "Trigger once" and "Trigger on focus" buttons which wait for the shutter or for the focus, respectively, before they release the shutter button.
 </details>
