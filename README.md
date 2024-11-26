@@ -95,6 +95,14 @@ Please let me know if your camera works if it has not yet been confirmed here.
 </details>
 
 <details>
+  <summary>The focus buttons do not work!</summary>
+
+  If your lens has an MF switch, make sure that your camera is set to MF, but that the MF switch **on your lens is set to AF**! This may seem counterintuitive at first, but you should not think of the MF switch on your lens as a handy extension of the AF setting in your camera but instead as a button that disables the focus motor. Although most lenses today drive the focus by wire even in MF mode, this switch tells the lens to ignore anything that comes from the camera and this includes the commands from the remote control. So, it has to be AF on the lens and MF (or DMF or whatever allows focus adjustments) on the camera.
+
+  If this still does not work, be aware that there seem to be problems with some lenses that do not only affect this remote control app. See [dregele's findings](https://github.com/Staacks/alpharemote/issues/7#issuecomment-2501828500) as well as [this discussion on dpreview.com](https://www.dpreview.com/forums/thread/4635591?page=2). (Thanks to @dregele for testing.)  
+</details>
+
+<details>
   <summary>Button xy does not have the function it should have!</summary>
 
   The app can only send button presses, but not status commands. It can press the "AF ON" button, but if cannot tell the camera to go to manual focus. The virtual "AF ON" button will do whatever your physical button does. So, if it does something unexpected, this is either a quirk from your camera model, it is because you changed its function or it might be in that mode. (This especially gives the "C1" button a very special role as the most versatile one supported by the remote.)
