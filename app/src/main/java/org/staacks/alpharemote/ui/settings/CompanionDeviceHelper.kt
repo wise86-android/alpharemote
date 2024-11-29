@@ -7,10 +7,8 @@ import android.companion.BluetoothLeDeviceFilter
 import android.companion.CompanionDeviceManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
 import org.staacks.alpharemote.MainActivity
-import java.util.concurrent.Executor
 
 //Massive thanks to coral for the documentation of the camera's BLE protocol at
 // https://github.com/coral/freemote
@@ -53,7 +51,7 @@ object CompanionDeviceHelper {
             )
             .build()
 
-        val pairingRequest: AssociationRequest = AssociationRequest.Builder()
+        val associationRequest: AssociationRequest = AssociationRequest.Builder()
             .addDeviceFilter(deviceFilter)
             .setSingleDevice(true)
             .build()
@@ -61,7 +59,7 @@ object CompanionDeviceHelper {
         val deviceManager = context.getSystemService(Context.COMPANION_DEVICE_SERVICE) as CompanionDeviceManager
 
         Log.d(MainActivity.TAG, "Associating.")
-        deviceManager.associate(pairingRequest, callback, null)
+        deviceManager.associate(associationRequest, callback, null)
     }
 
     fun startObservingDevicePresence(context: Context, device: BluetoothDevice): Boolean {
@@ -77,6 +75,7 @@ object CompanionDeviceHelper {
             Log.e(MainActivity.TAG, e.toString())
             //This should be impossible as we check the permission before attempting to pair with the companion device.
         }
+        Log.e(MainActivity.TAG, "Failed to observe device presence.")
         return false
     }
 

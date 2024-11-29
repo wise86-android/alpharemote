@@ -2,7 +2,9 @@ package org.staacks.alpharemote.service
 
 import android.Manifest
 import android.companion.AssociationInfo
+import android.companion.CompanionDeviceManager
 import android.companion.CompanionDeviceService
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
@@ -37,6 +39,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraActionPreset
+import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper
 import java.util.LinkedList
 import java.util.Timer
 import java.util.TimerTask
@@ -54,7 +57,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     companion object {
 
         private var cameraBLE: CameraBLE? = null
-        private var ignoredDeviceAppeared = 0
+        private var deviceAppearedCount = 0
 
         private val _serviceState = MutableStateFlow<ServiceState>(ServiceStateGone())
         val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
@@ -97,12 +100,29 @@ class AlphaRemoteService : CompanionDeviceService() {
         }
 
         val settingsStore = SettingsStore(application)
-        notificationUI = notificationUI ?: NotificationUI(applicationContext)
+        notificationUI = notificationUI ?: (NotificationUI(applicationContext).also { notificationUI ->
+            scope.launch {
+                settingsStore.customButtonSettings.stateIn(
+                    scope = this,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = SettingsStore.CustomButtonSettings(null, 1.0f)
+                ).collectLatest {
+                    notificationUI.updateCustomButtons(it.customButtonList, it.scale)
+                }
+            }
+            scope.launch {
+                settingsStore.permissions.collectLatest {
+                    if (it.notification) //Refresh notification if notification permission has been granted after it was not granted previously
+                        notificationUI.updateNotification()
+                    broadcastControl = it.broadcastControl
+                }
+            }
+        })
 
         if (cameraBLE == null) {
             cancelPendingActionSteps()
-            ignoredDeviceAppeared = 0
-            cameraBLE = CameraBLE(scope, application, address, ::onDisconnect).apply {
+            deviceAppearedCount = 1
+            cameraBLE = CameraBLE(scope, application, address, ::onConnect, ::onDisconnect).apply {
                 scope.launch {
                     cameraState.collect {
                         when (it) {
@@ -123,33 +143,8 @@ class AlphaRemoteService : CompanionDeviceService() {
             }
         } else {
             Log.w(MainActivity.TAG, "onDeviceAppeared ignored as cameraBLE has already been instantiated.")
-            ignoredDeviceAppeared++
+            deviceAppearedCount++
             return
-        }
-
-        notificationUI?.let { notificationUI ->
-            startForeground(
-                notificationUI.notificationId,
-                notificationUI.start(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
-            )
-
-            scope.launch {
-                settingsStore.customButtonSettings.stateIn(
-                    scope = this,
-                    started = SharingStarted.WhileSubscribed(5000),
-                    initialValue = SettingsStore.CustomButtonSettings(null, 1.0f)
-                ).collectLatest {
-                    notificationUI.updateCustomButtons(it.customButtonList, it.scale)
-                }
-            }
-            scope.launch {
-                settingsStore.permissions.collectLatest {
-                    if (it.notification) //Refresh notification if notification permission has been granted after it was not granted previously
-                        notificationUI.updateNotification()
-                    broadcastControl = it.broadcastControl
-                }
-            }
         }
     }
 
@@ -163,10 +158,14 @@ class AlphaRemoteService : CompanionDeviceService() {
         try {
             super.onDeviceDisappeared(address) //This is abstract on Android 12
         } catch (_: AbstractMethodError) {}
-        if (ignoredDeviceAppeared > 0)
-            ignoredDeviceAppeared--
-        else
+        deviceAppearedCount--
+
+        if (deviceAppearedCount == 0) {
             cameraBLE?.disconnectFromDevice()
+            cameraBLE = null
+            job.cancelChildren()
+            stopSelf()
+        }
     }
 
     override fun onDeviceDisappeared(associationInfo: AssociationInfo) {
@@ -174,15 +173,23 @@ class AlphaRemoteService : CompanionDeviceService() {
         Log.d(MainActivity.TAG, "API33 onDeviceDisappeared: $associationInfo")
     }
 
+    private fun onConnect() {
+        Log.d(MainActivity.TAG, "onConnect")
+        notificationUI?.let {
+            startForeground(
+                it.notificationId,
+                it.start(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
+            )
+        }
+    }
+
     private fun onDisconnect() {
         Log.d(MainActivity.TAG, "onDisconnect")
         _serviceState.value = ServiceStateGone()
-        cameraBLE = null
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
-        job.cancelChildren()
-        stopSelf()
     }
 
     private fun executeCameraAction(cameraAction: CameraAction, down: Boolean, up: Boolean) {
