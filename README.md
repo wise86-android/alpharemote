@@ -89,6 +89,13 @@ Please let me know if your camera works if it has not yet been confirmed here.
 </details>
 
 <details>
+  <summary>The remote is working, but it does not show up on the lock screen!</summary>
+
+  <img src="https://github.com/user-attachments/assets/5262aa80-6523-496a-9d4f-beb64cb31412" width="25%" align="right">
+  Android knows different importance levels for notifications. By default α-Remote uses a low importance to prevent the phone from vibrating everytime you turn on the camera. This however also prevents it from being shown on the lock screen (may depent on the device). To change the importance, connect your camera so that the notification shows up. Press and hold the notification until Android's dialog for notification customization shows up. Select "Default" instead of "Silent" and press "Apply". Now the controls should also show on the lock screen (and you should get an annoying vibration each time you turn on your camera).
+</details>
+
+<details>
   <summary>The focus buttons do not work!</summary>
 
   If your lens has an MF switch, make sure that your camera is set to MF, but that the MF switch **on your lens is set to AF**! This may seem counterintuitive at first, but you should not think of the MF switch on your lens as a handy extension of the AF setting in your camera but instead as a button that disables the focus motor. Although most lenses today drive the focus by wire even in MF mode, this switch tells the lens to ignore anything that comes from the camera and this includes the commands from the remote control. So, it has to be AF on the lens and MF (or DMF or whatever allows focus adjustments) on the camera.
@@ -101,6 +108,7 @@ Please let me know if your camera works if it has not yet been confirmed here.
 
   The app can only send button presses, but not status commands. It can press the "AF ON" button, but if cannot tell the camera to go to manual focus. The virtual "AF ON" button will do whatever your physical button does. So, if it does something unexpected, this is either a quirk from your camera model, it is because you changed its function or it might be in that mode. (This especially gives the "C1" button a very special role as the most versatile one supported by the remote.)
 </details>
+
 
 
 
