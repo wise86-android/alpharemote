@@ -9,7 +9,9 @@ The app uses Android's companion app feature, meaning that it does not actively 
 
 # How to get it
 
-Bear with me, I am currently working on a proper release on F-Droid and Google Play as well as some documentation. On Google Play you can already try a [beta version](https://play.google.com/store/apps/details?id=org.staacks.alpharemote).
+You can find APKs attached to each release in this repository, but I recommend a source with automatic updates. I distribute this app on F-Droid (with reproducible / verified builds) and Google Play.
+
+<a href="https://f-droid.org/packages/org.staacks.alpharemote"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80"></a><a href="https://play.google.com/store/apps/details?id=org.staacks.alpharemote"><img src="https://github.com/user-attachments/assets/e3ac7782-9120-4c68-b175-28c6b17c350b" alt="Get it on Google Play" height="80"></a>
 
 # Compatibility
 
