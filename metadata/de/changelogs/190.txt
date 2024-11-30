@@ -1,0 +1,2 @@
+- Besserer Umgang mit kurzen Verbindungsunterbrechungen. Dies sollte die Verbindung auf Android 13 und 14 Geräten fixen und die Stabilität auf allen anderen Geräten verbessern.
+- Breite der Einstellungen- und Über-Seiten auf großen Bildschirmen begrenzen.

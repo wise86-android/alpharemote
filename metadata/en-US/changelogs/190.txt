@@ -1,0 +1,2 @@
+- Handle short disconnects. This should fix connectivity for Android 13 and 14 devices and improve stability on every other device.
+- Limit width of settings and about tabs for wide screens.
