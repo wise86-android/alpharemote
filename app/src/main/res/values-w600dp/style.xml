@@ -7,7 +7,7 @@
     </style>
 
     <style name="LinearSettings">
-        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_width">600dp</item>
         <item name="android:layout_gravity">center_horizontal</item>
     </style>
 </resources>
