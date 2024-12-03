@@ -1,4 +1,4 @@
-A Bluetooth remote control app for Sony cameras that is immediately available in your phone's notification area as soon as you turn on your camera. This app is free and open source.
+A Bluetooth remote control app for Sony Alpha cameras that is immediately available in your phone's notification area as soon as you turn on your camera. This app is free and open source.
 
 The app uses Android's companion app feature, meaning that it does not actively scan for your camera, but is only started by Android when the camera has been seen by the system - and the app's service is shut down as soon as it is turned off again. The remote control buttons are there when you need them, but no resources or screenspace are used otherwise.
 

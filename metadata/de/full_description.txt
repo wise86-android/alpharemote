@@ -1,4 +1,4 @@
-Eine Bluetooth-Fernbedienungs-App für Sony-Kameras, die sofort im Benachrichtigungsbereich deines Telefons verfügbar ist, sobald du die Kamera einschaltest. Diese App ist kostenlos und quelloffen.
+Eine Bluetooth-Fernbedienungs-App für Sony Alpha Kameras, die sofort im Benachrichtigungsbereich deines Telefons verfügbar ist, sobald du die Kamera einschaltest. Diese App ist kostenlos und quelloffen.
 
 Die App nutzt die Companion-App-Funktion von Android, was bedeutet, dass sie nicht aktiv nach deiner Kamera sucht, sondern nur von Android gestartet wird, wenn die Kamera vom System erkannt wurde. Der Dienst der App wird sofort beendet, sobald die Kamera wieder ausgeschaltet wird. Die Fernbedienungstasten sind genau dann verfügbar, wenn du sie brauchst, aber ansonsten werden keine Ressourcen oder Bildschirmflächen belegt.
 
