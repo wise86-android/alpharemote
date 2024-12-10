@@ -79,6 +79,14 @@ Please let me know if your camera works if it has not yet been confirmed here.
 
 ## Troubleshooting
 <details>
+  <summary>I cannot connect to the camera and the search just times out!</summary>
+
+  Make sure your camera is in pairing mode and not connecting to another device instead (like the physical Bluetooth remote).
+
+  You might also want to check if location services are disabled on your phone and try to enable them. In principle, they should not be required (tested on a Pixel 6 with Android 15), but there has been a [report of an Android 13 device, which only worked with location services enabled](https://github.com/Staacks/alpharemote/issues/10). More testing is required to determine which devices are affected by this. If you are wondering why the location service setting might play a role, please read [this post](https://github.com/Staacks/alpharemote/issues/10).
+</details>
+
+<details>
   <summary>Button xy does not have the function it should have!</summary>
 
   The app can only send button presses, but not status commands. It can press the "AF ON" button, but if cannot tell the camera to go to manual focus. The virtual "AF ON" button will do whatever your physical button does. So, if it does something unexpected, this is either a quirk from your camera model, it is because you changed its function or it might be in that mode. (This especially gives the "C1" button a very special role as the most versatile one supported by the remote.)
