@@ -190,6 +190,7 @@ class AlphaRemoteService : CompanionDeviceService() {
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
+        cameraBLE = null
     }
 
     private fun executeCameraAction(cameraAction: CameraAction, down: Boolean, up: Boolean) {
