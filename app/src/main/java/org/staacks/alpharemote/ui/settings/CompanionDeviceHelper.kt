@@ -7,6 +7,7 @@ import android.companion.BluetoothLeDeviceFilter
 import android.companion.CompanionDeviceManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import org.staacks.alpharemote.MainActivity
 
