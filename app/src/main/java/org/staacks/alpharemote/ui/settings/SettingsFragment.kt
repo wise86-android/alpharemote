@@ -14,6 +14,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -127,8 +128,10 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
         context?.registerReceiver(bondStateReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
         context?.registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        context?.registerReceiver(locationServiceStateReceiver, IntentFilter(LocationManager.MODE_CHANGED_ACTION))
 
         checkBluetoothState()
+        checkLocationServiceState()
         checkBluetoothPermissionState()
         checkNotificationPermissionState()
         checkAssociations()
@@ -140,6 +143,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         super.onDestroyView()
         context?.unregisterReceiver(bondStateReceiver)
         context?.unregisterReceiver(bluetoothStateReceiver)
+        context?.unregisterReceiver(locationServiceStateReceiver)
         _binding = null
     }
 
@@ -154,6 +158,13 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d(MainActivity.TAG, "SettingsFragment received BluetoothAdapter.ACTION_STATE_CHANGED.")
             checkBluetoothState()
+        }
+    }
+
+    private val locationServiceStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d(MainActivity.TAG, "SettingsFragment received LocationManager.MODE_CHANGED_ACTION.")
+            checkLocationServiceState()
         }
     }
 
@@ -286,6 +297,11 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     private fun checkBluetoothState() {
         val enabled = BluetoothAdapter.getDefaultAdapter().state == BluetoothAdapter.STATE_ON
         binding.viewModel?.updateBluetoothState(enabled)
+    }
+
+    private fun checkLocationServiceState() {
+        val locationManager = context?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        binding.viewModel?.updateLocationServiceState(locationManager.isLocationEnabled)
     }
 
     private fun setupCustomButtonList(customButtonListFlow: MutableStateFlow<List<CameraAction>?>) {

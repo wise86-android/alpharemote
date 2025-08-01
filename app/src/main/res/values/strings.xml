@@ -28,6 +28,7 @@
     <string name="permission_notification_rationale">If you want to control your camera from the notification area, you need to allow this app to show notifications.</string>
 
     <string name="settings_bluetooth_disabled">Bluetooth is currently disabled. Please turn on Bluetooth to use this app.</string>
+    <string name="settings_location_service_disabled">Location Services are currently disabled. This might not be an issue on some devices, but if you cannot connect to your camera, please try enabling Location Services in your Android settings.</string>
 
     <string name="settings_missing_permission_title">Permission required</string>
     <string name="settings_missing_notification_permission_warning">Warning: The app needs permission to show notifications. Without this permission, the remote works, but the buttons will not show up in your phone\'s notification area.</string>
