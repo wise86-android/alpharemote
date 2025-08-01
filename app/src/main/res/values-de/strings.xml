@@ -28,6 +28,7 @@
 
     <string name="settings_bluetooth_disabled">Bluetooth is momentan ausgeschaltet. Bitte schalte Bluetooth ein um diese App zu nutzen.</string>
     <string name="settings_location_service_disabled">Standortdienste sind momentan ausgeschaltet. Auf einigen Geräten ist dies kein Problem. Solltest du aber Probleme haben, dich mit der Kamera zu verbinden, aktiviere bitte die Standortdienste in deinen Android-Einstellungen.</string>
+    <string name="settings_ble_scanning_disabled">Bluetooth Suche ist momentan ausgeschaltet, was sehr wahrscheinlich verhindert, dass dein Handy die Kamera sehen kann. Bitte schaue nach \"Bluetooth Suche\" unter \"Standortdienste\" in deinen Android-Einstellungen.</string>
 
     <string name="settings_missing_permission_title">Berechtigung fehlt</string>
     <string name="settings_missing_notification_permission_warning">Achtung: Diese App benötigt eine Berechtigung um Benachrichtigungen anzuzeigen. Ohne diese Berechtigung funktioniert die Fernbedienung zwar, aber die Tasten werden nicht im Benachrichtigungsbereich deines Handys angezeigt.</string>

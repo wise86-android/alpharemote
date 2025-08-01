@@ -33,6 +33,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private var bluetoothEnabled: Boolean = false
     private var locationServiceEnabled: Boolean = false
+    private var bleScanningEnabled: Boolean = false
 
     data class SettingsUIState (
         var cameraState: SettingsUICameraState = SettingsUICameraState.OFFLINE,
@@ -41,7 +42,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         var bluetoothPermissionGranted: Boolean,
         var notificationPermissionGranted: Boolean,
         var bluetoothEnabled: Boolean,
-        var locationServiceEnabled: Boolean
+        var locationServiceEnabled: Boolean,
+        var bleScanningEnabled: Boolean
     )
 
     enum class SettingsUICameraState {
@@ -63,7 +65,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         HELP_CUSTOM_BUTTONS
     }
 
-    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothPermissionGranted = true, notificationPermissionGranted = true, bluetoothEnabled = false, locationServiceEnabled = false))
+    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothPermissionGranted = true, notificationPermissionGranted = true, bluetoothEnabled = false, locationServiceEnabled = false, bleScanningEnabled = false))
     val uiState: StateFlow<SettingsUIState> = _uiState.asStateFlow()
 
     private val _uiAction = MutableSharedFlow<SettingsUIAction>()
@@ -174,9 +176,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _uiState.update{it.copy(bluetoothEnabled = enabled)}
     }
 
-    fun updateLocationServiceState(enabled: Boolean) {
-        locationServiceEnabled = enabled
-        _uiState.update { it.copy(locationServiceEnabled = enabled) }
+    fun updateLocationServiceState(locationServiceEnabled: Boolean, bleScanningEnabled: Boolean) {
+        this.locationServiceEnabled = locationServiceEnabled
+        this.bleScanningEnabled = bleScanningEnabled
+        _uiState.update { it.copy(locationServiceEnabled = locationServiceEnabled, bleScanningEnabled = bleScanningEnabled) }
     }
 
     fun pair() {

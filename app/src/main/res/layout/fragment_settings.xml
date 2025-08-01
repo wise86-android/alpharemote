@@ -109,6 +109,12 @@
             android:text="@string/settings_bluetooth_disabled"
             android:visibility="@{!viewModel.uiState.bluetoothEnabled ? View.VISIBLE : View.GONE}" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorError"
+            android:text="@string/settings_ble_scanning_disabled"
+            android:visibility="@{!viewModel.uiState.bleScanningEnabled ? View.VISIBLE : View.GONE}" />
 
 
         <TextView
