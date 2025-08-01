@@ -372,7 +372,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
                 when (value[1]) {
                     0x3f.toByte() -> state.copy(focus = (value[2].and(0x20.toByte()) != 0.toByte()))
                     0xa0.toByte() -> state.copy(shutter = (value[2].and(0x20.toByte()) != 0.toByte()))
-                    0xd5.toByte() -> state.copy(focus = (value[2].and(0x20.toByte()) != 0.toByte()))
+                    0xd5.toByte() -> state.copy(recording = (value[2].and(0x20.toByte()) != 0.toByte()))
                     else -> state
                 }
             } else // This should not happen. If it happens, it is probably the result of the BLE communication running in parallel to whatever changed the state. In this case it is probably not recoverable and should be ignored
