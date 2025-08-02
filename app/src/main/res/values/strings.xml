@@ -21,6 +21,7 @@
     <string name="camera_advanced_interval_duration">Interval</string>
     <string name="camera_advanced_interval_count">Number of exposures</string>
     <string name="camera_advanced_interval_timer_label">Interval</string>
+    <string name="camera_advanced_pending_triggers">%1$d remaining</string>
     <string name="camera_advanced_start">Start</string>
     <string name="camera_advanced_abort">Abort</string>
 

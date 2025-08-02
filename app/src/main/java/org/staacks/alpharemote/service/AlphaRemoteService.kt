@@ -71,12 +71,10 @@ class AlphaRemoteService : CompanionDeviceService() {
         const val BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA = "down"
         const val BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA = "up"
 
-        const val BULB_INTENT_ACTION = "BULB"
-        const val BULB_INTENT_DURATION_EXTRA = "duration"
-
-        const val INTERVAL_INTENT_ACTION = "INTERVAL"
-        const val INTERVAL_INTENT_DURATION_EXTRA = "interval"
-        const val INTERVAL_INTENT_COUNT_EXTRA = "count"
+        const val ADVANCED_SEQUENCE_INTENT_ACTION = "ADVANCED_SEQUENCE"
+        const val ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA = "duration"
+        const val ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA = "interval"
+        const val ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA = "count"
 
         private var pendingActionSteps = LinkedList<CameraActionStep>()
         var broadcastControl = false
@@ -226,27 +224,34 @@ class AlphaRemoteService : CompanionDeviceService() {
 
                 executeCameraAction(cameraAction, down, up)
             }
-            BULB_INTENT_ACTION -> {
-                val duration = intent.getSerializableExtra(BULB_INTENT_DURATION_EXTRA) as Float
+            ADVANCED_SEQUENCE_INTENT_ACTION -> {
+                val bulbDuration = intent.getSerializableExtra(ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA) as Float
+                val intervalDuration = intent.getSerializableExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA) as Float
+                val intervalCount = intent.getSerializableExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA) as Int
+
+                val stepSequence: MutableList<CameraActionStep> = mutableListOf()
+                stepSequence += CAButton(pressed = true, ButtonCode.SHUTTER_HALF)
+                if (intervalDuration > 0) {
+                    stepSequence += CACountdown(getString(R.string.camera_advanced_interval_timer_label), intervalDuration)
+                }
+                stepSequence += CAButton(pressed = true, ButtonCode.SHUTTER_FULL, isSequenceTrigger = true)
+                if (bulbDuration > 0) {
+                    stepSequence += CAWaitFor(WaitTarget.SHUTTER)
+                }
+                stepSequence += CAButton(pressed = false, ButtonCode.SHUTTER_FULL)
+                stepSequence += CAButton(pressed = false, ButtonCode.SHUTTER_HALF)
+                if (bulbDuration > 0) {
+                    stepSequence += listOf(
+                        CACountdown(getString(R.string.camera_advanced_bulb_timer_label), bulbDuration),
+                        CAButton(pressed = true, ButtonCode.SHUTTER_HALF),
+                        CAButton(pressed = true, ButtonCode.SHUTTER_FULL),
+                        CAButton(pressed = false, ButtonCode.SHUTTER_FULL),
+                        CAButton(pressed = false, ButtonCode.SHUTTER_HALF),
+                    )
+                }
+
                 startCameraAction(
-                    CameraAction(false,null,null,null,CameraActionPreset.TRIGGER_ONCE).getClickStepList(this)
-                            + CACountdown(getString(R.string.camera_advanced_bulb_timer_label), duration)
-                            + CameraAction(false,null,null,null, CameraActionPreset.SHUTTER).getClickStepList(this)
-                )
-            }
-            INTERVAL_INTENT_ACTION -> {
-                val duration = intent.getSerializableExtra(INTERVAL_INTENT_DURATION_EXTRA) as Float
-                val count = intent.getSerializableExtra(INTERVAL_INTENT_COUNT_EXTRA) as Int
-                startCameraAction(
-                    List(count) {
-                        listOf(
-                            CAButton(pressed = true, ButtonCode.SHUTTER_HALF),
-                            CACountdown(getString(R.string.camera_advanced_interval_timer_label), duration),
-                            CAButton(pressed = true, ButtonCode.SHUTTER_FULL),
-                            CAButton(pressed = false, ButtonCode.SHUTTER_FULL),
-                            CAButton(pressed = false, ButtonCode.SHUTTER_HALF)
-                        )
-                    }.flatten()
+                    List(intervalCount) {stepSequence}.flatten()
                 )
             }
         }
@@ -275,6 +280,7 @@ class AlphaRemoteService : CompanionDeviceService() {
                 cameraBLE?.executeCameraActionStep(CAButton(false, button))
             }
             pendingStepsCancelled = true
+            updatePendingActionStatistics()
         }
         _serviceState.update {
             (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
@@ -303,9 +309,23 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     @Synchronized
+    fun updatePendingActionStatistics() {
+        var pendingTriggerCount = 0
+        for (actionStep in pendingActionSteps) {
+            if (actionStep is CAButton && actionStep.isSequenceTrigger)
+                pendingTriggerCount++
+        }
+        _serviceState.update {
+            (it as? ServiceRunning)?.copy(pendingTriggerCount = pendingTriggerCount) ?: it
+        }
+    }
+
+    @Synchronized
     fun executeNextCameraActionStep() {
+        updatePendingActionStatistics()
         while ((pendingActionSteps.peek() is CAButton || pendingActionSteps.peek() is CAJog)) {
             pendingActionSteps.poll()?.let {
+                updatePendingActionStatistics()
                 cameraBLE?.executeCameraActionStep(it)
             }
         }
