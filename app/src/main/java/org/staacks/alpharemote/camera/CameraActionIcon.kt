@@ -73,7 +73,7 @@ class CameraActionIcon(val context: Context, private val cameraAction: CameraAct
 
         val w = bounds.width()
 
-        cameraAction.selftimer?.let {
+        cameraAction.selfTimer?.let {
             val text = "T" + it.roundToInt().toString()
             drawTextInBox(canvas, 0.0f, 0.0f, w*0.02f, 0.3f * w, text,
                 anchorRight = false,

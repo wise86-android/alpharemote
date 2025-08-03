@@ -8,7 +8,7 @@ import kotlin.math.roundToInt
 
 data class CameraAction (
     val toggle: Boolean,
-    val selftimer: Float?,
+    val selfTimer: Float?,
     val duration: Float?,
     val step: Float?,
     val preset: CameraActionPreset
@@ -19,7 +19,7 @@ data class CameraAction (
     fun getName(context: Context): String {
         return context.getString(preset.template.name) +
                 (if (toggle) " " + context.getString(R.string.toggle) else "") +
-                (if (selftimer != null) " timer=" + selftimer + "s" else "") +
+                (if (selfTimer != null) " timer=" + selfTimer + "s" else "") +
                 (if (duration != null) " duration=" + duration + "s" else "") +
                 (if (step != null) " " + "›".repeat((3.0*step).roundToInt()) else "")
     }
@@ -34,9 +34,9 @@ data class CameraAction (
     }
 
     fun getPressStepList(context: Context): List<CameraActionStep> {
-        return if (selftimer != null) {
+        return if (selfTimer != null) {
             val label = context.getString(R.string.self_timer)
-            listOf(CACountdown(label, selftimer)) + applyStepToStepList(preset.template.press)
+            listOf(CACountdown(label, selfTimer)) + applyStepToStepList(preset.template.press)
         } else {
             applyStepToStepList(preset.template.press)
         }
@@ -69,7 +69,7 @@ data class CameraActionTemplate (
 
 enum class CameraActionTemplateOption {
     VARIABLE_DURATION, //Duration is defined by button press duration and user may set a fixed duration
-    SELFTIMER,         //User may add a selftimer
+    SELF_TIMER,         //User may add a selfTimer
     TOGGLE,            //May be used as a toggle
     ADJUST_SPEED       //User may adjust speed of jog commands that have a speed set to -1
 }
@@ -89,7 +89,7 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
                 CAButton(true, ButtonCode.SHUTTER_FULL)),
         release = listOf(CAButton(false, ButtonCode.SHUTTER_FULL),
                 CAButton(false, ButtonCode.SHUTTER_HALF)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.SELFTIMER),
+        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
     TRIGGER_ONCE(CameraActionTemplate(R.string.action_name_trigger_once, R.drawable.ca_trigger_once,
@@ -98,7 +98,7 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
                 CAWaitFor(WaitTarget.SHUTTER),
                 CAButton(false, ButtonCode.SHUTTER_FULL),
                 CAButton(false, ButtonCode.SHUTTER_HALF)),
-        userOptions = setOf(CameraActionTemplateOption.SELFTIMER),
+        userOptions = setOf(CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
     TRIGGER_ON_FOCUS(CameraActionTemplate(R.string.action_name_trigger_on_focus, R.drawable.ca_trigger_on_focus,
@@ -107,13 +107,13 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
             CAButton(true, ButtonCode.SHUTTER_FULL)),
         release = listOf(CAButton(false, ButtonCode.SHUTTER_FULL),
             CAButton(false, ButtonCode.SHUTTER_HALF)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.SELFTIMER),
+        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
     RECORD(CameraActionTemplate(R.string.action_name_record, R.drawable.ca_record, true,
         press = listOf(CAButton(true, ButtonCode.RECORD)),
         release = listOf(CAButton(false, ButtonCode.RECORD)),
-        userOptions = setOf(CameraActionTemplateOption.SELFTIMER),
+        userOptions = setOf(CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.RECORD
     )),
     AF_ON(CameraActionTemplate(R.string.action_name_af_on, R.drawable.ca_af_on,

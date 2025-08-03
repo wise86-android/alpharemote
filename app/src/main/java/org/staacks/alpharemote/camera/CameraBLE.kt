@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import org.staacks.alpharemote.MainActivity
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.experimental.and
@@ -60,13 +59,13 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            Log.d(MainActivity.TAG, "onConnectionStateChange: status $status, newState $newState")
+            Log.d(TAG, "onConnectionStateChange: status $status, newState $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 onConnect()
                 try {
                     gatt?.discoverServices()
                 } catch (e: SecurityException) {
-                    Log.e(MainActivity.TAG, e.toString())
+                    Log.e(TAG, e.toString())
                     _cameraState.value = CameraStateError(e)
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -75,7 +74,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            Log.d(MainActivity.TAG, "onServicesDiscovered")
+            Log.d(TAG, "onServicesDiscovered")
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 remoteService = gatt?.getService(remoteServiceUUID)
                 commandCharacteristic = remoteService?.getCharacteristic(commandCharacteristicUUID)
@@ -94,14 +93,14 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
                     }
                 } else {
                     _cameraState.value = CameraStateError(null, "Remote service not found.")
-                    Log.e(MainActivity.TAG, "remoteService: " + remoteService.toString())
-                    Log.e(MainActivity.TAG, "commandCharacteristic: " + commandCharacteristic.toString())
-                    Log.e(MainActivity.TAG, "statusCharacteristic: " + statusCharacteristic.toString())
-                    Log.e(MainActivity.TAG, "nameCharacteristic: " + nameCharacteristic.toString())
+                    Log.e(TAG, "remoteService: $remoteService")
+                    Log.e(TAG, "commandCharacteristic: $commandCharacteristic")
+                    Log.e(TAG, "statusCharacteristic: $statusCharacteristic")
+                    Log.e(TAG, "nameCharacteristic: $nameCharacteristic")
                     notifyDisconnect()
                 }
             } else {
-                Log.e(MainActivity.TAG, "discovery failed: $status")
+                Log.e(TAG, "discovery failed: $status")
                 _cameraState.value = CameraStateError(null, "Service discovery failed.")
                 //Note, at this point the service will not be usable, but we stay connected as this might be recoverable.
                 //In fact, newer cameras seem to send an onServiceChanged to bonded devices after few ms, which triggers Android to restart discovery.
@@ -111,12 +110,12 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
 
         override fun onServiceChanged(gatt: BluetoothGatt) {
             super.onServiceChanged(gatt)
-            Log.d(MainActivity.TAG, "onServiceChanged")
+            Log.d(TAG, "onServiceChanged")
             resetOperationQueue()
             try {
                 gatt.discoverServices()
             }  catch (e: SecurityException) {
-                Log.e(MainActivity.TAG, e.toString())
+                Log.e(TAG, e.toString())
                 _cameraState.value = CameraStateError(e)
             }
         }
@@ -140,7 +139,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             super.onCharacteristicRead(gatt, characteristic, status)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                 return //Use the new version of onCharacteristicRead instead
-            Log.d(MainActivity.TAG, "Deprecated onCharacteristicRead with status $status from ${characteristic.uuid}.")
+            Log.d(TAG, "Deprecated onCharacteristicRead with status $status from ${characteristic.uuid}.")
             cameraBLEReadComplete(status, characteristic.value)
         }
 
@@ -151,7 +150,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             status: Int
         ) {
             super.onCharacteristicRead(gatt, characteristic, value, status)
-            Log.d(MainActivity.TAG, "onCharacteristicRead with status $status from ${characteristic.uuid}.")
+            Log.d(TAG, "onCharacteristicRead with status $status from ${characteristic.uuid}.")
             cameraBLEReadComplete(status, value)
         }
 
@@ -173,7 +172,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             super.onCharacteristicChanged(gatt, characteristic)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                 return //Use the new version of onCharacteristicRead instead
-            Log.d(MainActivity.TAG, "Deprecated onCharacteristicChanged from ${characteristic.uuid}.")
+            Log.d(TAG, "Deprecated onCharacteristicChanged from ${characteristic.uuid}.")
             if (characteristic == statusCharacteristic) {
                 onCameraStatusUpdate(characteristic.value)
             }
@@ -185,7 +184,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             value: ByteArray
         ) {
             super.onCharacteristicChanged(gatt, characteristic, value)
-            Log.d(MainActivity.TAG, "onCharacteristicChanged from ${characteristic.uuid}.")
+            Log.d(TAG, "onCharacteristicChanged from ${characteristic.uuid}.")
             if (characteristic == statusCharacteristic) {
                 onCameraStatusUpdate(value)
             }
@@ -194,30 +193,30 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
 
     private val bondStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(MainActivity.TAG, "CameraBLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
+            Log.d(TAG, "CameraBLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             try {
                 if (cameraState.value is CameraStateReady && device?.bondState != BluetoothDevice.BOND_BONDED) {
                     _cameraState.value = CameraStateNotBonded()
-                    Log.e(MainActivity.TAG, "Camera became unbonded while in use.")
+                    Log.e(TAG, "Camera became unbonded while in use.")
                 } else if (cameraState.value is CameraStateNotBonded && device?.bondState == BluetoothDevice.BOND_BONDED) {
-                    Log.e(MainActivity.TAG, "Camera is now bonded.")
+                    Log.e(TAG, "Camera is now bonded.")
                     connectToDevice(context)
                 }
             } catch (e: SecurityException) {
                 _cameraState.value = CameraStateError(e, e.toString())
-                Log.e(MainActivity.TAG, e.toString())
+                Log.e(TAG, e.toString())
             }
         }
     }
 
     init {
-        Log.d(MainActivity.TAG, "init")
+        Log.d(TAG, "init")
         context.registerReceiver(bondStateReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
         connectToDevice(context)
     }
 
     fun connectToDevice(context: Context) {
-        Log.d(MainActivity.TAG, "connectToDevice")
+        Log.d(TAG, "connectToDevice")
         try {
             device = bluetoothAdapter.getRemoteDevice(address)
             if (device?.bondState == BluetoothDevice.BOND_BONDED) {
@@ -225,16 +224,16 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
                 gatt = device?.connectGatt(context, true, bluetoothGattCallback)
             } else {
                 _cameraState.value = CameraStateNotBonded()
-                Log.e(MainActivity.TAG, "Camera found, but not bonded.")
+                Log.e(TAG, "Camera found, but not bonded.")
             }
         } catch (e: SecurityException) {
             _cameraState.value = CameraStateError(e, e.toString())
-            Log.e(MainActivity.TAG, e.toString())
+            Log.e(TAG, e.toString())
         }
     }
 
     fun notifyDisconnect() {
-        Log.d(MainActivity.TAG, "notifyDisconnect")
+        Log.d(TAG, "notifyDisconnect")
         _cameraState.value = CameraStateGone()
         remoteService = null
         commandCharacteristic = null
@@ -245,13 +244,13 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     fun disconnectFromDevice() {
-        Log.d(MainActivity.TAG, "disconnectFromDevice")
+        Log.d(TAG, "disconnectFromDevice")
         try {
             gatt?.disconnect()
             gatt?.close()
             gatt = null
         } catch (e: SecurityException) {
-            Log.e(MainActivity.TAG, e.toString())
+            Log.e(TAG, e.toString())
             _cameraState.value = CameraStateError(e)
         }
         notifyDisconnect()
@@ -283,12 +282,12 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             when (currentOperation) {
                 is CameraBLEWrite -> {
                     val op = currentOperation as CameraBLEWrite
-                    Log.d(MainActivity.TAG, "Writing: 0x${op.data.toHexString()}")
+                    Log.d(TAG, "Writing: 0x${op.data.toHexString()}")
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         gatt?.writeCharacteristic(op.characteristic, op.data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
                     } else {
                         @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-                        op.characteristic.setValue(op.data)
+                        op.characteristic.value =op.data
                         @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
                         gatt?.writeCharacteristic(op.characteristic)
                     }
@@ -296,19 +295,19 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
 
                 is CameraBLERead -> {
                     val op = currentOperation as CameraBLERead
-                    Log.d(MainActivity.TAG, "Reading from: ${op.characteristic.uuid}")
+                    Log.d(TAG, "Reading from: ${op.characteristic.uuid}")
                     gatt?.readCharacteristic(op.characteristic)
                 }
                 is CameraBLESubscribe -> {
                     val op = currentOperation as CameraBLESubscribe
-                    Log.d(MainActivity.TAG, "Subscribing to: ${op.characteristic.uuid}")
+                    Log.d(TAG, "Subscribing to: ${op.characteristic.uuid}")
                     gatt?.setCharacteristicNotification(op.characteristic, true)
                     val descriptor = op.characteristic.getDescriptor(configDescriptorUUID)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         gatt?.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
                     } else {
                         @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-                        descriptor?.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        (descriptor?.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
                         @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
                         gatt?.writeDescriptor(descriptor)
                     }
@@ -318,7 +317,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             }
         } catch (e: SecurityException) {
             _cameraState.value = CameraStateError(e)
-            Log.e(MainActivity.TAG, e.toString())
+            Log.e(TAG, e.toString())
         }
     }
 
@@ -329,7 +328,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     fun cameraBLEWriteComplete(status: Int) {
-        Log.d(MainActivity.TAG, "Writing complete: $status")
+        Log.d(TAG, "Writing complete: $status")
         if (currentOperation is CameraBLEWrite) {
             operationComplete()
             if (status == 144) {
@@ -341,7 +340,7 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
 
     @OptIn(ExperimentalStdlibApi::class)
     fun cameraBLEReadComplete(status: Int, value: ByteArray) {
-        Log.d(MainActivity.TAG, "cameraBLEReadComplete: $status, 0x${value.toHexString()}")
+        Log.d(TAG, "cameraBLEReadComplete: $status, 0x${value.toHexString()}")
         if (currentOperation is CameraBLERead) {
             val callback = (currentOperation as CameraBLERead).resultCallback
             operationComplete()
@@ -350,11 +349,11 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
     }
 
     fun cameraBLESubscribeComplete(status: Int) {
-        Log.d(MainActivity.TAG, "cameraBLESubscribeComplete: $status")
+        Log.d(TAG, "cameraBLESubscribeComplete: $status")
         if (currentOperation is CameraBLESubscribe) { //Note: We do not check the status. If subscribing failed for some reason, the camera status is not reported. If this is due to a disconnect, the service will be terminated anyway, but if there is another reason, the rest of the app might still be usable
             val name = (cameraState.value as? CameraStateIdentified)?.name
             if (name == null)
-                Log.w(MainActivity.TAG, "Subscribe complete, but camera in unidentified state.")
+                Log.w(TAG, "Subscribe complete, but camera in unidentified state.")
             _cameraState.value = CameraStateReady(name, focus = false, shutter = false, recording = false, emptySet(), emptySet())
             operationComplete()
         }
@@ -378,11 +377,11 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             } else // This should not happen. If it happens, it is probably the result of the BLE communication running in parallel to whatever changed the state. In this case it is probably not recoverable and should be ignored
                 it
         }
-        Log.d(MainActivity.TAG, "Received status: 0x${value.toHexString()}")
+        Log.d(TAG, "Received status: 0x${value.toHexString()}")
     }
 
     fun executeCameraActionStep(action: CameraActionStep) {
-        Log.d(MainActivity.TAG, "executeCameraActionStep")
+        Log.d(TAG, "executeCameraActionStep")
         if (cameraState.value !is CameraStateReady)
             return
         try {
@@ -409,7 +408,11 @@ class CameraBLE(val scope: CoroutineScope, context: Context, val address: String
             }
         } catch (e: SecurityException) {
             _cameraState.value = CameraStateError(e)
-            Log.e(MainActivity.TAG, e.toString())
+            Log.e(TAG, e.toString())
         }
+    }
+
+    companion object{
+        const val TAG = "AlphaRemote-BLE"
     }
 }

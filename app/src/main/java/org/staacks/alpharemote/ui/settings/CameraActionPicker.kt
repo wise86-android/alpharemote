@@ -114,7 +114,7 @@ class CameraActionPicker : DialogFragment() {
                     val opt = preset.template.userOptions
                     cameraAction.emit(old.copy(
                         preset = preset,
-                        selftimer = if (opt.contains(CameraActionTemplateOption.SELFTIMER)) old.selftimer else null,
+                        selfTimer = if (opt.contains(CameraActionTemplateOption.SELF_TIMER)) old.selfTimer else null,
                         duration = if (opt.contains(CameraActionTemplateOption.VARIABLE_DURATION)) old.duration else null,
                         toggle = if (opt.contains(CameraActionTemplateOption.TOGGLE)) old.toggle else false,
                         step = if (opt.contains(CameraActionTemplateOption.ADJUST_SPEED)) old.step ?: 0.5f else null
@@ -133,7 +133,7 @@ class CameraActionPicker : DialogFragment() {
         binding.capSelftimerEnable.setOnCheckedChangeListener { buttonView, isChecked ->
             lifecycleScope.launch {
                 cameraAction.emit(cameraAction.value.copy(
-                    selftimer = if (isChecked) (selftimerSeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
+                    selfTimer = if (isChecked) (selftimerSeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
                 ))
             }
         }
@@ -143,7 +143,7 @@ class CameraActionPicker : DialogFragment() {
                 lifecycleScope.launch {
                     cameraAction.emit(
                         cameraAction.value.copy(
-                            selftimer = selftimerSeekBarTimeMap.indexToTime(progress)
+                            selfTimer = selftimerSeekBarTimeMap.indexToTime(progress)
                         )
                     )
                 }
@@ -219,7 +219,7 @@ class CameraActionPicker : DialogFragment() {
             val action = cameraAction.value
             val options = action.preset.template.userOptions
             val prunedAction = action.copy(
-                selftimer = if (options.contains(CameraActionTemplateOption.SELFTIMER)) action.selftimer else null,
+                selfTimer = if (options.contains(CameraActionTemplateOption.SELF_TIMER)) action.selfTimer else null,
                 duration = if (options.contains(CameraActionTemplateOption.VARIABLE_DURATION)) action.duration else null,
                 toggle = options.contains(CameraActionTemplateOption.TOGGLE) && action.toggle,
                 step = if (options.contains(CameraActionTemplateOption.ADJUST_SPEED)) action.step else null
@@ -243,18 +243,18 @@ class CameraActionPicker : DialogFragment() {
                 binding.capIcon.setImageDrawable(it.getIcon(requireContext()))
                 binding.capTitle.text = it.getName(requireContext())
 
-                binding.capSelftimerGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.SELFTIMER)) VISIBLE else GONE
+                binding.capSelftimerGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.SELF_TIMER)) VISIBLE else GONE
                 binding.capHoldGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.VARIABLE_DURATION)) VISIBLE else GONE
                 binding.capToggle.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.TOGGLE)) VISIBLE else GONE
                 binding.capSpeedGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.ADJUST_SPEED)) VISIBLE else GONE
 
                 binding.capAction.setSelection(it.preset.ordinal)
 
-                binding.capSelftimerEnable.isChecked = (it.selftimer != null)
+                binding.capSelftimerEnable.isChecked = (it.selfTimer != null)
                 if (binding.capSelftimerEnable.isChecked) {
                     binding.capSelftimer.alpha = 1.0f
-                    binding.capSelftimer.progress = selftimerSeekBarTimeMap.timeToIndex (it.selftimer ?: 3.0f)
-                    binding.capSelftimerSeconds.text = String.format(getString(R.string.seconds_formatted),it.selftimer ?: 3.0f)
+                    binding.capSelftimer.progress = selftimerSeekBarTimeMap.timeToIndex (it.selfTimer ?: 3.0f)
+                    binding.capSelftimerSeconds.text = String.format(getString(R.string.seconds_formatted),it.selfTimer ?: 3.0f)
                 } else {
                     binding.capSelftimer.alpha = 0.5f
                     binding.capSelftimerSeconds.text = "-"

@@ -118,7 +118,7 @@ class SettingsStore(context: Context) {
                 data[keyPreset] = item.preset.name
                 data[keyToggle] = item.toggle
 
-                setNullableFloat(data, keySelftimer, item.selftimer)
+                setNullableFloat(data, keySelftimer, item.selfTimer)
                 setNullableFloat(data, keyDuration, item.duration)
                 setNullableFloat(data, keyStep, item.step)
             }

@@ -15,9 +15,10 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val NAVIGATE_TO_INTENT_EXTRA = "nav_to"
-        val TAG: String = "alpharemote"
+        const val TAG: String = "alpharemote"
+        const val SELECTED_PAGE = "selected_page"
     }
-    val SELECTED_PAGE = "selected_page"
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
