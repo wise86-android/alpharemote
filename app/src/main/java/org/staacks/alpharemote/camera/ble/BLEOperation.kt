@@ -1,18 +1,18 @@
-package org.staacks.alpharemote.camera
+package org.staacks.alpharemote.camera.ble
 
 import android.bluetooth.BluetoothGattCharacteristic
 
-sealed class CameraBLEOperation
+sealed class BLEOperation
 
-data class CameraBLEWrite(
+data class BLEWrite(
     val characteristic: BluetoothGattCharacteristic,
     val data: ByteArray
-) : CameraBLEOperation() {
+) : BLEOperation() {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as CameraBLEWrite
+        other as BLEWrite
 
         if (characteristic != other.characteristic) return false
         if (!data.contentEquals(other.data)) return false
@@ -27,11 +27,11 @@ data class CameraBLEWrite(
     }
 }
 
-data class CameraBLERead(
+data class BLERead(
     val characteristic: BluetoothGattCharacteristic,
     val resultCallback: (Int, ByteArray) -> Unit
-) : CameraBLEOperation()
+) : BLEOperation()
 
-data class CameraBLESubscribe(
+data class BLESubscribe(
     val characteristic: BluetoothGattCharacteristic
-) : CameraBLEOperation()
+) : BLEOperation()
