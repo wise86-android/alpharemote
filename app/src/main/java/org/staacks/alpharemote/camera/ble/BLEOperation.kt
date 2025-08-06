@@ -19,7 +19,7 @@ sealed interface BLEOperation{
 data class Write(
     val characteristic: BluetoothGattCharacteristic,
     val data: ByteArray,
-    val resultCallback: (Int, ByteArray) -> Unit
+    val resultCallback: (Int, ByteArray) -> Unit = {_,_ -> }
 ) : BLEOperation {
     override val hightPriority: Boolean = false
     override fun equals(other: Any?): Boolean {
