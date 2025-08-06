@@ -367,15 +367,15 @@ class AlphaRemoteService : CompanionDeviceService() {
         val nextAction = pendingActionSteps.peek()
         if (nextAction is CAWaitFor) {
             when (nextAction.target) {
-                WaitTarget.FOCUS -> if (state.focus) {
+                WaitTarget.FOCUS -> if (state.focus.state) {
                     pendingActionSteps.removeFirst()
                     executeNextCameraActionStep()
                 }
-                WaitTarget.SHUTTER -> if (state.shutter) {
+                WaitTarget.SHUTTER -> if (state.shutter.state) {
                     pendingActionSteps.removeFirst()
                     executeNextCameraActionStep()
                 }
-                WaitTarget.RECORDING -> if (state.shutter) {
+                WaitTarget.RECORDING -> if (state.shutter.state) {
                     pendingActionSteps.removeFirst()
                     executeNextCameraActionStep()
                 }

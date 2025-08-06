@@ -106,7 +106,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/status_name"
                 app:tint="?attr/colorCustomButton"
-                android:alpha="@{viewModel.uiState.cameraState.focus ? 1.0f : 0.5f}"
+                android:alpha="@{viewModel.uiState.cameraState.focus.state ? 1.0f : 0.5f}"
                 android:contentDescription="@string/status_focus" />
 
             <ImageView
@@ -118,7 +118,7 @@
                 app:layout_constraintStart_toEndOf="@id/status_focus"
                 app:layout_constraintTop_toBottomOf="@id/status_name"
                 app:tint="?attr/colorCustomButton"
-                android:alpha="@{viewModel.uiState.cameraState.shutter ? 1.0f : 0.5f}"
+                android:alpha="@{viewModel.uiState.cameraState.shutter.state ? 1.0f : 0.5f}"
                 android:contentDescription="@string/status_shutter" />
 
             <ImageView
@@ -129,8 +129,22 @@
                 android:src="@drawable/status_recording"
                 app:layout_constraintStart_toEndOf="@id/status_shutter"
                 app:layout_constraintTop_toBottomOf="@id/status_name"
-                android:alpha="@{viewModel.uiState.cameraState.recording ? 1.0f : 0.5f}"
+                android:alpha="@{viewModel.uiState.cameraState.recording.state ? 1.0f : 0.5f}"
                 android:contentDescription="@string/status_recording" />
+
+            <Chronometer
+                android:id="@+id/status_recording_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="4dp"
+                app:layout_constraintStart_toEndOf="@id/status_recording"
+                app:layout_constraintTop_toTopOf="@id/status_recording"
+                app:layout_constraintBottom_toBottomOf="@id/status_recording"
+                android:countDown="false"
+                android:visibility="@{viewModel.uiState.cameraState.recording.state ? View.VISIBLE : View.INVISIBLE}"
+                android:textColor="#ff0000"
+                android:gravity="center_vertical|start"
+                />
 
             <!-- Countdown -->
 

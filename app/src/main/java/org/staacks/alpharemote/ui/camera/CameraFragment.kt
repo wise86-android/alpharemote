@@ -43,6 +43,7 @@ import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.service.ServiceRunning
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
 import java.io.Serializable
+import kotlin.concurrent.timer
 
 
 class CameraFragment : Fragment() {
@@ -120,6 +121,16 @@ class CameraFragment : Fragment() {
                 state.serviceState?.countdown?.let {
                     binding.statusCountdown.base = it
                     binding.statusCountdown.start()
+                }
+                state.cameraState?.recording?.let {
+                    if (it.state) {
+                        it.lastChange?.let { time ->
+                            binding.statusRecordingTime.base = time
+                            binding.statusRecordingTime.start()
+                        }
+                    } else {
+                        binding.statusRecordingTime.stop()
+                    }
                 }
                 state.cameraState?.let {
                     binding.defaultRemote.buttonAfOn.updateCameraState(it)
