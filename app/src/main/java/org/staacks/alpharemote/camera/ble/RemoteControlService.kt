@@ -1,6 +1,7 @@
 package org.staacks.alpharemote.camera.ble
 
 import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.util.Log
@@ -8,14 +9,28 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import org.staacks.alpharemote.camera.ButtonCode
+import org.staacks.alpharemote.camera.CAButton
+import org.staacks.alpharemote.camera.CAJog
+import org.staacks.alpharemote.camera.CameraActionStep
+import org.staacks.alpharemote.camera.JogCode
 import java.util.UUID
 import kotlin.text.toHexString
 
 class RemoteControlService {
     private val bleOperationQueue: BleCommandQueue
-
+    private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private val _deviceStatusFlow = MutableStateFlow(CameraStatus2())
     val deviceStatus: StateFlow<CameraStatus2> = _deviceStatusFlow.asStateFlow()
+
+    enum class CommandStatus{
+        Enqueue,
+        Success,
+        Fail
+    }
+
+    private val _lastCommandState = MutableStateFlow<CommandStatus>(CommandStatus.Enqueue)
+    val commandStatus: StateFlow<CommandStatus> = _lastCommandState.asStateFlow()
 
     constructor(bleOperationQueue: BleCommandQueue) {
         this.bleOperationQueue=bleOperationQueue
@@ -27,6 +42,7 @@ class RemoteControlService {
         genericAccessService?.let { service ->
             enableStatusNotification(service)
         }
+        commandCharacteristic = genericAccessService.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -43,7 +59,81 @@ class RemoteControlService {
         _deviceStatusFlow.update { it.update(newValue) }
     }
 
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    fun sendCommand(command: CameraActionStep){
+        val payload = command.toCommand()
+        if(payload.isEmpty())
+            return
+        commandCharacteristic?.let { bleOperationQueue.enqueueOperation(Write(it,payload, { status, _ ->
+            if(status != GATT_SUCCESS){
+                Log.e(TAG,"Failed to send command: $status")
+                _lastCommandState.tryEmit(CommandStatus.Fail)
+            }else{
+                _lastCommandState.tryEmit(CommandStatus.Success)
+            }
+        })) }
+    }
+
+    private fun CameraActionStep.toCommand():ByteArray{
+        return when(this){
+            is CAButton -> {
+                byteArrayOf(0x01,this.toCode())
+            }
+            is CAJog -> {
+                byteArrayOf(0x02,this.toCode(),this.pressedValue())
+            }
+            else -> byteArrayOf()
+        }
+
+    }
+
+    private fun CAButton.toCode():Byte{
+        return when(this.button){
+            ButtonCode.SHUTTER_FULL -> if(pressed) SHUTTER_PRESSED else SHUTTER_RELEASED
+            ButtonCode.SHUTTER_HALF -> if(pressed) SHUTTER_HALF_PRESSED else SHUTTER_HALF_RELEASED
+            ButtonCode.RECORD -> if(pressed) RECORDING_PRESSED else RECORDING_RELEASED
+            ButtonCode.AF_ON -> if(pressed) AUTO_FOCUS_PRESSED else AUTO_FOCUS_RELEASED
+            ButtonCode.C1 -> if (pressed)  CUSTOM_BUTTON_PRESSED else CUSTOM_BUTTON_RELEASED
+        }
+    }
+
+    private fun CAJog.toCode(): Byte{
+        return when(this.jog){
+            JogCode.ZOOM_IN -> if(pressed) ZOOM_IN_PRESSED else ZOOM_IN_RELEASED
+            JogCode.ZOOM_OUT -> if(pressed) ZOOM_OUT_PRESSED else ZOOM_OUT_RElEASED
+            JogCode.FOCUS_NEAR -> if(pressed) FOCUS_NEAR_PRESSED else FOCUS_NEAR_RELEASED
+            JogCode.FOCUS_FAR -> if (pressed) FOCUS_FAR_PRESSED else FOCUS_FAR_RELEASED
+        }
+    }
+    private fun CAJog.pressedValue(): Byte{
+        return if(pressed)
+            this.step
+        else
+            0x00
+    }
+
     companion object{
+        const val SHUTTER_HALF_RELEASED: Byte = 0x06.toByte()
+        const val SHUTTER_HALF_PRESSED: Byte = 0x07.toByte()
+        const val SHUTTER_PRESSED: Byte = 0x09.toByte()
+        const val SHUTTER_RELEASED: Byte = 0x08.toByte()
+        const val RECORDING_RELEASED: Byte = 0x0E.toByte()
+        const val RECORDING_PRESSED: Byte = 0x0F.toByte()
+        const val AUTO_FOCUS_RELEASED:Byte = 0x14.toByte()
+        const val AUTO_FOCUS_PRESSED:Byte = 0x15.toByte()
+        const val CUSTOM_BUTTON_RELEASED:Byte = 0x20.toByte()
+        const val CUSTOM_BUTTON_PRESSED:Byte = 0x21.toByte()
+
+
+        const val ZOOM_IN_RELEASED:Byte = 0x44.toByte()
+        const val ZOOM_IN_PRESSED:Byte = 0x45.toByte()
+        const val ZOOM_OUT_RElEASED:Byte = 0x46.toByte()
+        const val ZOOM_OUT_PRESSED:Byte = 0x47.toByte()
+        const val FOCUS_NEAR_RELEASED:Byte = 0x6A.toByte()
+        const val FOCUS_NEAR_PRESSED:Byte = 0x6B.toByte()
+        const val FOCUS_FAR_RELEASED:Byte = 0x6C.toByte()
+        const val FOCUS_FAR_PRESSED:Byte = 0x6D.toByte()
+
         const val TAG = "RemoteControlService"
         val REMOTE_SERVICE_UUID = UUID.fromString("8000ff00-ff00-ffff-ffff-ffffffffffff")!!
         val COMMAND_CHARACTERISTIC_UUID = UUID.fromString("0000ff01-0000-1000-8000-00805f9b34fb")!!
@@ -69,16 +159,7 @@ data class CameraStatus(val autoFocus: ButtonStatus = ButtonStatus.RELEASED,
             val length = value[0]
 
             return when (value[1].toInt()) {
-                0x06 -> CameraStatus(shutter = ButtonStatus.HALF_PRESSED)
-                0x07 -> CameraStatus(shutter = ButtonStatus.HALF_RELEASED)
-                0x08 -> CameraStatus(shutter = ButtonStatus.RELEASED)
-                0x09 -> CameraStatus(shutter = ButtonStatus.PRESSED)
-                0x0e -> CameraStatus(recording = ButtonStatus.RELEASED)
-                0x0f -> CameraStatus(recording = ButtonStatus.PRESSED)
-                0x14 -> CameraStatus(autoFocus = ButtonStatus.RELEASED)
-                0x15 -> CameraStatus(autoFocus = ButtonStatus.PRESSED)
-                0x20 -> CameraStatus(customButton = ButtonStatus.RELEASED)
-                0x21 -> CameraStatus(customButton = ButtonStatus.PRESSED)
+
                 else -> CameraStatus()
             }
         }

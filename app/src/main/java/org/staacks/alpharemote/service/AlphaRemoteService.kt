@@ -23,7 +23,6 @@ import org.staacks.alpharemote.camera.CAWaitFor
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionStep
 import org.staacks.alpharemote.camera.CameraBLE
-import org.staacks.alpharemote.camera.CameraStateIdentified
 import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.camera.WaitTarget
 import kotlinx.coroutines.CoroutineScope
@@ -124,8 +123,10 @@ class AlphaRemoteService : CompanionDeviceService() {
                 scope.launch {
                     cameraState.collect {
                         when (it) {
-                            is CameraStateReady -> checkWaitAction(it)
-                            is CameraStateIdentified -> settingsStore.setCameraId(it.name, it.address)
+                            is CameraStateReady -> {
+                                settingsStore.setCameraId(it.name, it.address)
+                                checkWaitAction(it)
+                            }
                             else -> cancelPendingActionSteps()
                         }
                     }

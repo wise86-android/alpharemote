@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
@@ -25,18 +24,15 @@ import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.ble.BleCommandQueue
 import org.staacks.alpharemote.camera.ble.Disconnect
 import org.staacks.alpharemote.camera.ble.FocusState
-import org.staacks.alpharemote.camera.ble.Write
 import org.staacks.alpharemote.camera.ble.GenericAccessService
 import org.staacks.alpharemote.camera.ble.RemoteControlService
 import org.staacks.alpharemote.camera.ble.ShutterState
-import java.util.UUID
+
 
 // Massive thanks to coral for the documentation of the camera's BLE protocol at
 // https://github.com/coral/freemote
 // and to Greg Leeds at
 // https://gregleeds.com/reverse-engineering-sony-camera-bluetooth/
-
-
 
 class CameraBLE(
     val scope: CoroutineScope,
@@ -45,57 +41,17 @@ class CameraBLE(
     val onConnect: () -> Unit,
     val onDisconnect: () -> Unit
 ) {
-
-    val remoteServiceUUID = UUID.fromString("8000ff00-ff00-ffff-ffff-ffffffffffff")!!
-    val commandCharacteristicUUID = UUID.fromString("0000ff01-0000-1000-8000-00805f9b34fb")!!
-    val statusCharacteristicUUID = UUID.fromString("0000ff02-0000-1000-8000-00805f9b34fb")!!
-
-    var remoteService: BluetoothGattService? = null
-    var commandCharacteristic: BluetoothGattCharacteristic? = null
-    var statusCharacteristic: BluetoothGattCharacteristic? = null
-
-
     private val _cameraState = MutableStateFlow<CameraState>(CameraStateGone())
     val cameraState: StateFlow<CameraState> = _cameraState.asStateFlow()
 
-    private var bluetoothAdapter: BluetoothAdapter = ContextCompat.getSystemService(context, BluetoothManager::class.java)!!.adapter
-
+    private var bluetoothAdapter: BluetoothAdapter =
+        ContextCompat.getSystemService(context, BluetoothManager::class.java)!!.adapter
 
     private var device: BluetoothDevice? = null
     private var gatt: BluetoothGatt? = null
-
     private val bleOperationQueue = BleCommandQueue()
     private val genericAccessService = GenericAccessService(bleOperationQueue)
     private val remoteControlService = RemoteControlService(bleOperationQueue)
-
-    init {
-        scope.launch {
-            genericAccessService.deviceName.collect { newName ->
-                _cameraState.value = CameraStateIdentified(newName, address)
-            }
-            remoteControlService.deviceStatus.collect { newStatus ->
-                _cameraState.update {
-                    when(it){
-                        is CameraStateReady -> it.copy(
-                            focus = newStatus.focus === FocusState.ACQUIRED,
-                            shutter = newStatus.shutter === ShutterState.PRESSED,
-                            recording = newStatus.isRecording
-                        )
-                        is CameraStateRemoteDisabled ->
-                            CameraStateReady(
-                                genericAccessService.deviceName.value,
-                                focus = newStatus.focus === FocusState.ACQUIRED,
-                                shutter = newStatus.shutter === ShutterState.PRESSED,
-                                recording = newStatus.isRecording,
-                                emptySet(),
-                                emptySet()
-                            )
-                        else -> it
-                    }
-                }
-            }
-        }
-    }
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -121,10 +77,6 @@ class CameraBLE(
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 genericAccessService.attach(gatt)
                 remoteControlService.attach(gatt)
-
-                remoteService = gatt.getService(remoteServiceUUID)
-                commandCharacteristic = remoteService?.getCharacteristic(commandCharacteristicUUID)
-                statusCharacteristic = remoteService?.getCharacteristic(statusCharacteristicUUID)
             } else {
                 Log.e(TAG, "discovery failed: $status")
                 _cameraState.value = CameraStateError(null, "Service discovery failed.")
@@ -226,11 +178,17 @@ class CameraBLE(
     private val bondStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "BLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
+            val intentDevice = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)!!
+            val newState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
+            Log.d(TAG, "Device changed bond state: $newState (address: ${intentDevice.address})")
+            if(intentDevice.address !== device?.address){
+                return
+            }
             try {
-                if (cameraState.value is CameraStateReady && device?.bondState != BluetoothDevice.BOND_BONDED) {
+                if (cameraState.value is CameraStateReady && newState != BluetoothDevice.BOND_BONDED) {
                     _cameraState.value = CameraStateNotBonded()
                     Log.e(TAG, "Camera became unbonded while in use.")
-                } else if (cameraState.value is CameraStateNotBonded && device?.bondState == BluetoothDevice.BOND_BONDED) {
+                } else if (cameraState.value is CameraStateNotBonded && newState == BluetoothDevice.BOND_BONDED) {
                     Log.e(TAG, "Camera is now bonded.")
                     connectToDevice(context)
                 }
@@ -247,6 +205,43 @@ class CameraBLE(
             bondStateReceiver,
             IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         )
+        scope.launch {
+            genericAccessService.deviceName.collect { newName ->
+                _cameraState.update {
+                    when(it){
+                        is CameraStateReady ->
+                            it.copy(name = newName)
+                        else -> CameraStateReady(name = newName,address,focus = false, shutter = false, recording = false)
+                    }
+                }
+            }
+            remoteControlService.deviceStatus.collect { newStatus ->
+                _cameraState.update {
+                    when(it){
+                        is CameraStateReady -> it.copy(
+                            focus = newStatus.focus === FocusState.ACQUIRED,
+                            shutter = newStatus.shutter === ShutterState.PRESSED,
+                            recording = newStatus.isRecording
+                        )
+                        is CameraStateRemoteDisabled ->
+                            CameraStateReady(
+                                genericAccessService.deviceName.value,
+                                address,
+                                focus = newStatus.focus === FocusState.ACQUIRED,
+                                shutter = newStatus.shutter === ShutterState.PRESSED,
+                                recording = newStatus.isRecording,
+                            )
+                        else -> it
+                    }
+                }
+            }
+            remoteControlService.commandStatus.collect { newStatus ->
+                if(newStatus == RemoteControlService.CommandStatus.Fail){
+                    //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
+                    _cameraState.emit(CameraStateRemoteDisabled())
+                }
+            }
+        }
         connectToDevice(context)
     }
 
@@ -269,10 +264,7 @@ class CameraBLE(
 
     fun notifyDisconnect() {
         Log.d(TAG, "notifyDisconnect")
-        _cameraState.value = CameraStateGone()
-        remoteService = null
-        commandCharacteristic = null
-        statusCharacteristic = null
+        scope.launch { _cameraState.emit(CameraStateGone())}
         onDisconnect()
     }
 
@@ -282,66 +274,17 @@ class CameraBLE(
         Log.d(TAG, "disconnectFromDevice")
         bleOperationQueue.enqueueOperation(Disconnect)
     }
-
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun executeCameraActionStep(action: CameraActionStep) {
         Log.d(TAG, "executeCameraActionStep")
         if (cameraState.value !is CameraStateReady)
             return
-        try {
-            commandCharacteristic?.let { char ->
-                when (action) {
-                    is CAButton -> {
-                        bleOperationQueue.enqueueOperation(
-                            Write(
-                                char,
-                                byteArrayOf(0x01, action.getCode()),
-                                { status, data ->
-                                    if (status != BluetoothGatt.GATT_SUCCESS) {
-                                        //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
-                                        scope.launch {
-                                            _cameraState.emit(CameraStateRemoteDisabled())
-                                        }
-                                    }
-                                })
-                        )
-                        _cameraState.update {
-                            (it as? CameraStateReady)?.copy(
-                                pressedButtons = if (action.pressed) it.pressedButtons + action.button else it.pressedButtons - action.button
-                            ) ?: it
-                        }
-                    }
-
-                    is CAJog -> {
-                        bleOperationQueue.enqueueOperation(
-                            Write(
-                                char,
-                                byteArrayOf(
-                                    0x02,
-                                    action.getCode(),
-                                    if (action.pressed) action.step else 0x00
-                                ),
-                                { status, data ->
-                                    if (status != BluetoothGatt.GATT_SUCCESS) {
-                                        //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
-                                        scope.launch {
-                                            _cameraState.emit(CameraStateRemoteDisabled())
-                                        }
-                                    }
-                                })
-                        )
-                        _cameraState.update {
-                            (it as? CameraStateReady)?.copy(
-                                pressedJogs = if (action.pressed) it.pressedJogs + action.jog else it.pressedJogs - action.jog
-                            ) ?: it
-                        }
-                    }
-
-                    else -> Unit //Countdown and wait for event are handled by service
-                }
-            }
-        } catch (e: SecurityException) {
-            _cameraState.value = CameraStateError(e)
-            Log.e(TAG, e.toString())
+        remoteControlService.sendCommand(action)
+        _cameraState.update {
+            if(it is CameraStateReady)
+                it.applyCommand(action)
+            else
+                it
         }
     }
 
