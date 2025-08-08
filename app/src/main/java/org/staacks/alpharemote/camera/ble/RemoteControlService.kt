@@ -20,8 +20,8 @@ import kotlin.text.toHexString
 class RemoteControlService {
     private val bleOperationQueue: BleCommandQueue
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
-    private val _deviceStatusFlow = MutableStateFlow(CameraStatus2())
-    val deviceStatus: StateFlow<CameraStatus2> = _deviceStatusFlow.asStateFlow()
+    private val _deviceStatusFlow = MutableStateFlow(CameraStatus())
+    val deviceStatus: StateFlow<CameraStatus> = _deviceStatusFlow.asStateFlow()
 
     enum class CommandStatus{
         Enqueue,
@@ -64,14 +64,17 @@ class RemoteControlService {
         val payload = command.toCommand()
         if(payload.isEmpty())
             return
-        commandCharacteristic?.let { bleOperationQueue.enqueueOperation(Write(it,payload, { status, _ ->
+        commandCharacteristic?.let {
+
+            bleOperationQueue.enqueueOperation(Write(it,payload, { status, _ ->
             if(status != GATT_SUCCESS){
                 Log.e(TAG,"Failed to send command: $status")
                 _lastCommandState.tryEmit(CommandStatus.Fail)
             }else{
                 _lastCommandState.tryEmit(CommandStatus.Success)
             }
-        })) }
+        }))
+            _lastCommandState.tryEmit(CommandStatus.Enqueue)}
     }
 
     private fun CameraActionStep.toCommand():ByteArray{
@@ -141,31 +144,6 @@ class RemoteControlService {
     }
 }
 
-
-enum class ButtonStatus{
-    PRESSED,
-    HALF_PRESSED,
-    RELEASED,
-    HALF_RELEASED
-}
-data class CameraStatus(val autoFocus: ButtonStatus = ButtonStatus.RELEASED,
-                        val shutter: ButtonStatus = ButtonStatus.RELEASED,
-                        val recording: ButtonStatus = ButtonStatus.RELEASED,
-                        val customButton: ButtonStatus = ButtonStatus.RELEASED){
-
-    companion object{
-        fun parse(value: ByteArray): CameraStatus{
-            Log.d("CameraStatus","reviced: ${value.joinToString(" ")}")
-            val length = value[0]
-
-            return when (value[1].toInt()) {
-
-                else -> CameraStatus()
-            }
-        }
-    }
-}
-
 enum class FocusState{
     LOST,
     ACQUIRED,
@@ -177,10 +155,10 @@ enum class ShutterState{
     RELEASED
 }
 
-data class CameraStatus2(val isRecording: Boolean = false,val focus: FocusState=FocusState.LOST,val shutter: ShutterState = ShutterState.RELEASED ){
+data class CameraStatus(val isRecording: Boolean = false, val focus: FocusState=FocusState.LOST, val shutter: ShutterState = ShutterState.RELEASED ){
 
 
-    fun update(value: ByteArray): CameraStatus2 {
+    fun update(value: ByteArray): CameraStatus {
         val length = value[0]
         if (length != 2.toByte()) {
             Log.i(RemoteControlService.TAG, "Invalid update package: ${value.toHexString()}")
