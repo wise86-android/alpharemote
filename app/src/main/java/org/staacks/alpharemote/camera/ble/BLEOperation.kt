@@ -97,3 +97,12 @@ data object Disconnect: BLEOperation{
         gatt.close()
     }
 }
+
+data class ChangeMtu(val mtuSize: Int, val callback:(mtuSize:Int, status:Int)-> Unit): BLEOperation{
+    override val hightPriority: Boolean = false
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun execute(gatt: BluetoothGatt) {
+        gatt.requestMtu(mtuSize)
+
+    }
+}

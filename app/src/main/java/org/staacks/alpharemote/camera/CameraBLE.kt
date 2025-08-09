@@ -12,6 +12,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.location.Location
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -22,11 +23,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.ble.BleCommandQueue
+import org.staacks.alpharemote.camera.ble.ChangeMtu
 import org.staacks.alpharemote.camera.ble.Disconnect
 import org.staacks.alpharemote.camera.ble.FocusState
 import org.staacks.alpharemote.camera.ble.GenericAccessService
+import org.staacks.alpharemote.camera.ble.LocationService
 import org.staacks.alpharemote.camera.ble.RemoteControlService
 import org.staacks.alpharemote.camera.ble.ShutterState
+import java.util.Date
 
 
 // Massive thanks to coral for the documentation of the camera's BLE protocol at
@@ -52,13 +56,19 @@ class CameraBLE(
     private val bleOperationQueue = BleCommandQueue()
     private val genericAccessService = GenericAccessService(bleOperationQueue)
     private val remoteControlService = RemoteControlService(bleOperationQueue)
+    private val locationService = LocationService(bleOperationQueue)
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
+        @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             Log.d(TAG, "onConnectionStateChange: status $status, newState $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 bleOperationQueue.gatt = gatt
                 onConnect()
+                bleOperationQueue.enqueueOperation(ChangeMtu(153,{newMtu,status ->
+                    Log.d(TAG, "MTU change: $newMtu, $status")
+                    gatt?.discoverServices()
+                }))
                 try {
                     gatt?.discoverServices()
                 } catch (e: SecurityException) {
@@ -75,8 +85,17 @@ class CameraBLE(
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             Log.d(TAG, "onServicesDiscovered")
             if (status == BluetoothGatt.GATT_SUCCESS) {
+
+                gatt.services.forEach { service ->
+                    Log.d(TAG, "Services: ${service.uuid}")
+                    service.characteristics.forEach { characteristic ->
+                        Log.d(TAG,"\tcharacteristic: ${characteristic.uuid}")
+                }
+                }
+
                 genericAccessService.attach(gatt)
                 remoteControlService.attach(gatt)
+                locationService.attach(gatt)
             } else {
                 Log.e(TAG, "discovery failed: $status")
                 _cameraState.value = CameraStateError(null, "Service discovery failed.")
@@ -171,7 +190,13 @@ class CameraBLE(
             super.onCharacteristicChanged(gatt, characteristic, value)
             Log.d(TAG, "onCharacteristicChanged from ${characteristic.uuid}.")
             remoteControlService.onCharacteristicChanged(characteristic, value)
+            locationService.onCharacteristicChanged(characteristic, value)
+        }
 
+        @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+        override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+            super.onMtuChanged(gatt, mtu, status)
+            bleOperationQueue.onMtuChange(mtu, status)
         }
     }
 
@@ -216,7 +241,10 @@ class CameraBLE(
                 }
             }
             remoteControlService.deviceStatus.collect { newStatus ->
+                Log.d(TAG, "New status: $newStatus")
                 _cameraState.update {
+
+
                     when(it){
                         is CameraStateReady -> it.copy(
                             focus = newStatus.focus === FocusState.ACQUIRED,
@@ -277,6 +305,17 @@ class CameraBLE(
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun executeCameraActionStep(action: CameraActionStep) {
         Log.d(TAG, "executeCameraActionStep")
+        try {
+            val loc = Location( null).apply {
+                latitude = 43.77357595745771
+                longitude = 11.255095369563048
+            }
+            if(action is CAButton && action.pressed )
+            locationService.updateLocationAndTime(loc,
+                Date(2023,1,2,3,5,6))
+        }catch (e:SecurityException){
+
+        }
         if (cameraState.value !is CameraStateReady)
             return
         remoteControlService.sendCommand(action)

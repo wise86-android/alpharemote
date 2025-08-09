@@ -97,6 +97,17 @@ class BleCommandQueue() {
         }
     }
 
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    fun onMtuChange(mtuSize: Int, status: Int) {
+        Log.d(TAG, "MTU change: $mtuSize, $status")
+        currentOperation?.let {
+            if (it is ChangeMtu) {
+                operationComplete()
+                it.callback(mtuSize, status)
+            }
+        }
+
+    }
 
 
 }
