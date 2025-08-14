@@ -1,6 +1,7 @@
 package org.staacks.alpharemote.service
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.companion.AssociationInfo
 import android.companion.CompanionDeviceManager
 import android.companion.CompanionDeviceService
@@ -9,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -53,6 +55,8 @@ class AlphaRemoteService : CompanionDeviceService() {
 
     private var timer: TimerTask? = null
     private var notificationUI: NotificationUI? = null
+
+    private lateinit var pendingActionsWakeLock: PowerManager.WakeLock
 
     companion object {
 
@@ -117,6 +121,10 @@ class AlphaRemoteService : CompanionDeviceService() {
             }
         })
 
+        pendingActionsWakeLock = (getSystemService(POWER_SERVICE) as PowerManager).run {
+            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlphaRemoteService::PendingActionsWakeLock")
+        }
+
         if (cameraBLE == null) {
             cancelPendingActionSteps()
             deviceAppearedCount = 1
@@ -161,6 +169,9 @@ class AlphaRemoteService : CompanionDeviceService() {
         if (deviceAppearedCount == 0) {
             cameraBLE?.disconnectFromDevice()
             cameraBLE = null
+            if (pendingActionsWakeLock.isHeld) {
+                pendingActionsWakeLock.release()
+            }
             job.cancelChildren()
             stopSelf()
         }
@@ -286,6 +297,9 @@ class AlphaRemoteService : CompanionDeviceService() {
             (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
+        if (pendingActionsWakeLock.isHeld) {
+            pendingActionsWakeLock.release()
+        }
         return pendingStepsCancelled
     }
 
@@ -301,10 +315,14 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     @Synchronized
+    @SuppressLint("WakelockTimeout")
     fun startCameraAction(steps: List<CameraActionStep>) {
         if (cancelPendingActionSteps() && isLongRunningSequence(steps))
             return //If this is more than a simple button press and there were pending action, this button press is only used as a cancellation of the previous sequence
         pendingActionSteps.addAll(steps)
+        if (!pendingActionsWakeLock.isHeld) {
+            pendingActionsWakeLock.acquire()
+        }
         executeNextCameraActionStep()
     }
 
@@ -314,6 +332,9 @@ class AlphaRemoteService : CompanionDeviceService() {
         for (actionStep in pendingActionSteps) {
             if (actionStep is CAButton && actionStep.isSequenceTrigger)
                 pendingTriggerCount++
+        }
+        if (pendingActionSteps.isEmpty() && pendingActionsWakeLock.isHeld) {
+            pendingActionsWakeLock.release()
         }
         _serviceState.update {
             (it as? ServiceRunning)?.copy(pendingTriggerCount = pendingTriggerCount) ?: it
