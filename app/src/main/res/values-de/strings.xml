@@ -16,6 +16,7 @@
     <string name="camera_advanced_bulb_title">Timer für Bulb-Modus</string>
     <string name="camera_advanced_bulb_duration">Dauer</string>
     <string name="camera_advanced_bulb_timer_label">Bulb</string>
+    <string name="camera_advanced_bulb_note">Für diese Funktion musst du die Kamera selbst auf Bulb stellen.</string>
     <string name="camera_advanced_interval_title">Intervalometer</string>
     <string name="camera_advanced_interval_duration">Intervall</string>
     <string name="camera_advanced_interval_count">Anzahl der Belichtungen</string>
