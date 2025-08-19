@@ -1,10 +1,10 @@
 package org.staacks.alpharemote.service
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.companion.AssociationInfo
-import android.companion.CompanionDeviceManager
+
 import android.companion.CompanionDeviceService
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
@@ -12,6 +12,12 @@ import android.content.res.Configuration
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.SettingsStore
@@ -37,13 +43,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.staacks.alpharemote.camera.CameraActionPreset
-import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper
 import java.util.LinkedList
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.seconds
 
 
 class AlphaRemoteService : CompanionDeviceService() {
@@ -53,6 +58,53 @@ class AlphaRemoteService : CompanionDeviceService() {
     private var timer: TimerTask? = null
     private var notificationUI: NotificationUI? = null
 
+    private val  fusedLocationClient: FusedLocationProviderClient by lazy {
+        LocationServices.getFusedLocationProviderClient(this)
+    }
+
+    private val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY,
+        20.seconds.inWholeMilliseconds) // 20 seconds
+        .setMinUpdateIntervalMillis(10.seconds.inWholeMilliseconds) // 10 seconds (minimum interval)
+        .build()
+
+    private val locationCallback: LocationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val lastLocation = locationResult.lastLocation
+            Log.d("LocationUpdates", "Lat: ${lastLocation?.latitude}, Lng: ${lastLocation?.longitude}")
+            lastLocation?.let { cameraBLE?.setCameraLocation(it)}
+
+        }
+    }
+
+    private fun checkPermissions(): Boolean {
+        val fineLocationGranted = ActivityCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseLocationGranted = ActivityCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        return fineLocationGranted || coarseLocationGranted
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startLocationUpdates() {
+        if (checkPermissions()) { // Your permission checking function
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                null
+            )
+            Log.d("LocationUpdates", "Location updates started.")
+        }else{
+            Log.d("LocationUpdates", "Location updates missing permission.")
+        }
+
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+        Log.d("LocationUpdates", "Location updates stopped.")
+    }
     companion object {
 
         private var cameraBLE: CameraBLE? = null
@@ -145,6 +197,7 @@ class AlphaRemoteService : CompanionDeviceService() {
             deviceAppearedCount++
             return
         }
+        startLocationUpdates()
     }
 
     override fun onDeviceAppeared(associationInfo: AssociationInfo) {
@@ -159,6 +212,7 @@ class AlphaRemoteService : CompanionDeviceService() {
         } catch (_: AbstractMethodError) {}
         deviceAppearedCount--
 
+        stopLocationUpdates()
         if (deviceAppearedCount == 0) {
             cameraBLE?.disconnectFromDevice()
             cameraBLE = null

@@ -305,17 +305,6 @@ class CameraBLE(
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun executeCameraActionStep(action: CameraActionStep) {
         Log.d(TAG, "executeCameraActionStep")
-        try {
-            val loc = Location( null).apply {
-                latitude = 43.77357595745771
-                longitude = 11.255095369563048
-            }
-            if(action is CAButton && action.pressed )
-            locationService.updateLocationAndTime(loc,
-                Date(2023,1,2,3,5,6))
-        }catch (e:SecurityException){
-
-        }
         if (cameraState.value !is CameraStateReady)
             return
         remoteControlService.sendCommand(action)
@@ -325,6 +314,11 @@ class CameraBLE(
             else
                 it
         }
+    }
+
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    fun setCameraLocation(location: Location){
+        locationService.updateLocationAndTime(location, Date())
     }
 
     companion object {
