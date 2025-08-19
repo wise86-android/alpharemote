@@ -1,10 +1,12 @@
 package org.staacks.alpharemote.camera.ble
 
+import android.Manifest
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +19,8 @@ import org.staacks.alpharemote.camera.JogCode
 import java.util.UUID
 import kotlin.text.toHexString
 
-class RemoteControlService {
-    private val bleOperationQueue: BleCommandQueue
+class RemoteControlService : BleServiceManager {
+    private lateinit var bleOperationQueue: BleCommandQueue
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private val _deviceStatusFlow = MutableStateFlow(CameraStatus())
     val deviceStatus: StateFlow<CameraStatus> = _deviceStatusFlow.asStateFlow()
@@ -32,17 +34,19 @@ class RemoteControlService {
     private val _lastCommandState = MutableStateFlow<CommandStatus>(CommandStatus.Enqueue)
     val commandStatus: StateFlow<CommandStatus> = _lastCommandState.asStateFlow()
 
-    constructor(bleOperationQueue: BleCommandQueue) {
-        this.bleOperationQueue=bleOperationQueue
-    }
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun attach(gatt: BluetoothGatt){
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue) {
+        this.bleOperationQueue = bleCommandQueue
         val genericAccessService = gatt.getService(REMOTE_SERVICE_UUID)
         genericAccessService?.let { service ->
             enableStatusNotification(service)
         }
         commandCharacteristic = genericAccessService.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
+    }
+
+    override fun onDisconnect() {
+        _deviceStatusFlow.tryEmit(CameraStatus())
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -52,7 +56,10 @@ class RemoteControlService {
         }
     }
 
-    fun onCharacteristicChanged(characteristic: BluetoothGattCharacteristic,newValue:ByteArray){
+    override fun onCharacteristicsChanged(
+        characteristic: BluetoothGattCharacteristic,
+        newValue: ByteArray
+    ){
         if(characteristic.uuid != STATUS_CHARACTERISTIC_UUID){
             return
         }
@@ -155,7 +162,9 @@ enum class ShutterState{
     RELEASED
 }
 
-data class CameraStatus(val isRecording: Boolean = false, val focus: FocusState=FocusState.LOST, val shutter: ShutterState = ShutterState.RELEASED ){
+data class CameraStatus(val isRecording: Boolean = false,
+                        val focus: FocusState=FocusState.LOST,
+                        val shutter: ShutterState = ShutterState.RELEASED ){
 
 
     fun update(value: ByteArray): CameraStatus {

@@ -1,23 +1,23 @@
 package org.staacks.alpharemote.camera.ble
 
+import android.Manifest
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.location.Location
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.time.ZoneOffset
 import java.time.temporal.ChronoField
-import java.util.Calendar
+
 import java.util.Date
 import java.util.TimeZone
 import java.util.UUID
 import kotlin.experimental.and
 
-
-
-class LocationService {
+class LocationService : BleServiceManager {
 
     enum class Status{
         Init,
@@ -25,23 +25,26 @@ class LocationService {
         Ready,
         DisableByCamera
     }
-    private val bleOperationQueue: BleCommandQueue
+    private lateinit var bleOperationQueue: BleCommandQueue
     private var writeLocationCharacteristics: BluetoothGattCharacteristic? = null
     private lateinit var locationGattService: BluetoothGattService
     private var status: Status = Status.Init
     private lateinit var payloadSettings: PayloadSettings
-    constructor(bleOperationQueue: BleCommandQueue) {
-        this.bleOperationQueue = bleOperationQueue
-    }
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun attach(gatt: BluetoothGatt) {
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue) {
+        this.bleOperationQueue = bleCommandQueue
         val genericAccessService = gatt.getService(SERVICE_UUID)
         writeLocationCharacteristics = genericAccessService?.getCharacteristic(UPDATE_LOCATION)
         genericAccessService?.let { service ->
             locationGattService = service
             enableStatusNotification(service)
         }
+    }
+
+    override fun onDisconnect() {
+        status = Status.Init
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -102,8 +105,11 @@ class LocationService {
         }
     }
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun onCharacteristicChanged(characteristic: BluetoothGattCharacteristic,newValue:ByteArray){
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun onCharacteristicsChanged(
+        characteristic: BluetoothGattCharacteristic,
+        newValue: ByteArray
+    ){
         if(characteristic.uuid == SERVICE_STATUS){
             Log.d(TAG,"status update: ${newValue.toHexString()}")
             if(newValue.contentEquals(DISABLE_LOCATION_UPDATE)){

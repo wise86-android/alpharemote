@@ -5,22 +5,9 @@ import android.util.Log
 import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
 import java.util.LinkedList
 
-class BleCommandQueue() {
+class BleCommandQueue(private val gatt: BluetoothGatt) {
     private val operationQueue = LinkedList<BLEOperation>()
     private var currentOperation: BLEOperation? = null
-
-
-    var gatt: BluetoothGatt? = null
-        @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-        @Synchronized
-        set(value) {
-            field = value
-            if(value === null){
-                resetOperationQueue()
-            }else{
-                executeNextOperation()
-            }
-        }
 
     @Synchronized
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -46,14 +33,8 @@ class BleCommandQueue() {
     private fun executeNextOperation() {
         if (currentOperation != null)
             return
-
-        gatt?.let { bleGatt ->
-            currentOperation = operationQueue.poll()
-            currentOperation?.execute(bleGatt)
-            if(currentOperation is Disconnect){
-                gatt = null
-            }
-        }
+        currentOperation = operationQueue.poll()
+        currentOperation?.execute(gatt)
     }
 
     @Synchronized
