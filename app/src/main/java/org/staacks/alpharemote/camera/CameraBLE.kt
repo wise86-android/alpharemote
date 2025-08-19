@@ -53,30 +53,35 @@ class CameraBLE(
 
     private var device: BluetoothDevice? = null
     private var gatt: BluetoothGatt? = null
-    private val bleOperationQueue = BleCommandQueue()
-    private val genericAccessService = GenericAccessService(bleOperationQueue)
-    private val remoteControlService = RemoteControlService(bleOperationQueue)
-    private val locationService = LocationService(bleOperationQueue)
+    private lateinit var bleOperationQueue: BleCommandQueue
+
+
+    private val genericAccessService = GenericAccessService()
+    private val remoteControlService = RemoteControlService()
+    private val locationService = LocationService()
+    private var managedService = listOf(
+        genericAccessService,locationService,remoteControlService
+    )
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             Log.d(TAG, "onConnectionStateChange: status $status, newState $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                bleOperationQueue.gatt = gatt
+                bleOperationQueue = BleCommandQueue(gatt)
                 onConnect()
                 bleOperationQueue.enqueueOperation(ChangeMtu(153,{newMtu,status ->
                     Log.d(TAG, "MTU change: $newMtu, $status")
-                    gatt?.discoverServices()
+                    gatt.discoverServices()
                 }))
                 try {
-                    gatt?.discoverServices()
+                    gatt.discoverServices()
                 } catch (e: SecurityException) {
                     Log.e(TAG, e.toString())
                     _cameraState.value = CameraStateError(e)
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                bleOperationQueue.gatt = null
+                bleOperationQueue.resetOperationQueue()
                 notifyDisconnect()
             }
         }
@@ -90,12 +95,10 @@ class CameraBLE(
                     Log.d(TAG, "Services: ${service.uuid}")
                     service.characteristics.forEach { characteristic ->
                         Log.d(TAG,"\tcharacteristic: ${characteristic.uuid}")
-                }
+                    }
                 }
 
-                genericAccessService.attach(gatt)
-                remoteControlService.attach(gatt)
-                locationService.attach(gatt)
+                managedService.forEach { service -> service.onConnect(gatt, bleOperationQueue) }
             } else {
                 Log.e(TAG, "discovery failed: $status")
                 _cameraState.value = CameraStateError(null, "Service discovery failed.")
@@ -105,16 +108,12 @@ class CameraBLE(
             }
         }
 
+        @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onServiceChanged(gatt: BluetoothGatt) {
             super.onServiceChanged(gatt)
             Log.d(TAG, "onServiceChanged")
             bleOperationQueue.resetOperationQueue()
-            try {
-                gatt.discoverServices()
-            } catch (e: SecurityException) {
-                Log.e(TAG, e.toString())
-                _cameraState.value = CameraStateError(e)
-            }
+            gatt.discoverServices()
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -189,8 +188,7 @@ class CameraBLE(
         ) {
             super.onCharacteristicChanged(gatt, characteristic, value)
             Log.d(TAG, "onCharacteristicChanged from ${characteristic.uuid}.")
-            remoteControlService.onCharacteristicChanged(characteristic, value)
-            locationService.onCharacteristicChanged(characteristic, value)
+            managedService.forEach { service -> service.onCharacteristicsChanged(characteristic, value) }
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
