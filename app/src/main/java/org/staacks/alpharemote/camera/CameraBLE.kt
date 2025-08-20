@@ -1,35 +1,26 @@
 package org.staacks.alpharemote.camera
 
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.location.Location
 import android.os.Build
 import android.util.Log
-import androidx.core.content.ContextCompat
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.ble.BleCommandQueue
+import org.staacks.alpharemote.camera.ble.BleConnectionState
 import org.staacks.alpharemote.camera.ble.ChangeMtu
 import org.staacks.alpharemote.camera.ble.Disconnect
-import org.staacks.alpharemote.camera.ble.FocusState
 import org.staacks.alpharemote.camera.ble.GenericAccessService
 import org.staacks.alpharemote.camera.ble.LocationService
 import org.staacks.alpharemote.camera.ble.RemoteControlService
-import org.staacks.alpharemote.camera.ble.ShutterState
+import org.staacks.alpharemote.camera.ble.logAllCharacteristics
 import java.util.Date
 
 
@@ -39,22 +30,14 @@ import java.util.Date
 // https://gregleeds.com/reverse-engineering-sony-camera-bluetooth/
 
 class CameraBLE(
-    val scope: CoroutineScope,
-    context: Context,
-    val address: String,
-    val onConnect: () -> Unit,
-    val onDisconnect: () -> Unit
+    private val device: BluetoothDevice
 ) {
-    private val _cameraState = MutableStateFlow<CameraState>(CameraStateGone())
-    val cameraState: StateFlow<CameraState> = _cameraState.asStateFlow()
 
-    private var bluetoothAdapter: BluetoothAdapter =
-        ContextCompat.getSystemService(context, BluetoothManager::class.java)!!.adapter
+    private val _cameraConnectionState = MutableStateFlow(BleConnectionState.Idle)
+    val connectionState = _cameraConnectionState.asStateFlow()
 
-    private var device: BluetoothDevice? = null
     private var gatt: BluetoothGatt? = null
-    private lateinit var bleOperationQueue: BleCommandQueue
-
+    private var bleOperationQueue: BleCommandQueue?=null
 
     private val genericAccessService = GenericAccessService()
     private val remoteControlService = RemoteControlService()
@@ -63,45 +46,43 @@ class CameraBLE(
         genericAccessService,locationService,remoteControlService
     )
 
+    val deviceAddress: String
+        get() = device.address
+
+    val deviceName = genericAccessService.deviceName
+    val deviceStatus = remoteControlService.deviceStatus
+    val remoteCommandStatus = remoteControlService.commandStatus
+
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
+
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            super.onConnectionStateChange(gatt, status, newState)
             Log.d(TAG, "onConnectionStateChange: status $status, newState $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 bleOperationQueue = BleCommandQueue(gatt)
-                onConnect()
-                bleOperationQueue.enqueueOperation(ChangeMtu(153,{newMtu,status ->
+                bleOperationQueue?.enqueueOperation(ChangeMtu(PREFERRED_CONNECTION_MTU,{ newMtu,status ->
                     Log.d(TAG, "MTU change: $newMtu, $status")
                     gatt.discoverServices()
                 }))
-                try {
-                    gatt.discoverServices()
-                } catch (e: SecurityException) {
-                    Log.e(TAG, e.toString())
-                    _cameraState.value = CameraStateError(e)
-                }
+                _cameraConnectionState.update { BleConnectionState.Connected }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                bleOperationQueue.resetOperationQueue()
                 notifyDisconnect()
             }
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            super.onServicesDiscovered(gatt, status)
             Log.d(TAG, "onServicesDiscovered")
             if (status == BluetoothGatt.GATT_SUCCESS) {
-
-                gatt.services.forEach { service ->
-                    Log.d(TAG, "Services: ${service.uuid}")
-                    service.characteristics.forEach { characteristic ->
-                        Log.d(TAG,"\tcharacteristic: ${characteristic.uuid}")
-                    }
+                logAllCharacteristics(gatt,TAG)
+                bleOperationQueue?.let { commandQueue ->
+                    managedService.forEach { it.onConnect(gatt, commandQueue) }
                 }
-
-                managedService.forEach { service -> service.onConnect(gatt, bleOperationQueue) }
             } else {
                 Log.e(TAG, "discovery failed: $status")
-                _cameraState.value = CameraStateError(null, "Service discovery failed.")
+                _cameraConnectionState.update { BleConnectionState.ErrorDuringConnection }
                 //Note, at this point the service will not be usable, but we stay connected as this might be recoverable.
                 //In fact, newer cameras seem to send an onServiceChanged to bonded devices after few ms, which triggers Android to restart discovery.
                 //If this was the reason for this discovery to fail, onServiceChanged will be called soon where discoverServices will be called again.
@@ -112,18 +93,18 @@ class CameraBLE(
         override fun onServiceChanged(gatt: BluetoothGatt) {
             super.onServiceChanged(gatt)
             Log.d(TAG, "onServiceChanged")
-            bleOperationQueue.resetOperationQueue()
+            bleOperationQueue?.resetOperationQueue()
             gatt.discoverServices()
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onCharacteristicWrite(
-            gatt: BluetoothGatt?,
-            characteristic: BluetoothGattCharacteristic?,
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
             super.onCharacteristicWrite(gatt, characteristic, status)
-            bleOperationQueue.onWriteOperationCompleted(status)
+            bleOperationQueue?.onWriteOperationCompleted(characteristic,status)
         }
 
         @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
@@ -152,17 +133,17 @@ class CameraBLE(
         ) {
             super.onCharacteristicRead(gatt, characteristic, value, status)
             Log.d(TAG, "onCharacteristicRead with status $status from ${characteristic.uuid}.")
-            bleOperationQueue.onReadOperationCompleted(status, value)
+            bleOperationQueue?.onReadOperationCompleted(status, characteristic, value)
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onDescriptorWrite(
-            gatt: BluetoothGatt?,
-            descriptor: BluetoothGattDescriptor?,
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
             status: Int
         ) {
             super.onDescriptorWrite(gatt, descriptor, status)
-            bleOperationQueue.onSubscribeOperationComplete(status)
+            bleOperationQueue?.onSubscribeOperationComplete(status,descriptor.characteristic)
         }
 
 
@@ -188,130 +169,56 @@ class CameraBLE(
         ) {
             super.onCharacteristicChanged(gatt, characteristic, value)
             Log.d(TAG, "onCharacteristicChanged from ${characteristic.uuid}.")
-            managedService.forEach { service -> service.onCharacteristicsChanged(characteristic, value) }
+            managedService.forEach { it.onCharacteristicsChanged(characteristic, value) }
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
-            bleOperationQueue.onMtuChange(mtu, status)
+            bleOperationQueue?.onMtuChange(mtu, status)
         }
     }
 
-    private val bondStateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "BLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
-            val intentDevice = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)!!
-            val newState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
-            Log.d(TAG, "Device changed bond state: $newState (address: ${intentDevice.address})")
-            if(intentDevice.address !== device?.address){
-                return
-            }
-            try {
-                if (cameraState.value is CameraStateReady && newState != BluetoothDevice.BOND_BONDED) {
-                    _cameraState.value = CameraStateNotBonded()
-                    Log.e(TAG, "Camera became unbonded while in use.")
-                } else if (cameraState.value is CameraStateNotBonded && newState == BluetoothDevice.BOND_BONDED) {
-                    Log.e(TAG, "Camera is now bonded.")
-                    connectToDevice(context)
-                }
-            } catch (e: SecurityException) {
-                _cameraState.value = CameraStateError(e, e.toString())
-                Log.e(TAG, e.toString())
-            }
+    fun updateBondedState(context: Context, newState: Int) {
+        if (connectionState.value == BleConnectionState.Connected && newState != BluetoothDevice.BOND_BONDED) {
+            _cameraConnectionState.update { BleConnectionState.BoundLost }
+            Log.e(TAG, "Camera became unbonded while in use.")
+        } else if (_cameraConnectionState.value == BleConnectionState.BoundLost && newState == BluetoothDevice.BOND_BONDED) {
+            Log.e(TAG, "Camera is now bonded.")
+            connectToDevice(context)
         }
     }
 
-    init {
-        Log.d(TAG, "init")
-        context.registerReceiver(
-            bondStateReceiver,
-            IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-        )
-        scope.launch {
-            genericAccessService.deviceName.collect { newName ->
-                _cameraState.update {
-                    when(it){
-                        is CameraStateReady ->
-                            it.copy(name = newName)
-                        else -> CameraStateReady(name = newName,address,focus = false, shutter = false, recording = false)
-                    }
-                }
-            }
-            remoteControlService.deviceStatus.collect { newStatus ->
-                Log.d(TAG, "New status: $newStatus")
-                _cameraState.update {
-
-
-                    when(it){
-                        is CameraStateReady -> it.copy(
-                            focus = newStatus.focus === FocusState.ACQUIRED,
-                            shutter = newStatus.shutter === ShutterState.PRESSED,
-                            recording = newStatus.isRecording
-                        )
-                        is CameraStateRemoteDisabled ->
-                            CameraStateReady(
-                                genericAccessService.deviceName.value,
-                                address,
-                                focus = newStatus.focus === FocusState.ACQUIRED,
-                                shutter = newStatus.shutter === ShutterState.PRESSED,
-                                recording = newStatus.isRecording,
-                            )
-                        else -> it
-                    }
-                }
-            }
-            remoteControlService.commandStatus.collect { newStatus ->
-                if(newStatus == RemoteControlService.CommandStatus.Fail){
-                    //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
-                    _cameraState.emit(CameraStateRemoteDisabled())
-                }
-            }
-        }
-        connectToDevice(context)
-    }
-
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun connectToDevice(context: Context) {
         Log.d(TAG, "connectToDevice")
-        try {
-            device = bluetoothAdapter.getRemoteDevice(address)
-            if (device?.bondState == BluetoothDevice.BOND_BONDED) {
-                _cameraState.value = CameraStateConnecting()
-                gatt = device?.connectGatt(context, true, bluetoothGattCallback)
-            } else {
-                _cameraState.value = CameraStateNotBonded()
-                Log.e(TAG, "Camera found, but not bonded.")
-            }
-        } catch (e: SecurityException) {
-            _cameraState.value = CameraStateError(e, e.toString())
-            Log.e(TAG, e.toString())
+        if (device.bondState == BluetoothDevice.BOND_BONDED) {
+            _cameraConnectionState.update { BleConnectionState.Connecting }
+            gatt = device.connectGatt(context, true, bluetoothGattCallback)
+        } else {
+            _cameraConnectionState.update { BleConnectionState.BoundLost }
+            Log.e(TAG, "Camera found, but not bonded. yet")
         }
     }
 
-    fun notifyDisconnect() {
+    private fun notifyDisconnect() {
         Log.d(TAG, "notifyDisconnect")
-        scope.launch { _cameraState.emit(CameraStateGone())}
-        onDisconnect()
+        bleOperationQueue?.resetOperationQueue()
+        _cameraConnectionState.update { BleConnectionState.Disconnected }
     }
 
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun disconnectFromDevice() {
         Log.d(TAG, "disconnectFromDevice")
-        bleOperationQueue.enqueueOperation(Disconnect)
+        bleOperationQueue?.enqueueOperation(Disconnect)
     }
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun executeCameraActionStep(action: CameraActionStep) {
         Log.d(TAG, "executeCameraActionStep")
-        if (cameraState.value !is CameraStateReady)
+        if (_cameraConnectionState.value !== BleConnectionState.Connected)
             return
         remoteControlService.sendCommand(action)
-        _cameraState.update {
-            if(it is CameraStateReady)
-                it.applyCommand(action)
-            else
-                it
-        }
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -321,5 +228,6 @@ class CameraBLE(
 
     companion object {
         const val TAG = "AlphaRemote-BLE"
+        const val PREFERRED_CONNECTION_MTU = 153
     }
 }

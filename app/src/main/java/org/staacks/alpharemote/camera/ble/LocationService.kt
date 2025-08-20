@@ -7,6 +7,10 @@ import android.bluetooth.BluetoothGattService
 import android.location.Location
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.time.ZoneOffset
@@ -16,19 +20,22 @@ import java.util.Date
 import java.util.TimeZone
 import java.util.UUID
 import kotlin.experimental.and
+import kotlin.time.Duration.Companion.microseconds
+import kotlin.time.Duration.Companion.minutes
 
 class LocationService : BleServiceManager {
 
     enum class Status{
         Init,
-        SettingsRead,
-        Ready,
-        DisableByCamera
+        ReadingSettings,
+        LocationUpdateEnabled,
+        LocationUpdateDisabled
     }
     private lateinit var bleOperationQueue: BleCommandQueue
     private var writeLocationCharacteristics: BluetoothGattCharacteristic? = null
     private lateinit var locationGattService: BluetoothGattService
-    private var status: Status = Status.Init
+    private val _status = MutableStateFlow(Status.Init)
+    val status: StateFlow<Status> = _status.asStateFlow()
     private lateinit var payloadSettings: PayloadSettings
 
 
@@ -44,17 +51,18 @@ class LocationService : BleServiceManager {
     }
 
     override fun onDisconnect() {
-        status = Status.Init
+        _status.update { Status.Init }
     }
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     private fun enableStatusNotification(service: BluetoothGattService) {
         service.getCharacteristic(SERVICE_STATUS)?.let { characteristic ->
+            _status.update { Status.ReadingSettings }
             bleOperationQueue.enqueueOperation(SubscribeForUpdate(characteristic))
         }
     }
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     private fun acquireLock(service:BluetoothGattService){
         val lockChar = service.getCharacteristic(LOCK)
         if(lockChar!=null){
@@ -84,7 +92,7 @@ class LocationService : BleServiceManager {
                                 Log.d(TAG,"Payload settings: ${value.toHexString()}")
                                 Log.d(TAG,"Payload settings: ${PayloadSettings(value)}")
                                 this.payloadSettings = PayloadSettings(value)
-                                this.status = Status.Ready
+                                _status.update { Status.LocationUpdateEnabled }
                             }))
                         }
                     }))
@@ -95,11 +103,7 @@ class LocationService : BleServiceManager {
                 bleOperationQueue.enqueueOperation(Read(it,{status,value ->
                     Log.d(TAG,"Payload settings: ${value.toHexString()}")
                     this.payloadSettings = PayloadSettings(value)
-                    this.status = Status.Ready
-                    val payload = PayloadSettings(value)
-                    Log.d(TAG,"Payload settings: ${payload}")
-                    Log.d(TAG,"Payload settings: ${payload.isValid}")
-                    Log.d(TAG,"Payload settings: ${payload.shouldSendTimezoneAndDst}")
+                    _status.update { Status.LocationUpdateEnabled }
                 }))
             }
         }
@@ -113,38 +117,33 @@ class LocationService : BleServiceManager {
         if(characteristic.uuid == SERVICE_STATUS){
             Log.d(TAG,"status update: ${newValue.toHexString()}")
             if(newValue.contentEquals(DISABLE_LOCATION_UPDATE)){
-                Log.e(TAG,"camrea reuire stop")
-                status = Status.DisableByCamera
+                Log.e(TAG,"Camera can not receive location update")
+                _status.update { Status.LocationUpdateDisabled }
             }else if(newValue.contentEquals(ENABLE_LOCATION_UPDATE)){
-                Log.e(TAG,"camrea reuire start")
-                status = Status.SettingsRead
+                Log.e(TAG,"Camera is ready to receive location update")
                 acquireLock(locationGattService)
             }
         }
     }
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun updateLocationAndTime(location: Location,time: Date){
+        if(_status.value != Status.LocationUpdateEnabled) {
+            Log.e(TAG,"Location update not enabled, Skipped update")
+            return
+        }
+
         writeLocationCharacteristics?.let {
-            if(status === Status.Ready) {
                 val message = LocationInformationUpdateMessage(location, time)
                 bleOperationQueue.enqueueOperation(
                     Write(
                         it, message.buildRawPayload(payloadSettings.shouldSendTimezoneAndDst),
                         { status, _value ->
-                            Log.d(
-                                TAG,
-                                "Location update status: $status, payload: ${
-                                    message.buildRawPayload(
-                                        payloadSettings.shouldSendTimezoneAndDst
-                                    ).toHexString()
-                                }"
-                            )
+                            if (status != BluetoothGatt.GATT_SUCCESS) {
+                                Log.e(TAG, "Failed to update location: $location staus: $status")
+                            }
                         })
                 )
-            }else{
-                Log.e(TAG,"camera can't receive location")
-            }
         }
     }
 
@@ -173,7 +172,7 @@ class LocationService : BleServiceManager {
     }
 }
 
-data class PayloadSettings(private val rawData:ByteArray){
+private data class PayloadSettings(private val rawData:ByteArray){
     val isValid:Boolean
         get() = rawData.size == rawData[0].toInt() + 1
 
@@ -208,7 +207,8 @@ data class PayloadSettings(private val rawData:ByteArray){
 }
 
 
-data class LocationInformationUpdateMessage(val location: Location,val time: Date){
+@Suppress("MagicNumber")
+private data class LocationInformationUpdateMessage(val location: Location,val time: Date){
     fun buildRawPayload(sendTimeZone: Boolean): ByteArray{
         if(sendTimeZone)
             return buildPayloadWithTimezone()
@@ -216,9 +216,9 @@ data class LocationInformationUpdateMessage(val location: Location,val time: Dat
             return buildPayloadWithoutTimezone()
     }
 
-    private fun buildPayloadWithTimezone():ByteArray{
 
-        val payload = ByteArray(95,{0x00})
+    private fun buildPayloadWithTimezone():ByteArray{
+        val payload = ByteArray(95)
         payload[1] = 93 // probably first 2 bytes are the message length?
         // start of  magic payload data
         payload[2] = 0x08.toByte()
@@ -238,7 +238,7 @@ data class LocationInformationUpdateMessage(val location: Location,val time: Dat
     }
 
     private fun buildPayloadWithoutTimezone():ByteArray{
-        val payload = ByteArray(91,{0x00})
+        val payload = ByteArray(91)
         payload[1] = 89 // probably first 2 bytes are the message length?
         // start of  magic payload data
         payload[2] = 0x08.toByte()
@@ -255,8 +255,6 @@ data class LocationInformationUpdateMessage(val location: Location,val time: Dat
         appendTime(payload,time)
         return payload
     }
-
-
     private fun appendLocation(payload:ByteArray,location: Location): ByteArray{
         val lat = (location.latitude*1.0E7).toInt()
         val lon = (location.longitude*1.0E7).toInt()
@@ -278,17 +276,13 @@ data class LocationInformationUpdateMessage(val location: Location,val time: Dat
         payload[25] = utc.get(ChronoField.SECOND_OF_MINUTE).toByte()
     }
 
-    private fun Int.millisecondToMinute():Int{
-        return this/(1000*60)
-    }
-
     private fun appendTimezone(payload:ByteArray,time: Date){
         val deviceTimeZone = TimeZone.getDefault()
 
-        val minuteOffset = deviceTimeZone.rawOffset.millisecondToMinute().toShort()
+        val minuteOffset = deviceTimeZone.rawOffset.microseconds.inWholeMinutes.toShort()
         minuteOffset.copyInto(payload,91)
         val daylightSavingMinute = if(deviceTimeZone.inDaylightTime(time)){
-            deviceTimeZone.dstSavings.millisecondToMinute()
+            deviceTimeZone.dstSavings.microseconds.inWholeMinutes.toShort()
         }else{
             0
         }

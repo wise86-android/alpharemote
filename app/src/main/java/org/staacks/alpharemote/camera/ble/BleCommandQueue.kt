@@ -1,6 +1,8 @@
 package org.staacks.alpharemote.camera.ble
 
 import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCharacteristic
+
 import android.util.Log
 import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
 import java.util.LinkedList
@@ -46,10 +48,10 @@ class BleCommandQueue(private val gatt: BluetoothGatt) {
 
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun onWriteOperationCompleted(status: Int) {
+    fun onWriteOperationCompleted(gattCharacteristic: BluetoothGattCharacteristic,status: Int) {
         Log.d(TAG, "Writing complete: $status")
         currentOperation?.let {
-            if (it is Write) {
+            if (it is Write && it.characteristic.uuid == gattCharacteristic.uuid) {
                 operationComplete()
                 it.resultCallback(status, it.data)
             }
@@ -57,10 +59,10 @@ class BleCommandQueue(private val gatt: BluetoothGatt) {
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun onReadOperationCompleted(status: Int, value: ByteArray) {
+    fun onReadOperationCompleted(status: Int, gattCharacteristic: BluetoothGattCharacteristic, value: ByteArray) {
         Log.d(TAG, "BLEReadComplete: $status, 0x${value.toHexString()}")
         currentOperation?.let {
-            if (it is Read) {
+            if (it is Read && gattCharacteristic.uuid == it.characteristic.uuid) {
                 operationComplete()
                 it.resultCallback(status, value)
             }
@@ -68,19 +70,21 @@ class BleCommandQueue(private val gatt: BluetoothGatt) {
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun onSubscribeOperationComplete(status: Int) {
+    fun onSubscribeOperationComplete(status: Int, gattCharacteristic: BluetoothGattCharacteristic) {
         Log.d(TAG, "BLESubscribeComplete: $status")
         ///Note: We do not check the status. If subscribing failed for some reason, the camera status is not reported.
         // If this is due to a disconnect, the service will be terminated anyway, but if there is another reason, the
         // rest of the app might still be usable
-        if (currentOperation is SubscribeForUpdate) {
-            operationComplete()
+        currentOperation?.let {
+            if (it is SubscribeForUpdate && it.characteristic == gattCharacteristic) {
+                operationComplete()
+            }
         }
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun onMtuChange(mtuSize: Int, status: Int) {
-        Log.d(TAG, "MTU change: $mtuSize, $status")
+        Log.d(TAG, "onMtuChange: $mtuSize, $status")
         currentOperation?.let {
             if (it is ChangeMtu) {
                 operationComplete()

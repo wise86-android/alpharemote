@@ -2,9 +2,7 @@ package org.staacks.alpharemote.camera
 
 sealed class CameraState
 
-class CameraStateGone : CameraState()
-class CameraStateConnecting : CameraState()
-
+object CameraStateUnknown : CameraState()
 class CameraStateNotBonded : CameraState()
 class CameraStateRemoteDisabled : CameraState()
 
