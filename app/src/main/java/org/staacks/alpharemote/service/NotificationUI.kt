@@ -18,10 +18,10 @@ import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.camera.CameraStateConnecting
 import org.staacks.alpharemote.camera.CameraStateError
-import org.staacks.alpharemote.camera.CameraStateGone
 import org.staacks.alpharemote.camera.CameraStateReady
+import org.staacks.alpharemote.camera.ble.BleConnectionState
+import org.staacks.alpharemote.camera.ble.Disconnect
 import java.io.Serializable
 import java.util.Timer
 import java.util.TimerTask
@@ -39,6 +39,7 @@ class NotificationUI(private val context: Context) {
     private var customButtons: List<CameraAction>? = null
     private var buttonSize: Float = 1.0f
     private var cameraState: CameraState? = null
+    private var connectionState: BleConnectionState? = null
     private var countDownTime: Long? = null
     private var countDownLabel: String? = null
 
@@ -116,77 +117,69 @@ class NotificationUI(private val context: Context) {
             }
         }
 
+
         cameraState?.let { state ->
-            if (state is CameraStateReady) {
-                val white = context.getColor(R.color.white)
-                val black = context.getColor(R.color.black)
+            when (state) {
+                is CameraStateReady -> {
+                    val white = context.getColor(R.color.white)
+                    val black = context.getColor(R.color.black)
 
-                remoteViews.setTextViewText(
-                    R.id.status_name,
-                    state.name ?: "Camera"
-                )
+                    remoteViews.setTextViewText(
+                        R.id.status_name,
+                        state.name ?: "Camera"
+                    )
 
-                remoteViews.setColorInt(
-                    R.id.status_focus,
-                    "setColorFilter",
-                    black, white
-                )
-                remoteViews.setColorInt(
-                    R.id.status_shutter,
-                    "setColorFilter",
-                    black, white
-                )
-                remoteViews.setColorInt(
-                    R.id.status_recording,
-                    "setColorFilter",
-                    if (state.recording) Color.RED else black,
-                    if (state.recording) Color.RED else white
-                )
-                remoteViews.setFloat(
-                    R.id.status_focus,
-                    "setAlpha",
-                    if (state.focus) 1.0f else 0.5f
-                )
-                remoteViews.setFloat(
-                    R.id.status_shutter,
-                    "setAlpha",
-                    if (state.shutter) 1.0f else 0.5f
-                )
-                remoteViews.setFloat(
-                    R.id.status_recording,
-                    "setAlpha",
-                    if (state.recording) 1.0f else 0.5f
-                )
-                buttonIDs.forEachIndexed { index, buttonID ->
-                    customButtons?.getOrNull(index)?.also { cameraAction ->
-                        val pressed = cameraAction.preset.template.referenceButton in state.pressedButtons || cameraAction.preset.template.referenceJog in state.pressedJogs
-                        remoteViews.setImageViewBitmap(buttonID, getIconBmp(cameraAction, countDownTime == null, pressed))
+                    remoteViews.setColorInt(
+                        R.id.status_focus,
+                        "setColorFilter",
+                        black, white
+                    )
+                    remoteViews.setColorInt(
+                        R.id.status_shutter,
+                        "setColorFilter",
+                        black, white
+                    )
+                    remoteViews.setColorInt(
+                        R.id.status_recording,
+                        "setColorFilter",
+                        if (state.recording) Color.RED else black,
+                        if (state.recording) Color.RED else white
+                    )
+                    remoteViews.setFloat(
+                        R.id.status_focus,
+                        "setAlpha",
+                        if (state.focus) 1.0f else 0.5f
+                    )
+                    remoteViews.setFloat(
+                        R.id.status_shutter,
+                        "setAlpha",
+                        if (state.shutter) 1.0f else 0.5f
+                    )
+                    remoteViews.setFloat(
+                        R.id.status_recording,
+                        "setAlpha",
+                        if (state.recording) 1.0f else 0.5f
+                    )
+                    buttonIDs.forEachIndexed { index, buttonID ->
+                        customButtons?.getOrNull(index)?.also { cameraAction ->
+                            val pressed =
+                                cameraAction.preset.template.referenceButton in state.pressedButtons || cameraAction.preset.template.referenceJog in state.pressedJogs
+                            remoteViews.setImageViewBitmap(
+                                buttonID,
+                                getIconBmp(cameraAction, countDownTime == null, pressed)
+                            )
+                        }
                     }
                 }
-            } else {
-                when (state) {
-                    is CameraStateConnecting -> {
-                        remoteViews.setTextViewText(
-                            R.id.status_name,
-                            context.getText(R.string.status_connecting)
-                        )
-                    }
 
-                    is CameraStateGone -> {
-                        remoteViews.setTextViewText(
-                            R.id.status_name,
-                            context.getText(R.string.status_offline)
-                        )
-                    }
+                is CameraStateError -> {
+                    remoteViews.setTextViewText(
+                        R.id.status_name,
+                        context.getText(R.string.status_error).toString() + ": " + state.description
+                    )
+                }
 
-                    is CameraStateError -> {
-                        remoteViews.setTextViewText(
-                            R.id.status_name,
-                            context.getText(R.string.status_error).toString() + ": " + state.description
-                        )
-                    }
-
-                    else -> {}
+                else -> {}
                 }
                 buttonIDs.forEachIndexed { index, buttonID ->
                     customButtons?.getOrNull(index)?.also { cameraAction ->
@@ -196,6 +189,23 @@ class NotificationUI(private val context: Context) {
                         ))
                     }
                 }
+        }
+
+        connectionState?.let {
+            when(it){
+                BleConnectionState.Connecting -> {
+                    remoteViews.setTextViewText(
+                        R.id.status_name,
+                        context.getText(R.string.status_connecting)
+                    )
+                }
+                BleConnectionState.Disconnected -> {
+                    remoteViews.setTextViewText(
+                        R.id.status_name,
+                        context.getText(R.string.status_offline)
+                    )
+                }
+                else -> {}
             }
         }
 
@@ -262,6 +272,11 @@ class NotificationUI(private val context: Context) {
 
     fun onCameraStateUpdate(state: CameraState) {
         cameraState = state
+        updateNotification()
+    }
+
+    fun onCameraConnectionUpdate(connectionState: BleConnectionState){
+        this.connectionState = connectionState
         updateNotification()
     }
 

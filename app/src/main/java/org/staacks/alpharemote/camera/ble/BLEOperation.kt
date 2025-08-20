@@ -103,6 +103,5 @@ data class ChangeMtu(val mtuSize: Int, val callback:(mtuSize:Int, status:Int)-> 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun execute(gatt: BluetoothGatt) {
         gatt.requestMtu(mtuSize)
-
     }
 }
