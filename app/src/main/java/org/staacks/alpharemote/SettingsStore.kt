@@ -13,8 +13,10 @@ import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 
 const val PREFERENCES_NAME = "alpharemote"
 
@@ -35,6 +37,9 @@ class SettingsStore(context: Context) {
     private val customButtonListSetByUserKey = booleanPreferencesKey(customButtonListBaseKey + "_setbyuser")
 
     private val broadcastControlKey = booleanPreferencesKey("broadcastControl")
+
+    val handleExternalBroadcastMessage: Boolean
+        get() = runBlocking { settings.data.first()[broadcastControlKey] ?: false }
 
     private fun setNullableFloat(data: MutablePreferences, key: Preferences.Key<Float>, value: Float?) {
         if (value == null) {
@@ -73,6 +78,8 @@ class SettingsStore(context: Context) {
             data[notificationButtonSizeKey] = size
         }
     }
+
+
 
     data class Permissions (
         val bluetooth: Boolean,

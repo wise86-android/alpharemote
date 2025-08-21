@@ -2,7 +2,6 @@ package org.staacks.alpharemote.service
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.companion.AssociationInfo
@@ -12,12 +11,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.os.SystemClock
 import android.util.Log
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -58,6 +55,8 @@ import org.staacks.alpharemote.camera.ble.BleConnectionState
 import org.staacks.alpharemote.camera.ble.FocusState
 import org.staacks.alpharemote.camera.ble.RemoteControlService
 import org.staacks.alpharemote.camera.ble.ShutterState
+import org.staacks.alpharemote.utils.hasBluetoothPermission
+import org.staacks.alpharemote.utils.hasLocationPermission
 import java.util.LinkedList
 import java.util.Timer
 import java.util.TimerTask
@@ -100,19 +99,11 @@ class AlphaRemoteService : CompanionDeviceService() {
 
     private val _cameraState = MutableStateFlow<CameraState>(CameraStateUnknown)
     val cameraState: StateFlow<CameraState> = _cameraState.asStateFlow()
-    private fun checkPermissions(): Boolean {
-        val fineLocationGranted = ActivityCompat.checkSelfPermission(
-            this, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseLocationGranted = ActivityCompat.checkSelfPermission(
-            this, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        return fineLocationGranted || coarseLocationGranted
-    }
+
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        if (checkPermissions()) { // Your permission checking function
+        if (hasLocationPermission(this)) {
             fusedLocationClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback,
@@ -135,10 +126,6 @@ class AlphaRemoteService : CompanionDeviceService() {
         private val _serviceState = MutableStateFlow<ServiceState>(ServiceStateGone())
         val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
 
-        fun disconnect() {
-            //cameraBLE?.disconnectFromDevice()
-        }
-
         const val BUTTON_INTENT_ACTION = "NOTIFICATION_BUTTON"
         const val BUTTON_INTENT_CAMERA_ACTION_EXTRA = "camera_action"
         const val BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA = "down"
@@ -149,8 +136,12 @@ class AlphaRemoteService : CompanionDeviceService() {
         const val ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA = "interval"
         const val ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA = "count"
 
+        const val DISCONNECT_INTENT_ACTION = "DEVICE_DISCONNECT"
+        fun getDisconnectIntent(context: Context) =  Intent(context, AlphaRemoteService::class.java).apply {
+            action = AlphaRemoteService.DISCONNECT_INTENT_ACTION
+        }
+
         private var pendingActionSteps = LinkedList<CameraActionStep>()
-        var broadcastControl = false
     }
 
     private val bondStateReceiver = object : BroadcastReceiver() {
@@ -180,13 +171,6 @@ class AlphaRemoteService : CompanionDeviceService() {
         unregisterReceiver(bondStateReceiver)
     }
 
-    private fun checkBlePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.BLUETOOTH_CONNECT
-        ) != PackageManager.PERMISSION_GRANTED
-    }
-
     override fun onDeviceAppeared(address: String) {
         Log.d(MainActivity.TAG, "Device appeared: $address")
         try {
@@ -194,9 +178,9 @@ class AlphaRemoteService : CompanionDeviceService() {
         } catch (_: AbstractMethodError) {
         }
 
-        if (checkBlePermission()) {
+        if (hasBluetoothPermission(this)) {
             Log.w(MainActivity.TAG, "Missing Bluetooth permission. Launching activity instead.")
-            val intent = Intent(applicationContext, MainActivity::class.java).apply {
+            val intent = Intent(this, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 putExtra(MainActivity.NAVIGATE_TO_INTENT_EXTRA, R.id.navigation_settings)
             }
@@ -219,9 +203,9 @@ class AlphaRemoteService : CompanionDeviceService() {
                 }
                 scope.launch {
                     settingsStore.permissions.collectLatest {
-                        if (it.notification) //Refresh notification if notification permission has been granted after it was not granted previously
+                        //Refresh notification if notification permission has been granted after it was not granted previously
+                        if (it.notification)
                             notificationUI.updateNotification()
-                        broadcastControl = it.broadcastControl
                     }
                 }
             })
@@ -292,8 +276,6 @@ class AlphaRemoteService : CompanionDeviceService() {
                     deviceStatus.collect { newStatus ->
                         Log.d(TAG, "New status: $newStatus")
                         _cameraState.update {
-
-
                             when (it) {
                                 is CameraStateReady -> it.copy(
                                     focus = newStatus.focus === FocusState.ACQUIRED,
@@ -429,6 +411,10 @@ class AlphaRemoteService : CompanionDeviceService() {
                 val up = intent.getBooleanExtra(BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA, true)
 
                 executeCameraAction(cameraAction, down, up)
+            }
+
+            DISCONNECT_INTENT_ACTION -> {
+                cameraBLE?.disconnectFromDevice()
             }
 
             ADVANCED_SEQUENCE_INTENT_ACTION -> {
