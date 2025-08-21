@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -53,6 +54,9 @@ import org.staacks.alpharemote.camera.CameraStateRemoteDisabled
 import org.staacks.alpharemote.camera.CameraStateUnknown
 import org.staacks.alpharemote.camera.ble.BleConnectionState
 import org.staacks.alpharemote.camera.ble.FocusState
+import org.staacks.alpharemote.camera.ble.LocationService
+import org.staacks.alpharemote.camera.ble.LocationService.Status
+import org.staacks.alpharemote.camera.ble.LocationService.Status.*
 import org.staacks.alpharemote.camera.ble.RemoteControlService
 import org.staacks.alpharemote.camera.ble.ShutterState
 import org.staacks.alpharemote.utils.hasBluetoothPermission
@@ -107,7 +111,7 @@ class AlphaRemoteService : CompanionDeviceService() {
             fusedLocationClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback,
-                null
+                Looper.getMainLooper()
             )
             Log.d("LocationUpdates", "Location updates started.")
         } else {
@@ -138,7 +142,7 @@ class AlphaRemoteService : CompanionDeviceService() {
 
         const val DISCONNECT_INTENT_ACTION = "DEVICE_DISCONNECT"
         fun getDisconnectIntent(context: Context) =  Intent(context, AlphaRemoteService::class.java).apply {
-            action = AlphaRemoteService.DISCONNECT_INTENT_ACTION
+            action = DISCONNECT_INTENT_ACTION
         }
 
         private var pendingActionSteps = LinkedList<CameraActionStep>()
@@ -253,6 +257,15 @@ class AlphaRemoteService : CompanionDeviceService() {
                     }
                 }
 
+                scope.launch {
+                    locationUpdateStatus.collect { newStatus ->
+                        when (newStatus) {
+                            LocationUpdateEnabled -> startLocationUpdates()
+                            LocationUpdateDisabled -> stopLocationUpdates()
+                            else -> {}
+                        }
+                    }
+                }
 
                 scope.launch {
                     deviceName.collect { newName ->
@@ -338,7 +351,7 @@ class AlphaRemoteService : CompanionDeviceService() {
         } catch (_: AbstractMethodError) {
         }
 
-        stopLocationUpdates()
+
         if (cameraBLE !== null) {
             cameraBLE?.disconnectFromDevice()
             cameraBLE = null
@@ -366,6 +379,7 @@ class AlphaRemoteService : CompanionDeviceService() {
 
     private fun onDisconnect() {
         Log.d(MainActivity.TAG, "onDisconnect")
+        stopLocationUpdates()
         _serviceState.value = ServiceStateGone()
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
