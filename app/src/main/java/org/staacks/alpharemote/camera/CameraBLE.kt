@@ -204,6 +204,10 @@ class CameraBLE(
     private fun notifyDisconnect() {
         Log.d(TAG, "notifyDisconnect")
         bleOperationQueue?.resetOperationQueue()
+        gatt?.disconnect()
+        gatt?.close()
+        gatt = null
+        bleOperationQueue = null
         _cameraConnectionState.update { BleConnectionState.Disconnected }
     }
 
