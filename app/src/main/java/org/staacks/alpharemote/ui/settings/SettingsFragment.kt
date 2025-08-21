@@ -27,6 +27,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -48,6 +49,7 @@ import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
 import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.pairCompanionDevice
 import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.startObservingDevicePresence
+import org.staacks.alpharemote.utils.hasBluetoothPermission
 
 interface CustomButtonListEventReceiver {
     fun startDragging(viewHolder: RecyclerView.ViewHolder)
@@ -213,8 +215,9 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             .setMessage(R.string.settings_camera_remove_question)
             .setCancelable(true)
             .setPositiveButton(R.string.settings_camera_remove_confirm) { dialog, which ->
-                CompanionDeviceHelper.unpairCompanionDevice(requireContext())
-                AlphaRemoteService.disconnect()
+                val context = requireContext()
+                CompanionDeviceHelper.unpairCompanionDevice(context)
+                context.startService(AlphaRemoteService.getDisconnectIntent(context))
                 checkAssociations()
             }
             .setNegativeButton(R.string.cancel, null)
@@ -222,14 +225,14 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     private fun checkBluetoothPermissionState(): Boolean {
-        val bluetoothGranted = (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
+        val bluetoothGranted = hasBluetoothPermission(requireContext())
         binding.viewModel?.updateBluetoothPermissionState(bluetoothGranted)
         return bluetoothGranted
     }
 
     private fun checkNotificationPermissionState(): Boolean {
         val notificationsGranted = (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-                || (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED))
+                || (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED))
         binding.viewModel?.updateNotificationPermissionState(notificationsGranted)
         return notificationsGranted
     }

@@ -179,6 +179,7 @@ class CameraBLE(
         }
     }
 
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun updateBondedState(context: Context, newState: Int) {
         if (connectionState.value == BleConnectionState.Connected && newState != BluetoothDevice.BOND_BONDED) {
             _cameraConnectionState.update { BleConnectionState.BoundLost }
@@ -201,6 +202,7 @@ class CameraBLE(
         }
     }
 
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     private fun notifyDisconnect() {
         Log.d(TAG, "notifyDisconnect")
         bleOperationQueue?.resetOperationQueue()
