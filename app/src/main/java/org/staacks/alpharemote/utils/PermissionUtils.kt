@@ -2,23 +2,24 @@ package org.staacks.alpharemote.utils
 
 import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 
 fun hasBluetoothPermission(context: Context): Boolean{
-    return ContextCompat.checkSelfPermission(
+    return PermissionChecker.checkSelfPermission(
         context,
         Manifest.permission.BLUETOOTH_CONNECT
-    ) != PackageManager.PERMISSION_GRANTED
+    ) != PermissionChecker.PERMISSION_GRANTED
 }
 
 fun hasLocationPermission(context: Context): Boolean{
-    val fineLocationGranted = ContextCompat.checkSelfPermission(
+    val backgroundLocationAccess = PermissionChecker.checkSelfPermission(
+        context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+    ) == PermissionChecker.PERMISSION_GRANTED
+    val fineLocationGranted = PermissionChecker.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
-    val coarseLocationGranted = ActivityCompat.checkSelfPermission(
+    ) == PermissionChecker.PERMISSION_GRANTED
+    val coarseLocationGranted = PermissionChecker.checkSelfPermission(
         context, Manifest.permission.ACCESS_COARSE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
-    return fineLocationGranted || coarseLocationGranted
+    ) == PermissionChecker.PERMISSION_GRANTED
+    return backgroundLocationAccess && (fineLocationGranted || coarseLocationGranted)
 }

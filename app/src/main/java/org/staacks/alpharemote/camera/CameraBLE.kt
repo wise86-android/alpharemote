@@ -53,6 +53,8 @@ class CameraBLE(
     val deviceStatus = remoteControlService.deviceStatus
     val remoteCommandStatus = remoteControlService.commandStatus
 
+    val locationUpdateStatus = locationService.status
+
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
