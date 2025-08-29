@@ -26,7 +26,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.SettingsStore
+import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.camera.ButtonCode
 import org.staacks.alpharemote.camera.CAButton
 import org.staacks.alpharemote.camera.CACountdown
@@ -124,7 +124,6 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     companion object {
-
         private val _serviceState = MutableStateFlow<ServiceState>(ServiceStateGone())
         val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
 

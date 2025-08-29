@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
+import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.service.AlphaRemoteService
 import java.io.Serializable
 import java.util.Locale

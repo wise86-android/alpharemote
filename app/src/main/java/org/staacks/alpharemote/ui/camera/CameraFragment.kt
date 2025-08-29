@@ -1,10 +1,8 @@
 package org.staacks.alpharemote.ui.camera
 
-import android.animation.LayoutTransition
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -12,7 +10,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -21,21 +18,15 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.SettingsStore
-import org.staacks.alpharemote.camera.ButtonCode
-import org.staacks.alpharemote.camera.CAButton
-import org.staacks.alpharemote.camera.CACountdown
+import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
-import org.staacks.alpharemote.camera.CameraActionStep
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.databinding.FragmentCameraBinding

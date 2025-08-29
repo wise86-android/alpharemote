@@ -6,7 +6,7 @@ import android.widget.CompoundButton
 import android.widget.SeekBar
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import org.staacks.alpharemote.SettingsStore
+import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraStateError
