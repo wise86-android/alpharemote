@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="permission_dialog_title">Permission Required</string>
+    <string name="permission_dialog_location_rationale"> Please give the app permission to access your location</string>
+    <string name="permisison_dialog_background_location_rationale">Please enable the location alwasy</string>
+    <string name="permission_dialog_confirm_button">Got it!</string>
+</resources>

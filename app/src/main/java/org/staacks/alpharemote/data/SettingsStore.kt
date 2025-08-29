@@ -27,6 +27,8 @@ class SettingsStore(context: Context) {
     private val settings = context.settings
 
    companion object {
+
+       private val UPDATE_CAMERA_LOCATION = booleanPreferencesKey("updateCameraLocation")
        private val NOTIFICATION_GRANTED_KEY = booleanPreferencesKey("notificationGranted")
        private val BLUETOOTH_GRANTED_KEY = booleanPreferencesKey("bluetoothGranted")
 
@@ -34,14 +36,23 @@ class SettingsStore(context: Context) {
        private val CAMERA_ID_ADDRESS_KEY = stringPreferencesKey("cameraIdAddress")
        private val NOTIFICATION_BUTTON_SIZE_KEY = floatPreferencesKey("notificationButtonSize")
 
-       private val CUSTOM_BUTTON_LIST_BASE_KEY = "customButtonList"
-       private val CUSTOM_BUTTON_LIST_SET_BY_USER_KEY = booleanPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_setbyuser")
+       private const val CUSTOM_BUTTON_LIST_BASE_KEY = "customButtonList"
+       private val CUSTOM_BUTTON_LIST_SET_BY_USER_KEY =
+           booleanPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_setbyuser")
 
        private val BROADCAST_CONTROL_KEY = booleanPreferencesKey("broadcastControl")
    }
 
     val handleExternalBroadcastMessage: Boolean
         get() = runBlocking { settings.data.first()[BROADCAST_CONTROL_KEY] ?: false }
+
+    val updateCameraLocation = settings.data.map { it[UPDATE_CAMERA_LOCATION] ?: false }
+
+    suspend fun setUpdateCameraLocation(value: Boolean) {
+        settings.edit { data ->
+            data[UPDATE_CAMERA_LOCATION] = value
+        }
+    }
 
     private fun setNullableFloat(data: MutablePreferences, key: Preferences.Key<Float>, value: Float?) {
         if (value == null) {

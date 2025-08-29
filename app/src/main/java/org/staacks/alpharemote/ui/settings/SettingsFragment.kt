@@ -27,7 +27,7 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -50,6 +50,7 @@ import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
 import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.pairCompanionDevice
 import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.startObservingDevicePresence
+import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 
 interface CustomButtonListEventReceiver {
@@ -92,6 +93,16 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         binding.lifecycleOwner = viewLifecycleOwner
         binding.viewModel = settingsViewModel
         binding.fragment = this
+
+        binding.composePermissionRequest.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                // In Compose world
+                BluetoothRemoteForSonyCamerasTheme {
+                    LocationSettings(settingsViewModel)
+                }
+            }
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             settingsViewModel.uiAction.collect{ action ->

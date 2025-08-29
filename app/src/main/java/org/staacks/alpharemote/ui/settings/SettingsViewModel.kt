@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import android.widget.CompoundButton
 import android.widget.SeekBar
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import org.staacks.alpharemote.data.SettingsStore
@@ -72,6 +73,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val uiAction = _uiAction.asSharedFlow()
 
     private val settingsStore = SettingsStore(application)
+
+    val updateCameraLocation = settingsStore.updateCameraLocation
+
+    fun setUpdateCameraLocation(boolean: Boolean){
+        viewModelScope.launch {
+            settingsStore.setUpdateCameraLocation(boolean)
+        }
+    }
 
     val buttonScaleSteps = listOf(0.6f, 0.7f, 0.85f, 1.0f, 1.15f, 1.3f, 1.5f)
     var buttonScaleIndex = MutableStateFlow(buttonScaleSteps.indexOf(1.0f))
