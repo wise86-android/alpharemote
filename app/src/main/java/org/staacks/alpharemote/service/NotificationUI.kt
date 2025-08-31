@@ -18,10 +18,7 @@ import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.camera.CameraStateError
-import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.camera.ble.BleConnectionState
-import org.staacks.alpharemote.camera.ble.Disconnect
 import java.io.Serializable
 import java.util.Timer
 import java.util.TimerTask
@@ -120,7 +117,7 @@ class NotificationUI(private val context: Context) {
 
         cameraState?.let { state ->
             when (state) {
-                is CameraStateReady -> {
+                is CameraState.Ready -> {
                     val white = context.getColor(R.color.white)
                     val black = context.getColor(R.color.black)
 
@@ -172,7 +169,7 @@ class NotificationUI(private val context: Context) {
                     }
                 }
 
-                is CameraStateError -> {
+                is CameraState.Error -> {
                     remoteViews.setTextViewText(
                         R.id.status_name,
                         context.getText(R.string.status_error).toString() + ": " + state.description

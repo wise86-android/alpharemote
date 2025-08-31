@@ -35,7 +35,6 @@ import org.staacks.alpharemote.camera.CAWaitFor
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionStep
 import org.staacks.alpharemote.camera.CameraBLE
-import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.camera.WaitTarget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,8 +50,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.camera.CameraStateRemoteDisabled
-import org.staacks.alpharemote.camera.CameraStateUnknown
 import org.staacks.alpharemote.camera.ble.BleConnectionState
 import org.staacks.alpharemote.camera.ble.FocusState
 import org.staacks.alpharemote.camera.ble.LocationService
@@ -99,8 +96,7 @@ class AlphaRemoteService : CompanionDeviceService() {
 
     }
 
-    private val _cameraState = MutableStateFlow<CameraState>(CameraStateUnknown)
-    val cameraState: StateFlow<CameraState> = _cameraState.asStateFlow()
+    private val _cameraState = MutableStateFlow<CameraState>(CameraState.Unknown)
 
 
     private fun startLocationUpdates() {
@@ -124,7 +120,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     companion object {
-        private val _serviceState = MutableStateFlow<ServiceState>(ServiceStateGone())
+        private val _serviceState = MutableStateFlow<ServiceState>(ServiceState.Gone)
         val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
 
         const val BUTTON_INTENT_ACTION = "NOTIFICATION_BUTTON"
@@ -236,9 +232,9 @@ class AlphaRemoteService : CompanionDeviceService() {
                 }
 
                 scope.launch {
-                    cameraState.collect {
+                    _cameraState.collect {
                         when (it) {
-                            is CameraStateReady -> {
+                            is CameraState.Ready -> {
                                 settingsStore.setCameraId(it.name, it.address)
                                 checkWaitAction(it)
                             }
@@ -248,10 +244,10 @@ class AlphaRemoteService : CompanionDeviceService() {
                     }
                 }
                 scope.launch {
-                    cameraState.collectLatest { cameraState ->
+                    _cameraState.collectLatest { cameraState ->
                         _serviceState.update {
-                            (it as? ServiceRunning)?.copy(cameraState = cameraState)
-                                ?: ServiceRunning(cameraState, null, null)
+                            (it as? ServiceState.Running)?.copy(cameraState = cameraState)
+                                ?: ServiceState.Running(cameraState, null, null)
                         }
                         notificationUI?.onCameraStateUpdate(cameraState)
                     }
@@ -271,9 +267,9 @@ class AlphaRemoteService : CompanionDeviceService() {
                     deviceName.collect { newName ->
                         _cameraState.update {
                             when (it) {
-                                is CameraStateReady ->
+                                is CameraState.Ready ->
                                     it.copy(name = newName)
-                                else -> CameraStateReady(
+                                else -> CameraState.Ready(
                                     name = newName,
                                     deviceAddress,
                                     focus = false,
@@ -289,14 +285,14 @@ class AlphaRemoteService : CompanionDeviceService() {
                         Log.d(TAG, "New status: $newStatus")
                         _cameraState.update {
                             when (it) {
-                                is CameraStateReady -> it.copy(
+                                is CameraState.Ready -> it.copy(
                                     focus = newStatus.focus === FocusState.ACQUIRED,
                                     shutter = newStatus.shutter === ShutterState.PRESSED,
                                     recording = newStatus.isRecording
                                 )
 
-                                is CameraStateRemoteDisabled ->
-                                    CameraStateReady(
+                                is CameraState.RemoteDisabled ->
+                                    CameraState.Ready(
                                         deviceName.value,
                                         deviceAddress,
                                         focus = newStatus.focus === FocusState.ACQUIRED,
@@ -313,7 +309,7 @@ class AlphaRemoteService : CompanionDeviceService() {
                     remoteCommandStatus.collect { newStatus ->
                         if (newStatus == RemoteControlService.CommandStatus.Fail) {
                             //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
-                            _cameraState.emit(CameraStateRemoteDisabled())
+                            _cameraState.emit(CameraState.RemoteDisabled)
                         }
                     }
                 }
@@ -380,13 +376,13 @@ class AlphaRemoteService : CompanionDeviceService() {
     private fun onDisconnect() {
         Log.d(MainActivity.TAG, "onDisconnect")
         stopLocationUpdates()
-        _serviceState.value = ServiceStateGone()
+        _serviceState.value = ServiceState.Gone
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
         cameraBLE = null
         job.cancelChildren()
-        _cameraState.update { CameraStateUnknown }
+        _cameraState.update { CameraState.Unknown }
         stopSelf()
     }
 
@@ -399,7 +395,7 @@ class AlphaRemoteService : CompanionDeviceService() {
             translatedDown =
                 false // Toggle only acts on button release. Do not pass through down events
             if (translatedUp) {
-                ((serviceState.value as? ServiceRunning)?.cameraState as? CameraStateReady)?.let { cameraState ->
+                ((serviceState.value as? ServiceState.Running)?.cameraState as? CameraState.Ready)?.let { cameraState ->
                     translatedUp =
                         cameraAction.preset.template.referenceButton in cameraState.pressedButtons
                     translatedDown = !translatedUp
@@ -508,7 +504,7 @@ class AlphaRemoteService : CompanionDeviceService() {
                 @SuppressLint("MissingPermission")
                 cameraBLE?.executeCameraActionStep(action)
                 _cameraState.update {
-                    if (it is CameraStateReady) {
+                    if (it is CameraState.Ready) {
                         it.applyCommand(action)
                     } else {
                         it
@@ -519,7 +515,7 @@ class AlphaRemoteService : CompanionDeviceService() {
             updatePendingActionStatistics()
         }
         _serviceState.update {
-            (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
+            (it as? ServiceState.Running)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
         return pendingStepsCancelled
@@ -552,7 +548,7 @@ class AlphaRemoteService : CompanionDeviceService() {
                 pendingTriggerCount++
         }
         _serviceState.update {
-            (it as? ServiceRunning)?.copy(pendingTriggerCount = pendingTriggerCount) ?: it
+            (it as? ServiceState.Running)?.copy(pendingTriggerCount = pendingTriggerCount) ?: it
         }
     }
 
@@ -574,14 +570,14 @@ class AlphaRemoteService : CompanionDeviceService() {
             }
             val targetTime = SystemClock.elapsedRealtime() + time
             _serviceState.update {
-                (it as? ServiceRunning)?.copy(countdown = targetTime, countdownLabel = step.label)
+                (it as? ServiceState.Running)?.copy(countdown = targetTime, countdownLabel = step.label)
                     ?: it
             }
             notificationUI?.showCountdown(targetTime, step.label)
             return
         }
-        (serviceState.value as? ServiceRunning)?.let {
-            (it.cameraState as? CameraStateReady)?.let { cameraState ->
+        (serviceState.value as? ServiceState.Running)?.let {
+            (it.cameraState as? CameraState.Ready)?.let { cameraState ->
                 checkWaitAction(cameraState)
             }
         }
@@ -590,7 +586,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     @Synchronized
     fun countdownActionComplete() {
         _serviceState.update {
-            (it as? ServiceRunning)?.copy(countdown = null, countdownLabel = null) ?: it
+            (it as? ServiceState.Running)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
         val nextAction = pendingActionSteps.peek()
@@ -601,7 +597,7 @@ class AlphaRemoteService : CompanionDeviceService() {
     }
 
     @Synchronized
-    fun checkWaitAction(state: CameraStateReady) {
+    fun checkWaitAction(state: CameraState.Ready) {
         val nextAction = pendingActionSteps.peek()
         if (nextAction is CAWaitFor) {
             when (nextAction.target) {

@@ -1,5 +1,6 @@
 package org.staacks.alpharemote.ui.camera
 
+import android.app.Service
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -28,10 +29,9 @@ import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.databinding.FragmentCameraBinding
 import org.staacks.alpharemote.service.AlphaRemoteService
-import org.staacks.alpharemote.service.ServiceRunning
+import org.staacks.alpharemote.service.ServiceState
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
 import java.io.Serializable
 
@@ -159,7 +159,7 @@ class CameraFragment : Fragment() {
     }
 
     private fun sendCameraActionToService(cameraAction: CameraAction, event: Int?) {
-        if (AlphaRemoteService.serviceState.value is ServiceRunning) {
+        if (AlphaRemoteService.serviceState.value is ServiceState.Running) {
             val intent = Intent(context, AlphaRemoteService::class.java).apply {
                 action = AlphaRemoteService.BUTTON_INTENT_ACTION
                 putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_EXTRA, cameraAction as Serializable)
@@ -240,7 +240,7 @@ class CameraFragment : Fragment() {
 
                     it.forEachIndexed { i, cameraAction ->
                         if (!cameraAction.preset.template.preserveColor) {
-                            val color = if (cameraState is CameraStateReady) {
+                            val color = if (cameraState is CameraState.Ready) {
                                 if (cameraAction.preset.template.referenceButton in cameraState.pressedButtons || cameraAction.preset.template.referenceJog in cameraState.pressedJogs)
                                     pressedColor
                                 else
@@ -265,7 +265,7 @@ class CameraFragment : Fragment() {
     }
 
     private fun startAdvancedSequence() {
-        if (AlphaRemoteService.serviceState.value !is ServiceRunning)
+        if (AlphaRemoteService.serviceState.value !is ServiceState.Running)
             return
 
         cameraViewModel?.uiState?.value?.let { uiState ->

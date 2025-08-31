@@ -7,7 +7,6 @@ import android.util.TypedValue
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.ButtonCode
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.camera.JogCode
 
 class DefaultRemoteButton(context: Context, attrs: AttributeSet?): androidx.appcompat.widget.AppCompatImageView(context, attrs) {
@@ -36,7 +35,7 @@ class DefaultRemoteButton(context: Context, attrs: AttributeSet?): androidx.appc
         if (button == Button.RECORD)
             return
 
-        if (cameraState is CameraStateReady) {
+        if (cameraState is CameraState.Ready) {
             val pressed = when (button) {
                 Button.SHUTTER -> ButtonCode.SHUTTER_FULL in cameraState.pressedButtons
                 Button.SHUTTER_HALF -> ButtonCode.SHUTTER_HALF in cameraState.pressedButtons

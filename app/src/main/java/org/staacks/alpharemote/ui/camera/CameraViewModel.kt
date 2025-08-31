@@ -1,11 +1,8 @@
 package org.staacks.alpharemote.ui.camera
 
+
 import android.view.MotionEvent
 import android.view.View
-import android.widget.EditText
-import android.widget.TextView
-import androidx.databinding.BindingAdapter
-import androidx.databinding.InverseBindingAdapter
 import androidx.databinding.ObservableField
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,17 +13,17 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import org.staacks.alpharemote.camera.CameraStateReady
+import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.service.AlphaRemoteService
-import org.staacks.alpharemote.service.ServiceRunning
+import org.staacks.alpharemote.service.ServiceState
 
 
 class CameraViewModel : ViewModel() {
 
     data class CameraUIState (
         var connected: Boolean = false,
-        var serviceState: ServiceRunning? = null,
-        var cameraState: CameraStateReady? = null,
+        var serviceState: ServiceState.Running? = null,
+        var cameraState: CameraState.Ready? = null,
 
         var bulbToggle: ObservableField<Boolean> = ObservableField(false),
         var bulbDuration: Double? = 5.0,
@@ -61,11 +58,11 @@ class CameraViewModel : ViewModel() {
     init {
         viewModelScope.launch {
             AlphaRemoteService.serviceState.collectLatest {
-                (it as? ServiceRunning)?.also { serviceRunning ->
+                (it as? ServiceState.Running)?.also { serviceRunning ->
                     _uiState.value = uiState.value.copy(
                         serviceState = serviceRunning,
-                        cameraState = (serviceRunning.cameraState as? CameraStateReady),
-                        connected = (serviceRunning.cameraState is CameraStateReady)
+                        cameraState = (serviceRunning.cameraState as? CameraState.Ready),
+                        connected = (serviceRunning.cameraState is CameraState.Ready)
                     )
                 } ?: run {
                     _uiState.value = uiState.value.copy(serviceState = null, cameraState = null, connected = false)

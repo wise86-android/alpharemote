@@ -4,17 +4,12 @@ import android.app.Application
 import android.util.Log
 import android.widget.CompoundButton
 import android.widget.SeekBar
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
-import org.staacks.alpharemote.camera.CameraStateError
-import org.staacks.alpharemote.camera.CameraStateNotBonded
-import org.staacks.alpharemote.camera.CameraStateReady
 import org.staacks.alpharemote.service.AlphaRemoteService
-import org.staacks.alpharemote.service.ServiceRunning
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +19,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.MainActivity
-import org.staacks.alpharemote.camera.CameraStateRemoteDisabled
+import org.staacks.alpharemote.camera.CameraState
+import org.staacks.alpharemote.service.ServiceState
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -119,15 +115,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
         viewModelScope.launch {
             AlphaRemoteService.serviceState.collectLatest { state ->
-                when (val camState = (state as? ServiceRunning)?.cameraState) {
-                    is CameraStateError -> _uiState.update { it.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description) }
-                    is CameraStateNotBonded -> { //Service was launched but cameraBLE detected that the device is not bonded
+                when (val camState = (state as? ServiceState.Running)?.cameraState) {
+                    is CameraState.Error -> _uiState.update { it.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description) }
+                    is CameraState.StateNotBonded -> { //Service was launched but cameraBLE detected that the device is not bonded
                         _uiState.update{it.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)}
                     }
-                    is CameraStateRemoteDisabled -> { //Service was launched but cameraBLE suspects that the remote function is disabled
+                    is CameraState.RemoteDisabled -> { //Service was launched but cameraBLE suspects that the remote function is disabled
                         _uiState.update { it.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null)}
                     }
-                    is CameraStateReady -> _uiState.update { it.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name , cameraError = null)}
+                    is CameraState.Ready -> _uiState.update { it.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name , cameraError = null)}
                     else -> {
                         if (isBonded) {
                             _uiState.update{it.copy(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = associationName)}
