@@ -8,7 +8,7 @@ fun hasBluetoothPermission(context: Context): Boolean{
     return PermissionChecker.checkSelfPermission(
         context,
         Manifest.permission.BLUETOOTH_CONNECT
-    ) != PermissionChecker.PERMISSION_GRANTED
+    ) == PermissionChecker.PERMISSION_GRANTED
 }
 
 fun hasLocationPermission(context: Context): Boolean{

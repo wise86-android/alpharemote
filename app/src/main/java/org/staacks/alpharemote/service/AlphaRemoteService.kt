@@ -178,7 +178,7 @@ class AlphaRemoteService : CompanionDeviceService() {
         } catch (_: AbstractMethodError) {
         }
 
-        if (hasBluetoothPermission(this)) {
+        if (!hasBluetoothPermission(this)) {
             Log.w(MainActivity.TAG, "Missing Bluetooth permission. Launching activity instead.")
             val intent = Intent(this, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
