@@ -229,7 +229,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             .setPositiveButton(R.string.settings_camera_remove_confirm) { dialog, which ->
                 val context = requireContext()
                 CompanionDeviceHelper.unpairCompanionDevice(context)
-                context.startService(AlphaRemoteService.getDisconnectIntent(context))
+                AlphaRemoteService.sendDisconnectIntent(requireContext())
                 checkAssociations()
             }
             .setNegativeButton(R.string.cancel, null)
