@@ -1,9 +1,12 @@
 package org.staacks.alpharemote.ui.camera
 
-import android.app.Service
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.os.IBinder
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -31,7 +34,6 @@ import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.databinding.FragmentCameraBinding
 import org.staacks.alpharemote.service.AlphaRemoteService
-import org.staacks.alpharemote.service.ServiceState
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
 import java.io.Serializable
 
@@ -42,6 +44,26 @@ class CameraFragment : Fragment() {
     private var cameraViewModel: CameraViewModel? = null
 
     private var customButtons: List<CameraAction>? = null
+
+    private  var mService: AlphaRemoteService? = null
+
+    private val connection = object : ServiceConnection {
+
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance.
+            val binder = service as AlphaRemoteService.LocalBinder
+            mService = binder.getService()
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            mService = null
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        requireContext().let { context -> context.bindService(Intent(context, AlphaRemoteService::class.java),connection,Context.BIND_AUTO_CREATE)}
+    }
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -158,8 +180,13 @@ class CameraFragment : Fragment() {
         _binding = null
     }
 
+
+    override fun onStop() {
+        super.onStop()
+        requireContext().unbindService(connection)
+    }
+
     private fun sendCameraActionToService(cameraAction: CameraAction, event: Int?) {
-        if (AlphaRemoteService.serviceState.value is ServiceState.Running) {
             val intent = Intent(context, AlphaRemoteService::class.java).apply {
                 action = AlphaRemoteService.BUTTON_INTENT_ACTION
                 putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_EXTRA, cameraAction as Serializable)
@@ -170,8 +197,7 @@ class CameraFragment : Fragment() {
                         putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA, false)
                 }
             }
-            context?.startService(intent)
-        }
+            requireContext().startService(intent)
     }
 
     private fun updateCustomButtons(buttons: List<CameraAction>?) {
@@ -265,9 +291,6 @@ class CameraFragment : Fragment() {
     }
 
     private fun startAdvancedSequence() {
-        if (AlphaRemoteService.serviceState.value !is ServiceState.Running)
-            return
-
         cameraViewModel?.uiState?.value?.let { uiState ->
             val bulbDuration = if (uiState.bulbToggle.get() == true) {uiState.bulbDuration ?: 0.0} else {0.0}
             val intervalCount = if (uiState.intervalToggle.get() == true) {uiState.intervalCount ?: 1} else {1}
@@ -280,7 +303,7 @@ class CameraFragment : Fragment() {
                 putExtra(AlphaRemoteService.ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA, intervalDuration.toFloat())
             }
 
-            context?.startService(intent)
+            requireContext().startService(intent)
         }
     }
 

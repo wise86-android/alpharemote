@@ -71,6 +71,8 @@ class CameraViewModel : ViewModel() {
         }
     }
 
+
+
     fun gotoDeviceSettings() {
         viewModelScope.launch {
             _uiAction.emit(GenericCameraUIAction(GenericCameraUIActionType.GOTO_DEVICE_SETTINGS))
