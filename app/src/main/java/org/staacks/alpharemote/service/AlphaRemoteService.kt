@@ -12,6 +12,7 @@ import android.content.IntentFilter
 
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.os.Binder
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
@@ -74,6 +75,11 @@ class AlphaRemoteService : Service() {
         LocationServices.getFusedLocationProviderClient(this)
     }
 
+    private var _hasConnectedDevice: Boolean = false
+    val hasConnectedDevice: Boolean
+        get() = _hasConnectedDevice
+
+
     private var cameraBLE: CameraBLE? = null
 
     private val locationRequest = LocationRequest.Builder(
@@ -95,6 +101,8 @@ class AlphaRemoteService : Service() {
     }
 
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Unknown)
+    val cameraState = _cameraState.asStateFlow()
+
 
     private val settingsStore:SettingsStore =    SettingsStore(this)
 
@@ -216,6 +224,7 @@ class AlphaRemoteService : Service() {
 
     private fun onConnect() {
         Log.d(MainActivity.TAG, "onConnect")
+        _hasConnectedDevice = true
         notificationUI?.let {
             startForeground(
                 it.notificationId,
@@ -227,6 +236,7 @@ class AlphaRemoteService : Service() {
 
     private fun onDisconnect() {
         Log.d(MainActivity.TAG, "onDisconnect")
+        _hasConnectedDevice = false
         stopLocationUpdates()
         _serviceState.value = ServiceState.Gone
         cancelPendingActionSteps()
@@ -247,7 +257,7 @@ class AlphaRemoteService : Service() {
             translatedDown =
                 false // Toggle only acts on button release. Do not pass through down events
             if (translatedUp) {
-                ((serviceState.value as? ServiceState.Running)?.cameraState as? CameraState.Ready)?.let { cameraState ->
+                (_cameraState.value as? CameraState.Ready)?.let { cameraState ->
                     translatedUp =
                         cameraAction.preset.template.referenceButton in cameraState.pressedButtons
                     translatedDown = !translatedUp
@@ -401,6 +411,9 @@ class AlphaRemoteService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(MainActivity.TAG, "onStartCommand: $intent")
+        if(intent?.action !== CONNECT_INTENT_ACTION && !_hasConnectedDevice )
+            return START_NOT_STICKY
+
         when (intent?.action) {
             CONNECT_INTENT_ACTION -> doConnectAction(intent)
             DISCONNECT_INTENT_ACTION  -> doDisconnectAction()
@@ -462,8 +475,14 @@ class AlphaRemoteService : Service() {
         return START_NOT_STICKY
     }
 
+    inner class LocalBinder : Binder() {
+        fun getService(): AlphaRemoteService = this@AlphaRemoteService
+    }
+
+    private val binder = LocalBinder()
+
     override fun onBind(p0: Intent?): IBinder? {
-        return null
+        return binder
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -564,11 +583,11 @@ class AlphaRemoteService : Service() {
             notificationUI?.showCountdown(targetTime, step.label)
             return
         }
-        (serviceState.value as? ServiceState.Running)?.let {
-            (it.cameraState as? CameraState.Ready)?.let { cameraState ->
+
+            (_cameraState.value as? CameraState.Ready)?.let { cameraState ->
                 checkWaitAction(cameraState)
             }
-        }
+
     }
 
     @Synchronized
