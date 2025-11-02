@@ -28,13 +28,19 @@
         android:theme="@style/Theme.BluetoothRemoteForSonyCameras">
 
         <service
-            android:name=".service.AlphaRemoteService"
+            android:name=".service.CompanionAlphaRemoteService"
             android:exported="true"
-            android:foregroundServiceType="connectedDevice|location"
             android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
             <intent-filter>
                 <action android:name="android.companion.CompanionDeviceService" />
             </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.AlphaRemoteService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|location"
+            android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
         </service>
 
         <activity

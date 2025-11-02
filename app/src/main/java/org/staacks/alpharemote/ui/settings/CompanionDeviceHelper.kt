@@ -1,6 +1,5 @@
 package org.staacks.alpharemote.ui.settings
 
-import android.Manifest
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
 import android.companion.AssociationRequest
@@ -11,7 +10,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.utils.hasBluetoothPermission
