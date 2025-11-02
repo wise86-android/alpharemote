@@ -12,6 +12,11 @@
         android:title="@string/title_settings" />
 
     <item
+        android:id="@+id/navigation_settings2"
+        android:icon="@drawable/ic_settings_black_24dp"
+        android:title="@string/title_settings" />
+
+    <item
         android:id="@+id/navigation_about"
         android:icon="@drawable/ic_about_black_24dp"
         android:title="@string/title_about" />

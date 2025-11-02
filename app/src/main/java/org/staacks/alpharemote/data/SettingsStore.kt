@@ -22,8 +22,7 @@ private const val PREFERENCES_NAME = "alpharemote"
 
 private val Context.settings: DataStore<Preferences> by preferencesDataStore(name = PREFERENCES_NAME)
 
-
-class SettingsStore(context: Context) {
+class SettingsStore(context: Context) : FeatureSettings {
     private val settings = context.settings
 
    companion object {
@@ -46,9 +45,9 @@ class SettingsStore(context: Context) {
     val handleExternalBroadcastMessage: Boolean
         get() = runBlocking { settings.data.first()[BROADCAST_CONTROL_KEY] ?: false }
 
-    val updateCameraLocation = settings.data.map { it[UPDATE_CAMERA_LOCATION] ?: false }
+    override val updateCameraLocation = settings.data.map { it[UPDATE_CAMERA_LOCATION] ?: false }
 
-    suspend fun setUpdateCameraLocation(value: Boolean) {
+    override suspend fun setUpdateCameraLocation(value: Boolean) {
         settings.edit { data ->
             data[UPDATE_CAMERA_LOCATION] = value
         }
