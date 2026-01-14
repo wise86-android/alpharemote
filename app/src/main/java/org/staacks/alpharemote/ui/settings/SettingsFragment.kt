@@ -71,7 +71,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         Log.d(MainActivity.TAG, "Activity Result: $activityResult")
         if (activityResult.resultCode == Activity.RESULT_OK) {
             val scanResult: ScanResult? = activityResult.data?.getParcelableExtra(
-                CompanionDeviceManager.EXTRA_DEVICE) as? ScanResult
+                CompanionDeviceManager.EXTRA_DEVICE)
             scanResult?.let { result ->
                 if (startObservingDevicePresence(requireContext(), result.device)) {
                     if (!checkNotificationPermissionState())

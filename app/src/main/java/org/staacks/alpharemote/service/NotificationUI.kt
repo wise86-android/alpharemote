@@ -123,7 +123,7 @@ class NotificationUI(private val context: Context) {
 
                     remoteViews.setTextViewText(
                         R.id.status_name,
-                        state.name ?: "Camera"
+                        state.name
                     )
 
                     remoteViews.setColorInt(

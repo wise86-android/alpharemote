@@ -286,7 +286,7 @@ private data class LocationInformationUpdateMessage(val location: Location,val t
         }else{
             0
         }
-        daylightSavingMinute.toShort().copyInto(payload,93)
+        daylightSavingMinute.copyInto(payload,93)
     }
 
     private fun Short.copyInto(array: ByteArray, startIndex: Int){
