@@ -63,7 +63,6 @@ import kotlin.concurrent.schedule
 import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 
-
 class AlphaRemoteService : Service() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
@@ -75,10 +74,7 @@ class AlphaRemoteService : Service() {
         LocationServices.getFusedLocationProviderClient(this)
     }
 
-    private var _hasConnectedDevice: Boolean = false
-    val hasConnectedDevice: Boolean
-        get() = _hasConnectedDevice
-
+    private var hasConnectedDevice: Boolean = false
 
     private var cameraBLE: CameraBLE? = null
 
@@ -104,7 +100,7 @@ class AlphaRemoteService : Service() {
     val cameraState = _cameraState.asStateFlow()
 
 
-    private val settingsStore:SettingsStore =    SettingsStore(this)
+    private val settingsStore:SettingsStore  by lazy { SettingsStore(this)}
 
     private fun startLocationUpdates() {
         if (hasLocationPermission(this)) {
@@ -224,7 +220,7 @@ class AlphaRemoteService : Service() {
 
     private fun onConnect() {
         Log.d(MainActivity.TAG, "onConnect")
-        _hasConnectedDevice = true
+        hasConnectedDevice = true
         notificationUI?.let {
             startForeground(
                 it.notificationId,
@@ -236,7 +232,7 @@ class AlphaRemoteService : Service() {
 
     private fun onDisconnect() {
         Log.d(MainActivity.TAG, "onDisconnect")
-        _hasConnectedDevice = false
+        hasConnectedDevice = false
         stopLocationUpdates()
         _serviceState.value = ServiceState.Gone
         cancelPendingActionSteps()
@@ -411,7 +407,7 @@ class AlphaRemoteService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(MainActivity.TAG, "onStartCommand: $intent")
-        if(intent?.action !== CONNECT_INTENT_ACTION && !_hasConnectedDevice )
+        if(intent?.action !== CONNECT_INTENT_ACTION && !hasConnectedDevice )
             return START_NOT_STICKY
 
         when (intent?.action) {
