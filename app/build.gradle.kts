@@ -49,7 +49,6 @@ android {
         compose = true
         // Disable unused AGP features
         aidl = false
-        renderScript = false
         shaders = false
     }
 
