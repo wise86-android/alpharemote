@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <data>
-        <variable
-            name="viewModel"
-            type="org.staacks.alpharemote.ui.camera.CameraViewModel" />
-        <import type="android.view.View"/>
-    </data>
-
     <androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -26,7 +18,6 @@
         app:layout_constraintDimensionRatio="H,1:1"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ca_shutter_half"
-        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
         app:tint="?attr/colorCustomButton" />
 
     <TextView
@@ -54,7 +45,6 @@
         app:layout_constraintDimensionRatio="H,1:1"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ca_shutter"
-        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
         app:tint="?attr/colorCustomButton" />
 
     <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
@@ -70,7 +60,6 @@
         app:layout_constraintDimensionRatio="H,1:1"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ca_timer_3s"
-        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
         app:tint="?attr/colorCustomButton" />
 
     <TextView
@@ -98,7 +87,6 @@
         app:layout_constraintDimensionRatio="V,1:1"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ca_record"
-        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
         />
 
     <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
@@ -112,7 +100,6 @@
         app:layout_constraintBottom_toBottomOf="@id/button_record"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ca_af_on"
-        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
         app:tint="?attr/colorCustomButton" />
 
     <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
@@ -126,7 +113,6 @@
         app:layout_constraintBottom_toBottomOf="@id/button_record"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ca_c1"
-        app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
         app:tint="?attr/colorCustomButton" />
 
     <androidx.cardview.widget.CardView
@@ -156,7 +142,6 @@
                 android:layout_weight="0.5"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ca_focus_near"
-                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
                 app:tint="?attr/colorCustomButton" />
 
             <TextView
@@ -175,7 +160,6 @@
                 android:layout_weight="0.5"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ca_focus_far"
-                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
                 app:tint="?attr/colorCustomButton" />
 
         </LinearLayout>
@@ -209,7 +193,6 @@
                 android:layout_weight="0.5"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ca_zoom_out"
-                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
                 app:tint="?attr/colorCustomButton" />
 
             <TextView
@@ -228,7 +211,6 @@
                 android:layout_weight="0.5"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ca_zoom_in"
-                app:onTouchListener="@{viewModel::defaultRemoteButtonOnTouchListener}"
                 app:tint="?attr/colorCustomButton" />
 
         </LinearLayout>
@@ -236,4 +218,3 @@
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-</layout>
