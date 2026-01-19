@@ -115,12 +115,12 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
                             SettingsViewModel.SettingsUIAction.REQUEST_NOTIFICATION_PERMISSION -> requestNotificationPermission(true)
                             SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> addCustomButton()
                             SettingsViewModel.SettingsUIAction.HELP_CONNECTION ->
-                                HelpDialogFragment().setContent(
+                                HelpDialogFragment.newInstance(
                                     R.string.help_settings_connection_troubleshooting_title,
                                     R.string.help_settings_connection_troubleshooting_text
                                 ).show(childFragmentManager, null)
                             SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS ->
-                                HelpDialogFragment().setContent(
+                                HelpDialogFragment.newInstance(
                                     R.string.help_settings_custom_buttons_title,
                                     R.string.help_settings_custom_buttons_text
                                 ).show(childFragmentManager, null)

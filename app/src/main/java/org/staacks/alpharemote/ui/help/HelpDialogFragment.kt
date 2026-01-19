@@ -5,54 +5,57 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.net.toUri
-import androidx.lifecycle.ViewModelProvider
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.databinding.DialogFragmentHelpBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import androidx.compose.ui.res.stringResource
 
 class HelpDialogFragment : BottomSheetDialogFragment() {
-    private var _binding: DialogFragmentHelpBinding? = null
-    private val binding get() = _binding!!
-    private var setupTitleId: Int? = null
-    private var setupTextId: Int? = null
-
-    fun setContent(titleId: Int, textId: Int) = also {
-        setupTitleId = titleId
-        setupTextId = textId
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val helpViewModel = ViewModelProvider(this)[HelpDialogViewModel::class.java]
-        setupTextId?.let {
-            helpViewModel.textId = it
-        }
-        setupTitleId?.let {
-            helpViewModel.titleId = it
-        }
+        val titleId = requireArguments().getInt(ARG_TITLE_ID)
+        val textId = requireArguments().getInt(ARG_TEXT_ID)
 
-        _binding = DialogFragmentHelpBinding.inflate(inflater, container, false)
-
-        helpViewModel.titleId?.let { binding.helpTitle.setText(it) }
-        helpViewModel.textId?.let { binding.helpText.setText(it) }
-
-        binding.btnFaq.setOnClickListener {
-            openURL(getString(R.string.faq_url))
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                BluetoothRemoteForSonyCamerasTheme {
+                    HelpScreen(
+                        title = stringResource(titleId),
+                        helpText = stringResource(textId),
+                        onFaqClick = { openURL(getString(R.string.faq_url)) }
+                    )
+                }
+            }
         }
-        return binding.root
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    fun openURL(target: String) {
+    private fun openURL(target: String) {
         val intent = Intent(Intent.ACTION_VIEW, target.toUri())
         startActivity(intent)
+    }
+
+    companion object {
+        private const val ARG_TITLE_ID = "arg_title_id"
+        private const val ARG_TEXT_ID = "arg_text_id"
+
+        /**
+         * Creates a new instance of [HelpDialogFragment] with the given resource IDs.
+         */
+        fun newInstance(titleId: Int, textId: Int): HelpDialogFragment {
+            return HelpDialogFragment().apply {
+                arguments = Bundle().apply {
+                    putInt(ARG_TITLE_ID, titleId)
+                    putInt(ARG_TEXT_ID, textId)
+                }
+            }
+        }
     }
 }

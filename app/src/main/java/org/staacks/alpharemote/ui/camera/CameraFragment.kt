@@ -221,7 +221,7 @@ class CameraFragment : Fragment() {
         when (action.action) {
             CameraViewModel.GenericCameraUIActionType.GOTO_DEVICE_SETTINGS -> gotoDeviceSettings()
             CameraViewModel.GenericCameraUIActionType.HELP_REMOTE ->
-                HelpDialogFragment().setContent(
+                HelpDialogFragment.newInstance(
                     R.string.help_camera_remote_title,
                     R.string.help_camera_remote_text
                 ).show(childFragmentManager, null)

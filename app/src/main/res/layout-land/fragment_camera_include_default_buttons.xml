@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
     <org.staacks.alpharemote.ui.camera.DefaultRemoteButton
         android:id="@+id/button_shutter_half"
@@ -116,7 +115,6 @@
         app:tint="?attr/colorCustomButton" />
 
     <androidx.cardview.widget.CardView
-        xmlns:card_view="http://schemas.android.com/apk/res-auto"
         android:id="@+id/buttons_focus"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -126,8 +124,8 @@
         app:layout_constraintEnd_toStartOf="@id/button_af_on"
         app:layout_constraintDimensionRatio="H,3:1"
         android:layout_margin="10dp"
-        card_view:cardCornerRadius="5dp"
-        card_view:cardBackgroundColor="?attr/colorZoomFocusBG">
+        app:cardCornerRadius="5dp"
+        app:cardBackgroundColor="?attr/colorZoomFocusBG">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -167,7 +165,6 @@
     </androidx.cardview.widget.CardView>
 
     <androidx.cardview.widget.CardView
-        xmlns:card_view="http://schemas.android.com/apk/res-auto"
         android:id="@+id/buttons_zoom"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -177,8 +174,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintDimensionRatio="H,3:1"
         android:layout_margin="10dp"
-        card_view:cardCornerRadius="5dp"
-        card_view:cardBackgroundColor="?attr/colorZoomFocusBG">
+        app:cardCornerRadius="5dp"
+        app:cardBackgroundColor="?attr/colorZoomFocusBG">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -216,5 +213,4 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
