@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-<data>
-        <variable
-            name="viewModel"
-            type="org.staacks.alpharemote.ui.help.HelpDialogViewModel" />
-        <variable
-            name="fragment"
-            type="org.staacks.alpharemote.ui.help.HelpDialogFragment" />
-    </data>
-
 <LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="@dimen/help_padding"
     android:animateLayoutChanges="true"
     android:orientation="vertical"
@@ -23,7 +13,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/headline_margin_bottom"
-        android:text="@{viewModel.titleId}"
         android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
     <ScrollView
@@ -41,7 +30,6 @@
                 android:id="@+id/help_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@{viewModel.textId}"
                 />
 
             <TextView
@@ -52,12 +40,12 @@
                 />
 
             <Button
+                android:id="@+id/btn_faq"
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/faq"
                 app:icon="@drawable/baseline_help_24"
-                android:onClick="@{() -> fragment.openURL(@string/faq_url)}"
                 >
             </Button>
 
@@ -66,4 +54,3 @@
     </ScrollView>
 
 </LinearLayout>
-</layout>

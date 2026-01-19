@@ -1,12 +1,13 @@
 package org.staacks.alpharemote.ui.help
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
+import org.staacks.alpharemote.R
 import org.staacks.alpharemote.databinding.DialogFragmentHelpBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
@@ -21,8 +22,12 @@ class HelpDialogFragment : BottomSheetDialogFragment() {
         setupTextId = textId
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-         val helpViewModel = ViewModelProvider(this)[HelpDialogViewModel::class.java]
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val helpViewModel = ViewModelProvider(this)[HelpDialogViewModel::class.java]
         setupTextId?.let {
             helpViewModel.textId = it
         }
@@ -30,9 +35,14 @@ class HelpDialogFragment : BottomSheetDialogFragment() {
             helpViewModel.titleId = it
         }
 
-        _binding = DialogFragmentHelpBinding.inflate(layoutInflater)
-        binding.viewModel = helpViewModel
-        binding.fragment = this
+        _binding = DialogFragmentHelpBinding.inflate(inflater, container, false)
+
+        helpViewModel.titleId?.let { binding.helpTitle.setText(it) }
+        helpViewModel.textId?.let { binding.helpText.setText(it) }
+
+        binding.btnFaq.setOnClickListener {
+            openURL(getString(R.string.faq_url))
+        }
         return binding.root
     }
 
@@ -42,8 +52,7 @@ class HelpDialogFragment : BottomSheetDialogFragment() {
     }
 
     fun openURL(target: String) {
-        val uri = Uri.parse(target)
-        val intent = Intent(Intent.ACTION_VIEW, uri)
+        val intent = Intent(Intent.ACTION_VIEW, target.toUri())
         startActivity(intent)
     }
 }
