@@ -3,7 +3,6 @@ package org.staacks.alpharemote.ui.camera
 
 import android.view.MotionEvent
 import android.view.View
-import androidx.databinding.ObservableField
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,9 +24,9 @@ class CameraViewModel : ViewModel() {
         var serviceState: ServiceState.Running? = null,
         var cameraState: CameraState.Ready? = null,
 
-        var bulbToggle: ObservableField<Boolean> = ObservableField(false),
+        var bulbToggle: Boolean = false,
         var bulbDuration: Double? = 5.0,
-        var intervalToggle: ObservableField<Boolean> = ObservableField(false),
+        var intervalToggle: Boolean = false,
         var intervalCount: Int? = 50,
         var intervalDuration: Double? = 3.0,
     )

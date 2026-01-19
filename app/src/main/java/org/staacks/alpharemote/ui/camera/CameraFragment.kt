@@ -159,14 +159,14 @@ class CameraFragment : Fragment() {
 
     private fun updateAdvancedControlsUI(state: CameraViewModel.CameraUIState) {
         binding.advancedControls.apply {
-            val bulbEnabled = state.bulbToggle.get() ?: false
+            val bulbEnabled = state.bulbToggle
             bulbToggle.isChecked = bulbEnabled
             bulbDuration.isEnabled = bulbEnabled
             bulbDurationLabel.alpha = if (bulbEnabled) 1.0f else 0.5f
             bulbDurationUnit.alpha = if (bulbEnabled) 1.0f else 0.5f
             syncEditText(bulbDuration, state.bulbDuration?.toString())
 
-            val intervalEnabled = state.intervalToggle.get() ?: false
+            val intervalEnabled = state.intervalToggle
             intervalToggle.isChecked = intervalEnabled
             intervalCount.isEnabled = intervalEnabled
             intervalCountLabel.alpha = if (intervalEnabled) 1.0f else 0.5f
@@ -290,14 +290,14 @@ class CameraFragment : Fragment() {
     private fun setupAdvancedControlsListeners() {
         binding.advancedControls.apply {
             bulbToggle.setOnCheckedChangeListener { _, isChecked ->
-                cameraViewModel?.uiState?.value?.bulbToggle?.set(isChecked)
+                cameraViewModel?.uiState?.value?.bulbToggle = isChecked
             }
             bulbDuration.addTextChangedListener(createSimpleTextWatcher { s ->
                 cameraViewModel?.uiState?.value?.bulbDuration = s.toDoubleOrNull()
             })
 
             intervalToggle.setOnCheckedChangeListener { _, isChecked ->
-                cameraViewModel?.uiState?.value?.intervalToggle?.set(isChecked)
+                cameraViewModel?.uiState?.value?.intervalToggle= isChecked
             }
             intervalCount.addTextChangedListener(createSimpleTextWatcher { s ->
                 cameraViewModel?.uiState?.value?.intervalCount = s.toIntOrNull()
@@ -409,9 +409,9 @@ class CameraFragment : Fragment() {
 
     private fun startAdvancedSequence() {
         cameraViewModel?.uiState?.value?.let { uiState ->
-            val bulbDuration = if (uiState.bulbToggle.get() == true) { uiState.bulbDuration ?: 0.0 } else { 0.0 }
-            val intervalCount = if (uiState.intervalToggle.get() == true) { uiState.intervalCount ?: 1 } else { 1 }
-            val intervalDuration = if (uiState.intervalToggle.get() == true) { uiState.intervalDuration ?: 0.0 } else { 0.0 }
+            val bulbDuration = if (uiState.bulbToggle) { uiState.bulbDuration ?: 0.0 } else { 0.0 }
+            val intervalCount = if (uiState.intervalToggle) { uiState.intervalCount ?: 1 } else { 1 }
+            val intervalDuration = if (uiState.intervalToggle) { uiState.intervalDuration ?: 0.0 } else { 0.0 }
 
             val intent = Intent(context, AlphaRemoteService::class.java).apply {
                 action = AlphaRemoteService.ADVANCED_SEQUENCE_INTENT_ACTION
