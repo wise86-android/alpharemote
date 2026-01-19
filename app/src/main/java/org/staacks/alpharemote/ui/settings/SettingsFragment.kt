@@ -24,6 +24,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CompoundButton
+import android.widget.SeekBar
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,10 +34,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG
 import androidx.recyclerview.widget.RecyclerView
@@ -89,10 +92,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     ): View {
         val settingsViewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
 
-        _binding = DataBindingUtil.inflate(inflater, R.layout.fragment_settings, container, false)
-        binding.lifecycleOwner = viewLifecycleOwner
-        binding.viewModel = settingsViewModel
-        binding.fragment = this
+        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
 
         binding.composePermissionRequest.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -105,23 +105,49 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            settingsViewModel.uiAction.collect{ action ->
-                when (action) {
-                    SettingsViewModel.SettingsUIAction.PAIR -> pair()
-                    SettingsViewModel.SettingsUIAction.UNPAIR -> unpair()
-                    SettingsViewModel.SettingsUIAction.REQUEST_BLUETOOTH_PERMISSION -> requestBluetoothPermission(bluetoothRequestPermissionLauncher, true)
-                    SettingsViewModel.SettingsUIAction.REQUEST_NOTIFICATION_PERMISSION -> requestNotificationPermission(true)
-                    SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> addCustomButton()
-                    SettingsViewModel.SettingsUIAction.HELP_CONNECTION ->
-                        HelpDialogFragment().setContent(
-                            R.string.help_settings_connection_troubleshooting_title,
-                            R.string.help_settings_connection_troubleshooting_text
-                        ).show(childFragmentManager, null)
-                    SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS ->
-                        HelpDialogFragment().setContent(
-                            R.string.help_settings_custom_buttons_title,
-                            R.string.help_settings_custom_buttons_text
-                        ).show(childFragmentManager, null)
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    settingsViewModel.uiAction.collect { action ->
+                        when (action) {
+                            SettingsViewModel.SettingsUIAction.PAIR -> pair()
+                            SettingsViewModel.SettingsUIAction.UNPAIR -> unpair()
+                            SettingsViewModel.SettingsUIAction.REQUEST_BLUETOOTH_PERMISSION -> requestBluetoothPermission(bluetoothRequestPermissionLauncher, true)
+                            SettingsViewModel.SettingsUIAction.REQUEST_NOTIFICATION_PERMISSION -> requestNotificationPermission(true)
+                            SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> addCustomButton()
+                            SettingsViewModel.SettingsUIAction.HELP_CONNECTION ->
+                                HelpDialogFragment().setContent(
+                                    R.string.help_settings_connection_troubleshooting_title,
+                                    R.string.help_settings_connection_troubleshooting_text
+                                ).show(childFragmentManager, null)
+                            SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS ->
+                                HelpDialogFragment().setContent(
+                                    R.string.help_settings_custom_buttons_title,
+                                    R.string.help_settings_custom_buttons_text
+                                ).show(childFragmentManager, null)
+                        }
+                    }
+                }
+
+                launch {
+                    settingsViewModel.uiState.collect { state ->
+                         updateUI(state)
+                    }
+                }
+
+                launch {
+                   settingsViewModel.buttonScaleIndex.collect { index ->
+                       if (binding.seekbarButtonScale.progress != index) {
+                           binding.seekbarButtonScale.progress = index
+                       }
+                   }
+                }
+
+                launch {
+                    settingsViewModel.broadcastControl.collect { enabled ->
+                       if (binding.switchBroadcastControl.isChecked != enabled) {
+                           binding.switchBroadcastControl.isChecked = enabled
+                       }
+                    }
                 }
             }
         }
@@ -145,6 +171,8 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         context?.registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
         context?.registerReceiver(locationServiceStateReceiver, IntentFilter(LocationManager.MODE_CHANGED_ACTION))
 
+        setupViewListeners(settingsViewModel)
+
         checkBluetoothState()
         checkLocationServiceState()
         checkBluetoothPermissionState()
@@ -152,6 +180,79 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         checkAssociations()
 
         return binding.root
+    }
+
+    private fun setupViewListeners(settingsViewModel: SettingsViewModel) {
+        // Set up click listeners
+        binding.btnBluetoothPermission.setOnClickListener { settingsViewModel.requestBluetoothPermission() }
+        binding.btnNotificationPermission.setOnClickListener { settingsViewModel.requestNotificationPermission() }
+        binding.btnCameraAdd.setOnClickListener { settingsViewModel.pair() }
+        binding.btnCameraRemove.setOnClickListener { settingsViewModel.unpair() }
+        binding.btnHelpConnection.setOnClickListener { settingsViewModel.helpConnection() }
+        binding.addCustomButton.setOnClickListener { settingsViewModel.addCustomButton() }
+        binding.btnHelpCustomButtons.setOnClickListener { settingsViewModel.helpCustomButtons() }
+        binding.buttonScaleSmaller.setOnClickListener { settingsViewModel.decrementButtonScale() }
+        binding.buttonScaleLarger.setOnClickListener { settingsViewModel.incrementButtonScale() }
+        binding.btnBroadcastControlMore.setOnClickListener { openURL(getString(R.string.settings_broadcast_control_more_url)) }
+
+        // seekbar setup
+        binding.seekbarButtonScale.max = settingsViewModel.buttonScaleSteps.size - 1
+        binding.seekbarButtonScale.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (seekBar != null) settingsViewModel.setButtonScale(seekBar, progress, fromUser)
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // switch setup
+        binding.switchBroadcastControl.setOnCheckedChangeListener { buttonView, isChecked ->
+            settingsViewModel.setBroadcastControl(buttonView, isChecked)
+        }
+    }
+
+    private fun updateUI(state: SettingsViewModel.SettingsUIState) {
+        // Missing permissions
+        val missingBluetooth = !state.bluetoothPermissionGranted
+        val missingNotification = !state.notificationPermissionGranted
+        val cameraAssociated = state.cameraState != SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED
+
+        binding.tvMissingPermissionsTitle.visibility = if (cameraAssociated && (missingBluetooth || missingNotification)) View.VISIBLE else View.GONE
+        binding.tvMissingBluetoothPermission.visibility = if (cameraAssociated && missingBluetooth) View.VISIBLE else View.GONE
+        binding.btnBluetoothPermission.visibility = if (cameraAssociated && missingBluetooth) View.VISIBLE else View.GONE
+        binding.tvMissingNotificationPermission.visibility = if (cameraAssociated && missingNotification) View.VISIBLE else View.GONE
+        binding.btnNotificationPermission.visibility = if (cameraAssociated && missingNotification) View.VISIBLE else View.GONE
+
+        // Location service
+        binding.tvLocationServiceDisabled.visibility = if (!state.locationServiceEnabled) View.VISIBLE else View.GONE
+
+        // Camera
+        binding.tvBluetoothDisabled.visibility = if (!state.bluetoothEnabled) View.VISIBLE else View.GONE
+        binding.tvBleScanningDisabled.visibility = if (!state.bleScanningEnabled) View.VISIBLE else View.GONE
+
+        val cameraName = state.cameraName ?: getString(R.string.settings_camera_unknown_name)
+
+        binding.tvCameraOffline.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.OFFLINE) View.VISIBLE else View.GONE
+        binding.tvCameraOffline.text = getString(R.string.settings_camera_offline, cameraName)
+
+        binding.tvCameraConnected.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.CONNECTED) View.VISIBLE else View.GONE
+        binding.tvCameraConnected.text = getString(R.string.settings_camera_connected, cameraName)
+
+        binding.tvCameraError.visibility = if (state.cameraError != null) View.VISIBLE else View.GONE
+        binding.tvCameraError.text = getString(R.string.settings_camera_error, state.cameraError)
+
+        binding.tvCameraNotAssociated.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED) View.VISIBLE else View.GONE
+
+        binding.tvCameraNotBonded.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.NOT_BONDED) View.VISIBLE else View.GONE
+        binding.tvCameraNotBonded.text = getString(R.string.settings_camera_not_bonded)
+
+        binding.tvCameraRemoteDisabled.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.REMOTE_DISABLED) View.VISIBLE else View.GONE
+        binding.tvCameraRemoteDisabled.text = getString(R.string.settings_camera_remote_disabled)
+
+        binding.btnCameraAdd.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED) View.VISIBLE else View.GONE
+        binding.btnCameraAdd.isEnabled = state.bluetoothEnabled
+
+        binding.btnCameraRemove.visibility = if (state.cameraState != SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
@@ -213,7 +314,8 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
                     override fun onFailure(error: CharSequence?) {
                         Log.d(MainActivity.TAG, "onFailure")
-                        binding.viewModel?.reportErrorState(error.toString())
+                        val viewModel = ViewModelProvider(this@SettingsFragment)[SettingsViewModel::class.java]
+                        viewModel.reportErrorState(error.toString())
                     }
                 })
             }
@@ -236,16 +338,51 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             .show()
     }
 
+    private fun checkAssociations() {
+
+        val address = CompanionDeviceHelper.getAssociation(requireContext()).firstOrNull()
+        val isAssociated = address != null
+        val isBonded = isAssociated && try {
+            val adapter = ContextCompat.getSystemService(requireContext(), BluetoothManager::class.java)?.adapter
+            adapter?.getRemoteDevice(address)?.bondState == BluetoothDevice.BOND_BONDED
+        } catch (_: SecurityException) {
+            false
+        }
+
+        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
+        viewModel.updateAssociationState(address, isAssociated, isBonded)
+    }
+
+    private fun checkBluetoothState() {
+        val adapter = ContextCompat.getSystemService(requireContext(), BluetoothManager::class.java)?.adapter
+        val enabled = adapter?.state == BluetoothAdapter.STATE_ON
+        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
+        viewModel.updateBluetoothState(enabled)
+    }
+
+    private fun checkLocationServiceState() {
+        val locationManager = context?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val bleScanning = try {
+            Settings.Global.getInt(context?.contentResolver, "ble_scan_always_enabled") == 1
+        } catch (_: Exception) {
+            true // In this case, the setting has probably never been touched, which should be fine.
+        }
+        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
+        viewModel.updateLocationServiceState(locationManager.isLocationEnabled, bleScanning)
+    }
+
     private fun checkBluetoothPermissionState(): Boolean {
         val bluetoothGranted = hasBluetoothPermission(requireContext())
-        binding.viewModel?.updateBluetoothPermissionState(bluetoothGranted)
+        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
+        viewModel.updateBluetoothPermissionState(bluetoothGranted)
         return bluetoothGranted
     }
 
     private fun checkNotificationPermissionState(): Boolean {
         val notificationsGranted = (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
                 || (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED))
-        binding.viewModel?.updateNotificationPermissionState(notificationsGranted)
+        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
+        viewModel.updateNotificationPermissionState(notificationsGranted)
         return notificationsGranted
     }
 
@@ -306,35 +443,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         }
     }
 
-    private fun checkAssociations() {
-
-        val address = CompanionDeviceHelper.getAssociation(requireContext()).firstOrNull()
-        val isAssociated = address != null
-        val isBonded = isAssociated && try {
-            val adapter = ContextCompat.getSystemService(requireContext(), BluetoothManager::class.java)?.adapter
-            adapter?.getRemoteDevice(address)?.bondState == BluetoothDevice.BOND_BONDED
-        } catch (_: SecurityException) {
-            false
-        }
-
-        binding.viewModel?.updateAssociationState(address, isAssociated, isBonded)
-    }
-
-    private fun checkBluetoothState() {
-        val adapter = ContextCompat.getSystemService(requireContext(), BluetoothManager::class.java)?.adapter
-        val enabled = adapter?.state == BluetoothAdapter.STATE_ON
-        binding.viewModel?.updateBluetoothState(enabled)
-    }
-
-    private fun checkLocationServiceState() {
-        val locationManager = context?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val bleScanning = try {
-            Settings.Global.getInt(context?.contentResolver, "ble_scan_always_enabled") == 1
-        } catch (_: Exception) {
-            true // In this case, the setting has probably never been touched, which should be fine.
-        }
-        binding.viewModel?.updateLocationServiceState(locationManager.isLocationEnabled, bleScanning)
-    }
 
     private fun setupCustomButtonList(customButtonListFlow: MutableStateFlow<List<CameraAction>?>) {
         val customButtonsList = binding.customButtonsList
