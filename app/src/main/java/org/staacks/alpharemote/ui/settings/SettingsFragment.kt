@@ -14,7 +14,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.IntentSender
-import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
@@ -24,7 +23,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CompoundButton
 import android.widget.SeekBar
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
@@ -55,6 +53,8 @@ import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.pairCompanionDe
 import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.startObservingDevicePresence
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.utils.hasBluetoothPermission
+import org.staacks.alpharemote.utils.hasNotificationPermission
+import androidx.core.net.toUri
 
 interface CustomButtonListEventReceiver {
     fun startDragging(viewHolder: RecyclerView.ViewHolder)
@@ -262,6 +262,8 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         // have no other method to detect a change of the "Bluetooth Scanning" setting if the user
         // just switched to its settings to toggle it.
         checkLocationServiceState()
+        checkBluetoothPermissionState()
+        checkNotificationPermissionState()
     }
 
     override fun onDestroyView() {
@@ -379,8 +381,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     private fun checkNotificationPermissionState(): Boolean {
-        val notificationsGranted = (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-                || (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED))
+        val notificationsGranted = hasNotificationPermission(requireContext())
         val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
         viewModel.updateNotificationPermissionState(notificationsGranted)
         return notificationsGranted
@@ -418,29 +419,29 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     private val bluetoothRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             Log.d(MainActivity.TAG, "Bluetooth permission granted.")
-            checkBluetoothPermissionState()
         } else {
             Log.w(MainActivity.TAG, "Bluetooth permission denied.")
         }
+        checkBluetoothPermissionState()
     }
 
     private val pairAfterBluetoothRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             Log.d(MainActivity.TAG, "Bluetooth permission granted.")
-            checkBluetoothPermissionState()
             executePair()
         } else {
             Log.w(MainActivity.TAG, "Bluetooth permission denied.")
         }
+        checkBluetoothPermissionState()
     }
 
     private val notificationsRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             Log.d(MainActivity.TAG, "Notifications permission granted.")
-            checkNotificationPermissionState()
         } else {
             Log.w(MainActivity.TAG, "Notifications permission denied.")
         }
+        checkNotificationPermissionState()
     }
 
 
@@ -511,7 +512,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     fun openURL(target: String) {
-        val uri = Uri.parse(target)
+        val uri = target.toUri()
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
     }

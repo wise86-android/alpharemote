@@ -29,8 +29,6 @@ class SettingsStore(context: Context) {
    companion object {
 
        private val UPDATE_CAMERA_LOCATION = booleanPreferencesKey("updateCameraLocation")
-       private val NOTIFICATION_GRANTED_KEY = booleanPreferencesKey("notificationGranted")
-       private val BLUETOOTH_GRANTED_KEY = booleanPreferencesKey("bluetoothGranted")
 
        private val CAMERA_ID_NAME_KEY = stringPreferencesKey("cameraIdName")
        private val CAMERA_ID_ADDRESS_KEY = stringPreferencesKey("cameraIdAddress")
@@ -62,17 +60,6 @@ class SettingsStore(context: Context) {
         }
     }
 
-    suspend fun setBluetoothGranted(granted: Boolean) {
-        settings.edit { data ->
-            data[BLUETOOTH_GRANTED_KEY] = granted
-        }
-    }
-
-    suspend fun setNotificationGranted(granted: Boolean) {
-        settings.edit { data ->
-            data[NOTIFICATION_GRANTED_KEY] = granted
-        }
-    }
 
     suspend fun setCameraId(name: String, address: String) {
         settings.edit { data ->
@@ -92,19 +79,6 @@ class SettingsStore(context: Context) {
         }
     }
 
-    data class Permissions (
-        val bluetooth: Boolean,
-        val notification: Boolean,
-        val broadcastControl: Boolean
-    )
-
-    val permissions: Flow<Permissions> = settings.data.map{
-        Permissions(
-            it[BLUETOOTH_GRANTED_KEY] ?: false,
-            it[NOTIFICATION_GRANTED_KEY] ?: false,
-            it[BROADCAST_CONTROL_KEY] ?: false
-        )
-    }.distinctUntilChanged()
 
     suspend fun getNotificationButtonSize(): Float? {
         return settings.data.firstOrNull()?.get(NOTIFICATION_BUTTON_SIZE_KEY)

@@ -139,17 +139,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateBluetoothPermissionState(granted: Boolean) {
-        viewModelScope.launch {
-            settingsStore.setBluetoothGranted(granted)
-            _uiState.update { it.copy(bluetoothPermissionGranted = granted)}
-        }
+        _uiState.update { it.copy(bluetoothPermissionGranted = granted) }
     }
 
     fun updateNotificationPermissionState(granted: Boolean) {
-        viewModelScope.launch {
-            settingsStore.setNotificationGranted(granted)
-            _uiState.update {it.copy(notificationPermissionGranted = granted)}
-        }
+        _uiState.update { it.copy(notificationPermissionGranted = granted) }
     }
 
     fun updateAssociationState(address: String?, isAssociated: Boolean, isBonded: Boolean) {

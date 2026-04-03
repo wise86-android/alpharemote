@@ -314,13 +314,6 @@ class AlphaRemoteService : Service() {
                     notificationUI.updateCustomButtons(it.customButtonList, it.scale)
                 }
             }
-            scope.launch {
-                settingsStore.permissions.collectLatest {
-                    //Refresh notification if notification permission has been granted after it was not granted previously
-                    if (it.notification)
-                        notificationUI.updateNotification()
-                }
-            }
         })
     }
 
@@ -477,7 +470,7 @@ class AlphaRemoteService : Service() {
 
     private val binder = LocalBinder()
 
-    override fun onBind(p0: Intent?): IBinder? {
+    override fun onBind(p0: Intent?): IBinder {
         return binder
     }
 
