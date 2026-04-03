@@ -22,7 +22,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SeekBar
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -119,6 +118,20 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             }
         }
 
+        binding.composeButtonSize.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                BluetoothRemoteForSonyCamerasTheme {
+                    val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
+                    NotificationButtonSizeSettings(
+                        selectedIndex = selectedButtonScaleIndex,
+                        maxIndex = settingsViewModel.buttonScaleSteps.lastIndex,
+                        onIndexChange = settingsViewModel::setButtonScaleIndex,
+                    )
+                }
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
@@ -147,14 +160,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
                     settingsViewModel.uiState.collect { state ->
                          updateUI(state)
                     }
-                }
-
-                launch {
-                   settingsViewModel.buttonScaleIndex.collect { index ->
-                       if (binding.seekbarButtonScale.progress != index) {
-                           binding.seekbarButtonScale.progress = index
-                       }
-                   }
                 }
 
             }
@@ -199,18 +204,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         binding.btnHelpConnection.setOnClickListener { settingsViewModel.helpConnection() }
         binding.addCustomButton.setOnClickListener { settingsViewModel.addCustomButton() }
         binding.btnHelpCustomButtons.setOnClickListener { settingsViewModel.helpCustomButtons() }
-        binding.buttonScaleSmaller.setOnClickListener { settingsViewModel.decrementButtonScale() }
-        binding.buttonScaleLarger.setOnClickListener { settingsViewModel.incrementButtonScale() }
-
-        // seekbar setup
-        binding.seekbarButtonScale.max = settingsViewModel.buttonScaleSteps.size - 1
-        binding.seekbarButtonScale.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (seekBar != null) settingsViewModel.setButtonScale(seekBar, progress, fromUser)
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
 
     }
 

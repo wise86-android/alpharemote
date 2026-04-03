@@ -2,7 +2,6 @@ package org.staacks.alpharemote.ui.settings
 
 import android.app.Application
 import android.util.Log
-import android.widget.SeekBar
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import org.staacks.alpharemote.data.SettingsStore
@@ -226,34 +225,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setButtonScale(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
-        if (fromUser) {
-            viewModelScope.launch {
-                buttonScaleIndex.value = progressValue
-                settingsStore.setNotificationButtonSize(buttonScaleSteps[progressValue])
-            }
+    fun setButtonScaleIndex(progressValue: Int) {
+        val normalizedValue = progressValue.coerceIn(0, buttonScaleSteps.lastIndex)
+        viewModelScope.launch {
+            buttonScaleIndex.value = normalizedValue
+            settingsStore.setNotificationButtonSize(buttonScaleSteps[normalizedValue])
         }
     }
 
-    fun incrementButtonScale() {
-        val newIndex = buttonScaleIndex.value + 1
-        if (newIndex < buttonScaleSteps.count()) {
-            viewModelScope.launch {
-                buttonScaleIndex.value = newIndex
-                settingsStore.setNotificationButtonSize(buttonScaleSteps[newIndex])
-            }
-        }
-    }
-
-    fun decrementButtonScale() {
-        val newIndex = buttonScaleIndex.value - 1
-        if (newIndex >= 0) {
-            viewModelScope.launch {
-                buttonScaleIndex.value = newIndex
-                settingsStore.setNotificationButtonSize(buttonScaleSteps[newIndex])
-            }
-        }
-    }
 
     fun setBroadcastControl(isChecked: Boolean) {
         viewModelScope.launch {
