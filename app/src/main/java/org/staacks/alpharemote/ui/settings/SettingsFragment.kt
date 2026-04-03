@@ -15,7 +15,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.IntentSender
 import android.location.LocationManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -28,6 +27,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -104,6 +105,20 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             }
         }
 
+        binding.composeBroadcastControl.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                BluetoothRemoteForSonyCamerasTheme {
+                    val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
+                    BroadcastControlSettings(
+                        enabled = broadcastControlEnabled,
+                        onCheckedChange = settingsViewModel::setBroadcastControl,
+                        onMoreClick = { openURL(getString(R.string.settings_broadcast_control_more_url)) },
+                    )
+                }
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
@@ -142,13 +157,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
                    }
                 }
 
-                launch {
-                    settingsViewModel.broadcastControl.collect { enabled ->
-                       if (binding.switchBroadcastControl.isChecked != enabled) {
-                           binding.switchBroadcastControl.isChecked = enabled
-                       }
-                    }
-                }
             }
         }
 
@@ -193,7 +201,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         binding.btnHelpCustomButtons.setOnClickListener { settingsViewModel.helpCustomButtons() }
         binding.buttonScaleSmaller.setOnClickListener { settingsViewModel.decrementButtonScale() }
         binding.buttonScaleLarger.setOnClickListener { settingsViewModel.incrementButtonScale() }
-        binding.btnBroadcastControlMore.setOnClickListener { openURL(getString(R.string.settings_broadcast_control_more_url)) }
 
         // seekbar setup
         binding.seekbarButtonScale.max = settingsViewModel.buttonScaleSteps.size - 1
@@ -205,10 +212,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // switch setup
-        binding.switchBroadcastControl.setOnCheckedChangeListener { buttonView, isChecked ->
-            settingsViewModel.setBroadcastControl(buttonView, isChecked)
-        }
     }
 
     private fun updateUI(state: SettingsViewModel.SettingsUIState) {

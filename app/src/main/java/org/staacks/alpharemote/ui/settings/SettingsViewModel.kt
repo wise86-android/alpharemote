@@ -2,7 +2,6 @@ package org.staacks.alpharemote.ui.settings
 
 import android.app.Application
 import android.util.Log
-import android.widget.CompoundButton
 import android.widget.SeekBar
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -256,7 +255,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setBroadcastControl(button: CompoundButton, isChecked: Boolean) {
+    fun setBroadcastControl(isChecked: Boolean) {
         viewModelScope.launch {
             broadcastControl.value = isChecked
             settingsStore.setBroadcastControl(isChecked)
