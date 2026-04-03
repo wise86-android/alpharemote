@@ -251,15 +251,9 @@
                 android:layout_weight="1" >
             </Space>
         </LinearLayout>
-        <!-- Notification button size -->
+        <!-- Notification button size + Broadcast control -->
         <androidx.compose.ui.platform.ComposeView
-            android:id="@+id/compose_button_size"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/headline_margin_top" />
-        <!-- Broadcast control -->
-        <androidx.compose.ui.platform.ComposeView
-            android:id="@+id/compose_broadcast_control"
+            android:id="@+id/compose_settings_controls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/headline_margin_top" />

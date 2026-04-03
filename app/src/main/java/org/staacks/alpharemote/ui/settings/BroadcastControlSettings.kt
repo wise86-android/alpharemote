@@ -21,8 +21,9 @@ fun BroadcastControlSettings(
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     onMoreClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = stringResource(R.string.settings_broadcast_control),
             style = MaterialTheme.typography.headlineSmall,

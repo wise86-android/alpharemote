@@ -23,10 +23,11 @@ fun NotificationButtonSizeSettings(
     selectedIndex: Int,
     maxIndex: Int,
     onIndexChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val normalizedIndex = selectedIndex.coerceIn(0, maxIndex)
 
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = stringResource(R.string.settings_button_size),
             style = MaterialTheme.typography.headlineSmall,

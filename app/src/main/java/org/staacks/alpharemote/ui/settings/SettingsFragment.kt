@@ -25,9 +25,15 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.dimensionResource
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -104,30 +110,31 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             }
         }
 
-        binding.composeBroadcastControl.apply {
+        binding.composeSettingsControls.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 BluetoothRemoteForSonyCamerasTheme {
-                    val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
-                    BroadcastControlSettings(
-                        enabled = broadcastControlEnabled,
-                        onCheckedChange = settingsViewModel::setBroadcastControl,
-                        onMoreClick = { openURL(getString(R.string.settings_broadcast_control_more_url)) },
-                    )
-                }
-            }
-        }
+                    Surface {
+                        val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
+                        val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
+                        ) {
+                            NotificationButtonSizeSettings(
+                                selectedIndex = selectedButtonScaleIndex,
+                                maxIndex = settingsViewModel.buttonScaleSteps.lastIndex,
+                                onIndexChange = settingsViewModel::setButtonScaleIndex,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
 
-        binding.composeButtonSize.apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                BluetoothRemoteForSonyCamerasTheme {
-                    val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
-                    NotificationButtonSizeSettings(
-                        selectedIndex = selectedButtonScaleIndex,
-                        maxIndex = settingsViewModel.buttonScaleSteps.lastIndex,
-                        onIndexChange = settingsViewModel::setButtonScaleIndex,
-                    )
+                            BroadcastControlSettings(
+                                enabled = broadcastControlEnabled,
+                                onCheckedChange = settingsViewModel::setBroadcastControl,
+                                onMoreClick = { openURL(getString(R.string.settings_broadcast_control_more_url)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
                 }
             }
         }
