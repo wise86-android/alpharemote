@@ -21,58 +21,6 @@
             android:layout_height="wrap_content"
             android:text="@string/title_settings"
             android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
-        <!-- Missing permissions -->
-        <TextView
-            android:id="@+id/tv_missing_permissions_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/headline_margin_top"
-            android:layout_marginBottom="@dimen/headline_margin_bottom"
-            android:textColor="?attr/colorSecondary"
-            android:text="@string/settings_missing_permission_title"
-            android:visibility="gone"
-            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
-        <TextView
-            android:id="@+id/tv_missing_bluetooth_permission"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorSecondary"
-            android:visibility="gone"
-            android:text="@string/settings_missing_bluetooth_permission_warning" />
-        <TextView
-            android:id="@+id/tv_location_service_disabled"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorSecondary"
-            android:text="@string/settings_location_service_disabled"
-            android:visibility="gone" />
-        <Button
-            android:id="@+id/btn_bluetooth_permission"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center_horizontal|center_vertical"
-            app:icon="@drawable/button_ble_scan"
-            android:backgroundTint="?attr/colorSecondary"
-            android:visibility="gone"
-            android:text="@string/settings_bluetooth_permission_button" />
-        <TextView
-            android:id="@+id/tv_missing_notification_permission"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorSecondary"
-            android:visibility="gone"
-            android:text="@string/settings_missing_notification_permission_warning" />
-        <Button
-            android:id="@+id/btn_notification_permission"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center_horizontal|center_vertical"
-            android:backgroundTint="?attr/colorSecondary"
-            app:icon="@drawable/button_notifications"
-            android:visibility="gone"
-            android:text="@string/settings_notification_permission_button" />
         <!-- Camera -->
         <TextView
             android:layout_width="wrap_content"
@@ -188,7 +136,7 @@
         <androidx.compose.ui.platform.ComposeView
             android:id="@+id/compose_permission_request"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="wrap_content" />
         <!-- Custom buttons -->
         <TextView
             android:layout_width="wrap_content"

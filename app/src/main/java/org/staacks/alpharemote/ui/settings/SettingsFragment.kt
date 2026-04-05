@@ -79,8 +79,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     val onDeviceFoundLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult  ->
         Log.d(MainActivity.TAG, "Activity Result: $activityResult")
         if (activityResult.resultCode == Activity.RESULT_OK) {
-            val scanResult: ScanResult? = activityResult.data?.getParcelableExtra(
-                CompanionDeviceManager.EXTRA_DEVICE)
+            val scanResult: ScanResult? = extractScanResult(activityResult.data)
             scanResult?.let { result ->
                 if (startObservingDevicePresence(requireContext(), result.device)) {
                     if (!checkNotificationPermissionState())
@@ -105,7 +104,27 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             setContent {
                 // In Compose world
                 BluetoothRemoteForSonyCamerasTheme {
-                    LocationSettings(settingsViewModel)
+                    val uiState by settingsViewModel.uiState.collectAsState()
+                    val updateCameraLocation by settingsViewModel.updateCameraLocation.collectAsState(false)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
+                    ) {
+                        MissingBluetoothPermissionSettings(
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MissingNotificationPermissionSettings(
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MissingLocationPermissionSettings(
+                            locationUpdatesEnabled = updateCameraLocation,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        LocationSettings(
+                            checked = updateCameraLocation,
+                            onCheckedChange = settingsViewModel::setUpdateCameraLocation,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         }
@@ -146,8 +165,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
                         when (action) {
                             SettingsViewModel.SettingsUIAction.PAIR -> pair()
                             SettingsViewModel.SettingsUIAction.UNPAIR -> unpair()
-                            SettingsViewModel.SettingsUIAction.REQUEST_BLUETOOTH_PERMISSION -> requestBluetoothPermission(bluetoothRequestPermissionLauncher, true)
-                            SettingsViewModel.SettingsUIAction.REQUEST_NOTIFICATION_PERMISSION -> requestNotificationPermission(true)
                             SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> addCustomButton()
                             SettingsViewModel.SettingsUIAction.HELP_CONNECTION ->
                                 HelpDialogFragment.newInstance(
@@ -195,8 +212,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
         checkBluetoothState()
         checkLocationServiceState()
-        checkBluetoothPermissionState()
-        checkNotificationPermissionState()
         checkAssociations()
 
         return binding.root
@@ -204,8 +219,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
 
     private fun setupViewListeners(settingsViewModel: SettingsViewModel) {
         // Set up click listeners
-        binding.btnBluetoothPermission.setOnClickListener { settingsViewModel.requestBluetoothPermission() }
-        binding.btnNotificationPermission.setOnClickListener { settingsViewModel.requestNotificationPermission() }
         binding.btnCameraAdd.setOnClickListener { settingsViewModel.pair() }
         binding.btnCameraRemove.setOnClickListener { settingsViewModel.unpair() }
         binding.btnHelpConnection.setOnClickListener { settingsViewModel.helpConnection() }
@@ -215,20 +228,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     private fun updateUI(state: SettingsViewModel.SettingsUIState) {
-        // Missing permissions
-        val missingBluetooth = !state.bluetoothPermissionGranted
-        val missingNotification = !state.notificationPermissionGranted
-        val cameraAssociated = state.cameraState != SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED
-
-        binding.tvMissingPermissionsTitle.visibility = if (cameraAssociated && (missingBluetooth || missingNotification)) View.VISIBLE else View.GONE
-        binding.tvMissingBluetoothPermission.visibility = if (cameraAssociated && missingBluetooth) View.VISIBLE else View.GONE
-        binding.btnBluetoothPermission.visibility = if (cameraAssociated && missingBluetooth) View.VISIBLE else View.GONE
-        binding.tvMissingNotificationPermission.visibility = if (cameraAssociated && missingNotification) View.VISIBLE else View.GONE
-        binding.btnNotificationPermission.visibility = if (cameraAssociated && missingNotification) View.VISIBLE else View.GONE
-
-        // Location service
-        binding.tvLocationServiceDisabled.visibility = if (!state.locationServiceEnabled) View.VISIBLE else View.GONE
-
         // Camera
         binding.tvBluetoothDisabled.visibility = if (!state.bluetoothEnabled) View.VISIBLE else View.GONE
         binding.tvBleScanningDisabled.visibility = if (!state.bleScanningEnabled) View.VISIBLE else View.GONE
@@ -265,8 +264,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         // have no other method to detect a change of the "Bluetooth Scanning" setting if the user
         // just switched to its settings to toggle it.
         checkLocationServiceState()
-        checkBluetoothPermissionState()
-        checkNotificationPermissionState()
     }
 
     override fun onDestroyView() {
@@ -333,7 +330,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             .setTitle(R.string.settings_camera_remove)
             .setMessage(R.string.settings_camera_remove_question)
             .setCancelable(true)
-            .setPositiveButton(R.string.settings_camera_remove_confirm) { dialog, which ->
+            .setPositiveButton(R.string.settings_camera_remove_confirm) { _, _ ->
                 val context = requireContext()
                 CompanionDeviceHelper.unpairCompanionDevice(context)
                 AlphaRemoteService.sendDisconnectIntent(requireContext())
@@ -377,17 +374,11 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     private fun checkBluetoothPermissionState(): Boolean {
-        val bluetoothGranted = hasBluetoothPermission(requireContext())
-        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
-        viewModel.updateBluetoothPermissionState(bluetoothGranted)
-        return bluetoothGranted
+        return hasBluetoothPermission(requireContext())
     }
 
     private fun checkNotificationPermissionState(): Boolean {
-        val notificationsGranted = hasNotificationPermission(requireContext())
-        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
-        viewModel.updateNotificationPermissionState(notificationsGranted)
-        return notificationsGranted
+        return hasNotificationPermission(requireContext())
     }
 
     private fun requestBluetoothPermission(launcher: ActivityResultLauncher<String>, skipRationale: Boolean) {
@@ -419,15 +410,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         }
     }
 
-    private val bluetoothRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (isGranted) {
-            Log.d(MainActivity.TAG, "Bluetooth permission granted.")
-        } else {
-            Log.w(MainActivity.TAG, "Bluetooth permission denied.")
-        }
-        checkBluetoothPermissionState()
-    }
-
     private val pairAfterBluetoothRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             Log.d(MainActivity.TAG, "Bluetooth permission granted.")
@@ -435,7 +417,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         } else {
             Log.w(MainActivity.TAG, "Bluetooth permission denied.")
         }
-        checkBluetoothPermissionState()
     }
 
     private val notificationsRequestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -444,7 +425,6 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         } else {
             Log.w(MainActivity.TAG, "Notifications permission denied.")
         }
-        checkNotificationPermissionState()
     }
 
 
@@ -461,14 +441,21 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             override fun onMove(
                 recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder
             ): Boolean {
-                val from = viewHolder.adapterPosition
-                val to = target.adapterPosition
+                val from = viewHolder.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) {
+                    return false
+                }
                 adapter.moveItem(from, to)
                 return true
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                adapter.removeItem(viewHolder.adapterPosition)
+                val position = viewHolder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) {
+                    return
+                }
+                adapter.removeItem(position)
             }
 
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
@@ -518,5 +505,14 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         val uri = target.toUri()
         val intent = Intent(Intent.ACTION_VIEW, uri)
         startActivity(intent)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun extractScanResult(intent: Intent?): ScanResult? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE, ScanResult::class.java)
+        } else {
+            intent?.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE)
+        }
     }
 }

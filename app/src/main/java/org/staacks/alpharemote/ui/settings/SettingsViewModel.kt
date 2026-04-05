@@ -34,8 +34,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         var cameraState: SettingsUICameraState = SettingsUICameraState.OFFLINE,
         var cameraError: String?,
         var cameraName: String?,
-        var bluetoothPermissionGranted: Boolean,
-        var notificationPermissionGranted: Boolean,
         var bluetoothEnabled: Boolean,
         var locationServiceEnabled: Boolean,
         var bleScanningEnabled: Boolean
@@ -53,14 +51,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     enum class SettingsUIAction {
         PAIR,
         UNPAIR,
-        REQUEST_BLUETOOTH_PERMISSION,
-        REQUEST_NOTIFICATION_PERMISSION,
         ADD_CUSTOM_BUTTON,
         HELP_CONNECTION,
         HELP_CUSTOM_BUTTONS
     }
 
-    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothPermissionGranted = true, notificationPermissionGranted = true, bluetoothEnabled = false, locationServiceEnabled = false, bleScanningEnabled = false))
+    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothEnabled = false, locationServiceEnabled = false, bleScanningEnabled = false))
     val uiState: StateFlow<SettingsUIState> = _uiState.asStateFlow()
 
     private val _uiAction = MutableSharedFlow<SettingsUIAction>()
@@ -136,14 +132,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun updateBluetoothPermissionState(granted: Boolean) {
-        _uiState.update { it.copy(bluetoothPermissionGranted = granted) }
-    }
-
-    fun updateNotificationPermissionState(granted: Boolean) {
-        _uiState.update { it.copy(notificationPermissionGranted = granted) }
-    }
-
     fun updateAssociationState(address: String?, isAssociated: Boolean, isBonded: Boolean) {
         Log.d(MainActivity.TAG, "Updated association state: $address associated=$isAssociated bonded=$isBonded")
         this.isAssociated = isAssociated
@@ -195,17 +183,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(cameraError = msg) }
     }
 
-    fun requestBluetoothPermission() {
-        viewModelScope.launch {
-            _uiAction.emit(SettingsUIAction.REQUEST_BLUETOOTH_PERMISSION)
-        }
-    }
-
-    fun requestNotificationPermission() {
-        viewModelScope.launch {
-            _uiAction.emit(SettingsUIAction.REQUEST_NOTIFICATION_PERMISSION)
-        }
-    }
 
     fun addCustomButton() {
         viewModelScope.launch {

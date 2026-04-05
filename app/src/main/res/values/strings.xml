@@ -31,12 +31,16 @@
     <string name="settings_bluetooth_disabled">Bluetooth is currently disabled. Please turn on Bluetooth to use this app.</string>
     <string name="settings_location_service_disabled">Location Services are currently disabled. This might not be an issue on some devices, but if you cannot connect to your camera, please try enabling Location Services in your Android settings.</string>
     <string name="settings_ble_scanning_disabled">Bluetooth scanning is currently disabled, which will very likely prevent your phone from detecting the camera. Please check for \"Bluetooth Scanning\" within \"Location Services\" of your Android settings.</string>
+    <string name="settings_location_send">Send Location</string>
+    <string name="settings_location_background_permission_warning">Background location permission is not granted. This setting will not work without it.</string>
 
     <string name="settings_missing_permission_title">Permission required</string>
     <string name="settings_missing_notification_permission_warning">Warning: The app needs permission to show notifications. Without this permission, the remote works, but the buttons will not show up in your phone\'s notification area.</string>
     <string name="settings_notification_permission_button">Allow notifications</string>
     <string name="settings_missing_bluetooth_permission_warning">Error: The app communicates with your camera via Bluetooth. It cannot work unless you grant the permission to search for nearby devices.</string>
     <string name="settings_bluetooth_permission_button">Allow Bluetooth</string>
+    <string name="settings_missing_location_permission_warning">Location access is required to store where a photo was shot. Please allow precise and background location access for reliable geotagging.</string>
+    <string name="settings_location_permission_button">Allow location access</string>
 
     <string name="settings_camera">Camera</string>
     <string name="settings_camera_offline">\"%s\" is offline.</string>
