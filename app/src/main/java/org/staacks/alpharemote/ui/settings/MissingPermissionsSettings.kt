@@ -35,7 +35,7 @@ fun MissingBluetoothPermissionSettings(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.settings_missing_bluetooth_permission_warning),
-            color = MaterialTheme.colorScheme.secondary,
+            color = MaterialTheme.colorScheme.error,
         )
         Button(onClick = bluetoothPermissionState::launchPermissionRequest) {
             Text(text = stringResource(R.string.settings_bluetooth_permission_button))
@@ -57,7 +57,7 @@ fun MissingNotificationPermissionSettings(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.settings_missing_notification_permission_warning),
-            color = MaterialTheme.colorScheme.secondary,
+            color = MaterialTheme.colorScheme.error,
         )
         Button(onClick = notificationPermissionState::launchPermissionRequest) {
             Text(text = stringResource(R.string.settings_notification_permission_button))
@@ -95,7 +95,7 @@ fun MissingLocationPermissionSettings(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.settings_missing_location_permission_warning),
-            color = MaterialTheme.colorScheme.secondary,
+            color = MaterialTheme.colorScheme.error,
         )
         Button(onClick = { showPermissionDialog = true }) {
             Text(text = stringResource(R.string.settings_location_permission_button))
@@ -149,4 +149,3 @@ private fun MissingLocationPermissionSettingsPreview() {
         )
     }
 }
-

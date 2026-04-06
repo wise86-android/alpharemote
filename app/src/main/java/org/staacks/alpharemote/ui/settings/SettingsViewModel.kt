@@ -76,13 +76,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     var buttonScaleIndex = MutableStateFlow(buttonScaleSteps.indexOf(1.0f))
     var broadcastControl = MutableStateFlow(false)
 
-    val customButtonListFlow = MutableStateFlow<List<CameraAction>?>(null)
-
     private val defaultCustomButtonList = listOf(
         CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
         CameraAction(false, 3.0f, null, null, CameraActionPreset.TRIGGER_ONCE),
         CameraAction(false, null, null, null, CameraActionPreset.RECORD),
     )
+
+    private val _customButtonListFlow = MutableStateFlow(defaultCustomButtonList)
+    val customButtonListFlow: StateFlow<List<CameraAction>> = _customButtonListFlow.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -97,15 +98,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 customButtonList = defaultCustomButtonList
                 settingsStore.saveCustomButtonList(defaultCustomButtonList)
             }
-            customButtonListFlow.value = customButtonList
+            _customButtonListFlow.value = customButtonList
 
             broadcastControl.value = settingsStore.getBroadcastControl()
-
-            customButtonListFlow.collect{
-                it?.let {
-                    settingsStore.saveCustomButtonList(it)
-                }
-            }
         }
         viewModelScope.launch {
             AlphaRemoteService.serviceState.collectLatest { state ->
@@ -215,6 +210,40 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             broadcastControl.value = isChecked
             settingsStore.setBroadcastControl(isChecked)
+        }
+    }
+
+    fun removeCustomButton(index: Int) {
+        val currentList = _customButtonListFlow.value
+        if (index !in currentList.indices) return
+        persistCustomButtonList(currentList.toMutableList().apply { removeAt(index) })
+    }
+
+    fun moveCustomButton(from: Int, to: Int) {
+        val currentList = _customButtonListFlow.value
+        if (from !in currentList.indices || to !in currentList.indices || from == to) return
+        persistCustomButtonList(currentList.toMutableList().apply {
+            val item = removeAt(from)
+            add(to, item)
+        })
+    }
+
+    fun updateCustomButton(index: Int, action: CameraAction) {
+        val currentList = _customButtonListFlow.value
+        val nextList = if (index < 0) {
+            currentList + action
+        } else if (index in currentList.indices) {
+            currentList.toMutableList().apply { set(index, action) }
+        } else {
+            return
+        }
+        persistCustomButtonList(nextList)
+    }
+
+    private fun persistCustomButtonList(nextList: List<CameraAction>) {
+        _customButtonListFlow.value = nextList
+        viewModelScope.launch {
+            settingsStore.saveCustomButtonList(nextList)
         }
     }
 }

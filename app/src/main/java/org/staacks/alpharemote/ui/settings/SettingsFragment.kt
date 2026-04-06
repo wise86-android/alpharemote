@@ -28,6 +28,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -43,11 +44,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.Lifecycle
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
@@ -62,19 +59,12 @@ import org.staacks.alpharemote.utils.hasBluetoothPermission
 import org.staacks.alpharemote.utils.hasNotificationPermission
 import androidx.core.net.toUri
 
-interface CustomButtonListEventReceiver {
-    fun startDragging(viewHolder: RecyclerView.ViewHolder)
-    fun itemTouched(index: Int, oldCameraAction: CameraAction)
-}
-
-class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraActionPickerListener {
+class SettingsFragment : Fragment(), CameraActionPickerListener {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
-    lateinit var adapter: CustomButtonRecyclerViewAdapter
-
-    private var itemTouchHelper: ItemTouchHelper? = null
+    private lateinit var settingsViewModel: SettingsViewModel
 
     val onDeviceFoundLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult  ->
         Log.d(MainActivity.TAG, "Activity Result: $activityResult")
@@ -95,7 +85,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View {
-        val settingsViewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
+        settingsViewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
 
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
 
@@ -106,22 +96,54 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
                 BluetoothRemoteForSonyCamerasTheme {
                     val uiState by settingsViewModel.uiState.collectAsState()
                     val updateCameraLocation by settingsViewModel.updateCameraLocation.collectAsState(false)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                     ) {
-                        MissingBluetoothPermissionSettings(
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        MissingNotificationPermissionSettings(
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        MissingLocationPermissionSettings(
-                            locationUpdatesEnabled = updateCameraLocation,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        LocationSettings(
-                            checked = updateCameraLocation,
-                            onCheckedChange = settingsViewModel::setUpdateCameraLocation,
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
+                        ) {
+                            CameraSettingsSection(
+                                state = uiState,
+                                onPairClick = settingsViewModel::pair,
+                                onUnpairClick = settingsViewModel::unpair,
+                                onHelpClick = settingsViewModel::helpConnection,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            MissingBluetoothPermissionSettings(
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            MissingNotificationPermissionSettings(
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            MissingLocationPermissionSettings(
+                                locationUpdatesEnabled = updateCameraLocation,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            LocationSettings(
+                                checked = updateCameraLocation,
+                                onCheckedChange = settingsViewModel::setUpdateCameraLocation,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        binding.composeCustomButtons.apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                BluetoothRemoteForSonyCamerasTheme {
+                    val customButtons by settingsViewModel.customButtonListFlow.collectAsState()
+                    Surface {
+                        CustomButtonsSettingsSection(
+                            buttons = customButtons,
+                            onAddClick = settingsViewModel::addCustomButton,
+                            onHelpClick = settingsViewModel::helpCustomButtons,
+                            onEditClick = ::openCustomButtonEditor,
+                            onMove = settingsViewModel::moveCustomButton,
+                            onDelete = settingsViewModel::removeCustomButton,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -133,9 +155,9 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 BluetoothRemoteForSonyCamerasTheme {
+                    val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
+                    val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
                     Surface {
-                        val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
-                        val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
                         Column(
                             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
                         ) {
@@ -179,17 +201,8 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
                         }
                     }
                 }
-
-                launch {
-                    settingsViewModel.uiState.collect { state ->
-                         updateUI(state)
-                    }
-                }
-
             }
         }
-
-        setupCustomButtonList(settingsViewModel.customButtonListFlow)
 
         binding.linearLayout.layoutTransition.enableTransitionType(LayoutTransition.CHANGING)
 
@@ -208,53 +221,12 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
         context?.registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
         context?.registerReceiver(locationServiceStateReceiver, IntentFilter(LocationManager.MODE_CHANGED_ACTION))
 
-        setupViewListeners(settingsViewModel)
 
         checkBluetoothState()
         checkLocationServiceState()
         checkAssociations()
 
         return binding.root
-    }
-
-    private fun setupViewListeners(settingsViewModel: SettingsViewModel) {
-        // Set up click listeners
-        binding.btnCameraAdd.setOnClickListener { settingsViewModel.pair() }
-        binding.btnCameraRemove.setOnClickListener { settingsViewModel.unpair() }
-        binding.btnHelpConnection.setOnClickListener { settingsViewModel.helpConnection() }
-        binding.addCustomButton.setOnClickListener { settingsViewModel.addCustomButton() }
-        binding.btnHelpCustomButtons.setOnClickListener { settingsViewModel.helpCustomButtons() }
-
-    }
-
-    private fun updateUI(state: SettingsViewModel.SettingsUIState) {
-        // Camera
-        binding.tvBluetoothDisabled.visibility = if (!state.bluetoothEnabled) View.VISIBLE else View.GONE
-        binding.tvBleScanningDisabled.visibility = if (!state.bleScanningEnabled) View.VISIBLE else View.GONE
-
-        val cameraName = state.cameraName ?: getString(R.string.settings_camera_unknown_name)
-
-        binding.tvCameraOffline.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.OFFLINE) View.VISIBLE else View.GONE
-        binding.tvCameraOffline.text = getString(R.string.settings_camera_offline, cameraName)
-
-        binding.tvCameraConnected.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.CONNECTED) View.VISIBLE else View.GONE
-        binding.tvCameraConnected.text = getString(R.string.settings_camera_connected, cameraName)
-
-        binding.tvCameraError.visibility = if (state.cameraError != null) View.VISIBLE else View.GONE
-        binding.tvCameraError.text = getString(R.string.settings_camera_error, state.cameraError)
-
-        binding.tvCameraNotAssociated.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED) View.VISIBLE else View.GONE
-
-        binding.tvCameraNotBonded.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.NOT_BONDED) View.VISIBLE else View.GONE
-        binding.tvCameraNotBonded.text = getString(R.string.settings_camera_not_bonded)
-
-        binding.tvCameraRemoteDisabled.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.REMOTE_DISABLED) View.VISIBLE else View.GONE
-        binding.tvCameraRemoteDisabled.text = getString(R.string.settings_camera_remote_disabled)
-
-        binding.btnCameraAdd.visibility = if (state.cameraState == SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED) View.VISIBLE else View.GONE
-        binding.btnCameraAdd.isEnabled = state.bluetoothEnabled
-
-        binding.btnCameraRemove.visibility = if (state.cameraState != SettingsViewModel.SettingsUICameraState.NOT_ASSOCIATED) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
@@ -428,59 +400,7 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
 
-    private fun setupCustomButtonList(customButtonListFlow: MutableStateFlow<List<CameraAction>?>) {
-        val customButtonsList = binding.customButtonsList
-
-        adapter = CustomButtonRecyclerViewAdapter(customButtonListFlow, this, this)
-        customButtonsList.adapter = adapter
-
-        val callback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.START or ItemTouchHelper.END,
-            ItemTouchHelper.START or ItemTouchHelper.END
-        ) {
-            override fun onMove(
-                recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder
-            ): Boolean {
-                val from = viewHolder.bindingAdapterPosition
-                val to = target.bindingAdapterPosition
-                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) {
-                    return false
-                }
-                adapter.moveItem(from, to)
-                return true
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.bindingAdapterPosition
-                if (position == RecyclerView.NO_POSITION) {
-                    return
-                }
-                adapter.removeItem(position)
-            }
-
-            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
-                super.onSelectedChanged(viewHolder, actionState)
-                if (actionState == ACTION_STATE_DRAG) {
-                    viewHolder?.itemView?.alpha = 0.5f
-                }
-            }
-
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                viewHolder.itemView.alpha = 1.0f
-            }
-        }
-
-        itemTouchHelper = ItemTouchHelper(callback).apply {
-            attachToRecyclerView(customButtonsList)
-        }
-    }
-
-    override fun startDragging(viewHolder: RecyclerView.ViewHolder) {
-        itemTouchHelper?.startDrag(viewHolder)
-    }
-
-    override fun itemTouched(index: Int, oldCameraAction: CameraAction) {
+    private fun openCustomButtonEditor(index: Int, oldCameraAction: CameraAction) {
         val cameraActionPicker = CameraActionPicker.newInstance(index, oldCameraAction, showDelete = true)
         cameraActionPicker.show(childFragmentManager, null)
     }
@@ -491,14 +411,14 @@ class SettingsFragment : Fragment(), CustomButtonListEventReceiver, CameraAction
     }
 
     override fun onConfirmCameraActionPicker(index: Int, cameraAction: CameraAction) {
-        adapter.updateItem(index, cameraAction)
+        settingsViewModel.updateCustomButton(index, cameraAction)
     }
 
     override fun onCancelCameraActionPicker() {
     }
 
     override fun onDeleteCameraActionPicker(index: Int) {
-        adapter.removeItem(index)
+        settingsViewModel.removeCustomButton(index)
     }
 
     fun openURL(target: String) {
