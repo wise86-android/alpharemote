@@ -4,22 +4,42 @@ import android.app.AlertDialog
 import android.app.Dialog
 import android.content.DialogInterface
 import android.os.Bundle
-import android.view.View
-import android.view.View.GONE
-import android.view.View.VISIBLE
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.SeekBar
-import android.widget.SeekBar.OnSeekBarChangeListener
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.DialogFragment
-import androidx.lifecycle.lifecycleScope
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraActionTemplateOption
-import org.staacks.alpharemote.databinding.CameraActionPickerBinding
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
+import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import kotlin.math.roundToInt
 
 interface CameraActionPickerListener {
@@ -30,16 +50,11 @@ interface CameraActionPickerListener {
 
 class CameraActionPicker : DialogFragment() {
 
-    private var _binding: CameraActionPickerBinding? = null
-    private val binding get() = _binding!!
-
     private var index = -1
 
     val defaultAction = CameraAction(
         false, null, null, null, CameraActionPreset.STOP
     )
-
-    private lateinit var cameraAction: MutableStateFlow<CameraAction>
 
     class SeekBarTimeMap(min: Int, max: Int) {
 
@@ -88,203 +103,247 @@ class CameraActionPicker : DialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        _binding = CameraActionPickerBinding.inflate(layoutInflater)
-
         index = arguments?.getInt(INDEX_KEY) ?: -1
         val oldAction = arguments?.getSerializable(CAMERA_ACTION_KEY) as? CameraAction
         val startAction = oldAction ?: defaultAction
-
         val showDelete = arguments?.getBoolean(SHOW_DELETE_KEY) ?: false
-
-        cameraAction = MutableStateFlow(startAction)
-
-        val actionSpinnerAdapter = ArrayAdapter(
-            requireActivity(),
-            android.R.layout.simple_spinner_item,
-            CameraActionPreset.entries.map { getString(it.template.name) }
-        ).also{
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        binding.capAction.adapter = actionSpinnerAdapter
-        binding.capAction.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val preset = CameraActionPreset.entries[position]
-                lifecycleScope.launch {
-                    val old = cameraAction.value
-                    val opt = preset.template.userOptions
-                    cameraAction.emit(old.copy(
-                        preset = preset,
-                        selfTimer = if (opt.contains(CameraActionTemplateOption.SELF_TIMER)) old.selfTimer else null,
-                        duration = if (opt.contains(CameraActionTemplateOption.VARIABLE_DURATION)) old.duration else null,
-                        toggle = if (opt.contains(CameraActionTemplateOption.TOGGLE)) old.toggle else false,
-                        step = if (opt.contains(CameraActionTemplateOption.ADJUST_SPEED)) old.step ?: 0.5f else null
-                    ))
-                }
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                lifecycleScope.launch {
-                    cameraAction.emit(defaultAction)
-                }
-            }
-
-        }
-
-        binding.capSelftimerEnable.setOnCheckedChangeListener { buttonView, isChecked ->
-            lifecycleScope.launch {
-                cameraAction.emit(cameraAction.value.copy(
-                    selfTimer = if (isChecked) (selftimerSeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
-                ))
-            }
-        }
-        binding.capSelftimer.max = selftimerSeekBarTimeMap.getMax()
-        binding.capSelftimer.setOnSeekBarChangeListener(object: OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                lifecycleScope.launch {
-                    cameraAction.emit(
-                        cameraAction.value.copy(
-                            selfTimer = selftimerSeekBarTimeMap.indexToTime(progress)
+        val composeView = ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                BluetoothRemoteForSonyCamerasTheme {
+                    Surface {
+                        CameraActionPickerContent(
+                            startAction = startAction,
+                            showDelete = showDelete,
+                            selftimerSeekBarTimeMap = selftimerSeekBarTimeMap,
+                            holdSeekBarTimeMap = holdSeekBarTimeMap,
+                            onCancel = {
+                                (parentFragment as? CameraActionPickerListener)?.onCancelCameraActionPicker()
+                                dismiss()
+                            },
+                            onDelete = {
+                                (parentFragment as? CameraActionPickerListener)?.onDeleteCameraActionPicker(index)
+                                dismiss()
+                            },
+                            onSave = { action ->
+                                val options = action.preset.template.userOptions
+                                val prunedAction = action.copy(
+                                    selfTimer = if (options.contains(CameraActionTemplateOption.SELF_TIMER)) action.selfTimer else null,
+                                    duration = if (options.contains(CameraActionTemplateOption.VARIABLE_DURATION)) action.duration else null,
+                                    toggle = options.contains(CameraActionTemplateOption.TOGGLE) && action.toggle,
+                                    step = if (options.contains(CameraActionTemplateOption.ADJUST_SPEED)) action.step else null,
+                                )
+                                (parentFragment as? CameraActionPickerListener)?.onConfirmCameraActionPicker(index, prunedAction)
+                                dismiss()
+                            },
                         )
-                    )
-                }
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-            }
-
-        })
-
-        binding.capHoldEnable.setOnCheckedChangeListener { buttonView, isChecked ->
-            lifecycleScope.launch {
-                cameraAction.emit(cameraAction.value.copy(
-                    duration = if (isChecked) (holdSeekBarTimeMap.indexToTime(binding.capHold.progress)) else null
-                ))
-            }
-        }
-        binding.capHold.max = holdSeekBarTimeMap.getMax()
-        binding.capHold.setOnSeekBarChangeListener(object: OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                lifecycleScope.launch {
-                    cameraAction.emit(
-                        cameraAction.value.copy(
-                            duration = holdSeekBarTimeMap.indexToTime(progress)
-                        )
-                    )
-                }
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-            }
-
-        })
-
-        binding.capToggle.setOnCheckedChangeListener { buttonView, isChecked ->
-            lifecycleScope.launch {
-                cameraAction.emit(cameraAction.value.copy(
-                    toggle = isChecked
-                ))
-            }
-        }
-
-        binding.capSpeed.setOnSeekBarChangeListener(object: OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                lifecycleScope.launch {
-                    cameraAction.emit(
-                        cameraAction.value.copy(
-                            step = progress / 100.0f
-                        )
-                    )
-                }
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-            }
-
-        })
-
-        binding.capCancel.setOnClickListener{
-            (parentFragment as? CameraActionPickerListener)?.onCancelCameraActionPicker()
-            dismiss()
-        }
-        binding.capSave.setOnClickListener{
-            val action = cameraAction.value
-            val options = action.preset.template.userOptions
-            val prunedAction = action.copy(
-                selfTimer = if (options.contains(CameraActionTemplateOption.SELF_TIMER)) action.selfTimer else null,
-                duration = if (options.contains(CameraActionTemplateOption.VARIABLE_DURATION)) action.duration else null,
-                toggle = options.contains(CameraActionTemplateOption.TOGGLE) && action.toggle,
-                step = if (options.contains(CameraActionTemplateOption.ADJUST_SPEED)) action.step else null
-            )
-            (parentFragment as? CameraActionPickerListener)?.onConfirmCameraActionPicker(
-                index, prunedAction
-            )
-            dismiss()
-        }
-        if (showDelete) {
-            binding.capDelete.setOnClickListener {
-                (parentFragment as? CameraActionPickerListener)?.onDeleteCameraActionPicker(index)
-                dismiss()
-            }
-            binding.capDelete.visibility = VISIBLE
-        } else
-            binding.capDelete.visibility = GONE
-
-        lifecycleScope.launch {
-            cameraAction.collect{
-                binding.capIcon.setImageDrawable(it.getIcon(requireContext()))
-                binding.capTitle.text = it.getName(requireContext())
-
-                binding.capSelftimerGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.SELF_TIMER)) VISIBLE else GONE
-                binding.capHoldGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.VARIABLE_DURATION)) VISIBLE else GONE
-                binding.capToggle.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.TOGGLE)) VISIBLE else GONE
-                binding.capSpeedGroup.visibility = if (it.preset.template.userOptions.contains(CameraActionTemplateOption.ADJUST_SPEED)) VISIBLE else GONE
-
-                binding.capAction.setSelection(it.preset.ordinal)
-
-                binding.capSelftimerEnable.isChecked = (it.selfTimer != null)
-                if (binding.capSelftimerEnable.isChecked) {
-                    binding.capSelftimer.alpha = 1.0f
-                    binding.capSelftimer.progress = selftimerSeekBarTimeMap.timeToIndex (it.selfTimer ?: 3.0f)
-                    binding.capSelftimerSeconds.text = String.format(getString(R.string.seconds_formatted),it.selfTimer ?: 3.0f)
-                } else {
-                    binding.capSelftimer.alpha = 0.5f
-                    binding.capSelftimerSeconds.text = "-"
-                }
-                binding.capHoldEnable.isChecked = (it.duration != null)
-                if (binding.capHoldEnable.isChecked) {
-                    binding.capHold.alpha = 1.0f
-                    binding.capHold.progress = holdSeekBarTimeMap.timeToIndex (it.duration ?: 3.0f)
-                    binding.capHoldSeconds.text = String.format(getString(R.string.seconds_formatted),it.duration ?: 3.0f)
-                } else {
-                    binding.capHold.alpha = 0.5f
-                    binding.capHoldSeconds.text = "-"
-                }
-                binding.capToggle.isChecked = it.toggle
-                it.step?.let { step ->
-                    binding.capSpeed.progress = (step * 100f).roundToInt()
+                    }
                 }
             }
         }
 
-        return AlertDialog.Builder(requireActivity()).setView(binding.root).create()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+        return AlertDialog.Builder(requireActivity()).setView(composeView).create()
     }
 
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
         (parentFragment as? CameraActionPickerListener)?.onCancelCameraActionPicker()
+    }
+}
+
+@Composable
+private fun CameraActionPickerContent(
+    startAction: CameraAction,
+    showDelete: Boolean,
+    selftimerSeekBarTimeMap: CameraActionPicker.SeekBarTimeMap,
+    holdSeekBarTimeMap: CameraActionPicker.SeekBarTimeMap,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit,
+    onSave: (CameraAction) -> Unit,
+) {
+    var action by remember { mutableStateOf(startAction) }
+    var presetExpanded by remember { mutableStateOf(false) }
+
+    val options = action.preset.template.userOptions
+    val selfTimerEnabled = action.selfTimer != null
+    val holdEnabled = action.duration != null
+
+    Column(
+        modifier = Modifier.padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                painter = painterResource(action.preset.template.icon),
+                contentDescription = null,
+                tint = Color.Unspecified,
+            )
+            Text(
+                text = action.getName(LocalContext.current),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            if (showDelete) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        painter = painterResource(R.drawable.baseline_delete_24),
+                        contentDescription = stringResource(R.string.delete),
+                    )
+                }
+            }
+        }
+
+        Text(text = stringResource(R.string.action), style = MaterialTheme.typography.labelSmall)
+        Button(onClick = { presetExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(text = stringResource(action.preset.template.name))
+        }
+        DropdownMenu(expanded = presetExpanded, onDismissRequest = { presetExpanded = false }) {
+            CameraActionPreset.entries.forEach { preset ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(preset.template.name)) },
+                    onClick = {
+                        val old = action
+                        val opt = preset.template.userOptions
+                        action = old.copy(
+                            preset = preset,
+                            selfTimer = if (opt.contains(CameraActionTemplateOption.SELF_TIMER)) old.selfTimer else null,
+                            duration = if (opt.contains(CameraActionTemplateOption.VARIABLE_DURATION)) old.duration else null,
+                            toggle = if (opt.contains(CameraActionTemplateOption.TOGGLE)) old.toggle else false,
+                            step = if (opt.contains(CameraActionTemplateOption.ADJUST_SPEED)) old.step ?: 0.5f else null,
+                        )
+                        presetExpanded = false
+                    },
+                )
+            }
+        }
+
+        if (options.contains(CameraActionTemplateOption.SELF_TIMER)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(
+                    checked = selfTimerEnabled,
+                    onCheckedChange = { checked ->
+                        action = action.copy(selfTimer = if (checked) (action.selfTimer ?: 3.0f) else null)
+                    },
+                )
+                Text(text = stringResource(R.string.self_timer))
+            }
+            val selfTimerProgress = selftimerSeekBarTimeMap.timeToIndex(action.selfTimer ?: 3.0f).coerceAtLeast(0)
+            Slider(
+                value = selfTimerProgress.toFloat(),
+                onValueChange = { progress ->
+                    action = action.copy(selfTimer = selftimerSeekBarTimeMap.indexToTime(progress.roundToInt()))
+                },
+                valueRange = 0f..selftimerSeekBarTimeMap.getMax().toFloat(),
+                enabled = selfTimerEnabled,
+            )
+            Text(
+                text = if (selfTimerEnabled) {
+                    stringResource(R.string.seconds_formatted, action.selfTimer ?: 3.0f)
+                } else {
+                    "-"
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        if (options.contains(CameraActionTemplateOption.VARIABLE_DURATION)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(
+                    checked = holdEnabled,
+                    onCheckedChange = { checked ->
+                        action = action.copy(duration = if (checked) (action.duration ?: 0.0f) else null)
+                    },
+                )
+                Text(text = stringResource(R.string.hold_button))
+            }
+            val holdProgress = holdSeekBarTimeMap.timeToIndex(action.duration ?: 3.0f).coerceAtLeast(0)
+            Slider(
+                value = holdProgress.toFloat(),
+                onValueChange = { progress ->
+                    action = action.copy(duration = holdSeekBarTimeMap.indexToTime(progress.roundToInt()))
+                },
+                valueRange = 0f..holdSeekBarTimeMap.getMax().toFloat(),
+                enabled = holdEnabled,
+            )
+            Text(
+                text = if (holdEnabled) {
+                    stringResource(R.string.seconds_formatted, action.duration ?: 3.0f)
+                } else {
+                    "-"
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        if (options.contains(CameraActionTemplateOption.TOGGLE)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(
+                    checked = action.toggle,
+                    onCheckedChange = { checked -> action = action.copy(toggle = checked) },
+                )
+                Text(text = stringResource(R.string.toggle_button))
+            }
+        }
+
+        if (options.contains(CameraActionTemplateOption.ADJUST_SPEED)) {
+            Text(text = stringResource(R.string.speed), style = MaterialTheme.typography.labelSmall)
+            Slider(
+                value = (action.step ?: 0.5f) * 100f,
+                onValueChange = { progress -> action = action.copy(step = progress / 100f) },
+                valueRange = 0f..100f,
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Button(onClick = onCancel) {
+                Text(text = stringResource(R.string.cancel))
+            }
+            Button(
+                onClick = { onSave(action) },
+                modifier = Modifier.padding(start = 12.dp),
+            ) {
+                Text(text = stringResource(R.string.save))
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CameraActionPickerContentPreview() {
+    BluetoothRemoteForSonyCamerasTheme {
+        Surface {
+            CameraActionPickerContent(
+                startAction = CameraAction(
+                    toggle = true,
+                    selfTimer = 3.0f,
+                    duration = 5.0f,
+                    step = null,
+                    preset = CameraActionPreset.SHUTTER,
+                ),
+                showDelete = true,
+                selftimerSeekBarTimeMap = CameraActionPicker.SeekBarTimeMap(10, 600),
+                holdSeekBarTimeMap = CameraActionPicker.SeekBarTimeMap(0, 100),
+                onCancel = {},
+                onDelete = {},
+                onSave = {},
+            )
+        }
     }
 }
