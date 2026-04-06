@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -35,9 +36,9 @@ fun NotificationButtonSizeSettings(
         Text(text = stringResource(R.string.settings_button_size_explanation))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
         ) {
             Text(
                 text = stringResource(R.string.settings_button_size_smaller),
@@ -52,7 +53,7 @@ fun NotificationButtonSizeSettings(
                 onValueChange = { value -> onIndexChange(value.roundToInt()) },
                 valueRange = 0f..maxIndex.toFloat(),
                 steps = (maxIndex - 1).coerceAtLeast(0),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f)
             )
 
             Text(

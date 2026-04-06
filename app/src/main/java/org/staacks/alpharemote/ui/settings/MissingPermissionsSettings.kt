@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,7 +38,7 @@ fun MissingBluetoothPermissionSettings(
             text = stringResource(R.string.settings_missing_bluetooth_permission_warning),
             color = MaterialTheme.colorScheme.error,
         )
-        Button(onClick = bluetoothPermissionState::launchPermissionRequest) {
+        TextButton(onClick = bluetoothPermissionState::launchPermissionRequest) {
             Text(text = stringResource(R.string.settings_bluetooth_permission_button))
         }
     }
@@ -59,7 +60,7 @@ fun MissingNotificationPermissionSettings(
             text = stringResource(R.string.settings_missing_notification_permission_warning),
             color = MaterialTheme.colorScheme.error,
         )
-        Button(onClick = notificationPermissionState::launchPermissionRequest) {
+        TextButton(onClick = notificationPermissionState::launchPermissionRequest) {
             Text(text = stringResource(R.string.settings_notification_permission_button))
         }
     }
@@ -97,7 +98,7 @@ fun MissingLocationPermissionSettings(
             text = stringResource(R.string.settings_missing_location_permission_warning),
             color = MaterialTheme.colorScheme.error,
         )
-        Button(onClick = { showPermissionDialog = true }) {
+        TextButton(onClick = { showPermissionDialog = true }) {
             Text(text = stringResource(R.string.settings_location_permission_button))
         }
     }

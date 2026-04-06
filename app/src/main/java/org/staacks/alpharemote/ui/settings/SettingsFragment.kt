@@ -1,7 +1,6 @@
 package org.staacks.alpharemote.ui.settings
 
 import android.Manifest
-import android.animation.LayoutTransition
 import android.app.Activity
 import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
@@ -25,31 +24,17 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.res.dimensionResource
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.Lifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlinx.coroutines.launch
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
-import org.staacks.alpharemote.databinding.FragmentSettingsBinding
 import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.ui.help.HelpDialogFragment
 import org.staacks.alpharemote.ui.settings.CompanionDeviceHelper.pairCompanionDevice
@@ -60,9 +45,6 @@ import org.staacks.alpharemote.utils.hasNotificationPermission
 import androidx.core.net.toUri
 
 class SettingsFragment : Fragment(), CameraActionPickerListener {
-
-    private var _binding: FragmentSettingsBinding? = null
-    private val binding get() = _binding!!
 
     private lateinit var settingsViewModel: SettingsViewModel
 
@@ -86,135 +68,33 @@ class SettingsFragment : Fragment(), CameraActionPickerListener {
             savedInstanceState: Bundle?
     ): View {
         settingsViewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
-
-        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
-
-        binding.composePermissionRequest.apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                // In Compose world
-                BluetoothRemoteForSonyCamerasTheme {
-                    val uiState by settingsViewModel.uiState.collectAsState()
-                    val updateCameraLocation by settingsViewModel.updateCameraLocation.collectAsState(false)
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
-                        ) {
-                            CameraSettingsSection(
-                                state = uiState,
-                                onPairClick = settingsViewModel::pair,
-                                onUnpairClick = settingsViewModel::unpair,
-                                onHelpClick = settingsViewModel::helpConnection,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            MissingBluetoothPermissionSettings(
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            MissingNotificationPermissionSettings(
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            MissingLocationPermissionSettings(
-                                locationUpdatesEnabled = updateCameraLocation,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            LocationSettings(
-                                checked = updateCameraLocation,
-                                onCheckedChange = settingsViewModel::setUpdateCameraLocation,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        binding.composeCustomButtons.apply {
+        val composeView = ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 BluetoothRemoteForSonyCamerasTheme {
-                    val customButtons by settingsViewModel.customButtonListFlow.collectAsState()
-                    Surface {
-                        CustomButtonsSettingsSection(
-                            buttons = customButtons,
-                            onAddClick = settingsViewModel::addCustomButton,
-                            onHelpClick = settingsViewModel::helpCustomButtons,
-                            onEditClick = ::openCustomButtonEditor,
-                            onMove = settingsViewModel::moveCustomButton,
-                            onDelete = settingsViewModel::removeCustomButton,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-        }
-
-        binding.composeSettingsControls.apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent {
-                BluetoothRemoteForSonyCamerasTheme {
-                    val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
-                    val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
-                    Surface {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.headline_margin_top)),
-                        ) {
-                            NotificationButtonSizeSettings(
-                                selectedIndex = selectedButtonScaleIndex,
-                                maxIndex = settingsViewModel.buttonScaleSteps.lastIndex,
-                                onIndexChange = settingsViewModel::setButtonScaleIndex,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-
-                            BroadcastControlSettings(
-                                enabled = broadcastControlEnabled,
-                                onCheckedChange = settingsViewModel::setBroadcastControl,
-                                onMoreClick = { openURL(getString(R.string.settings_broadcast_control_more_url)) },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    settingsViewModel.uiAction.collect { action ->
-                        when (action) {
-                            SettingsViewModel.SettingsUIAction.PAIR -> pair()
-                            SettingsViewModel.SettingsUIAction.UNPAIR -> unpair()
-                            SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> addCustomButton()
-                            SettingsViewModel.SettingsUIAction.HELP_CONNECTION ->
+                        SettingScreen(
+                            settingsViewModel = settingsViewModel,
+                            onPairRequested = ::pair,
+                            onUnpairRequested = ::unpair,
+                            onAddCustomButtonRequested = ::addCustomButton,
+                            onHelpConnectionRequested = {
                                 HelpDialogFragment.newInstance(
                                     R.string.help_settings_connection_troubleshooting_title,
-                                    R.string.help_settings_connection_troubleshooting_text
+                                    R.string.help_settings_connection_troubleshooting_text,
                                 ).show(childFragmentManager, null)
-                            SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS ->
+                            },
+                            onHelpCustomButtonsRequested = {
                                 HelpDialogFragment.newInstance(
                                     R.string.help_settings_custom_buttons_title,
-                                    R.string.help_settings_custom_buttons_text
+                                    R.string.help_settings_custom_buttons_text,
                                 ).show(childFragmentManager, null)
-                        }
+                            },
+                            onEditCustomButton = ::openCustomButtonEditor,
+                            onOpenUrl = ::openURL,
+                        )
                     }
-                }
+                
             }
-        }
-
-        binding.linearLayout.layoutTransition.enableTransitionType(LayoutTransition.CHANGING)
-
-        ViewCompat.setOnApplyWindowInsetsListener(binding.linearLayout) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            v.updatePadding(
-                left = bars.left,
-                top = bars.top,
-                right = bars.right,
-                bottom = bars.bottom,
-            )
-            WindowInsetsCompat.CONSUMED
         }
 
         context?.registerReceiver(bondStateReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
@@ -226,7 +106,7 @@ class SettingsFragment : Fragment(), CameraActionPickerListener {
         checkLocationServiceState()
         checkAssociations()
 
-        return binding.root
+        return composeView
     }
 
     override fun onResume() {
@@ -243,7 +123,6 @@ class SettingsFragment : Fragment(), CameraActionPickerListener {
         context?.unregisterReceiver(bondStateReceiver)
         context?.unregisterReceiver(bluetoothStateReceiver)
         context?.unregisterReceiver(locationServiceStateReceiver)
-        _binding = null
     }
 
     private val bondStateReceiver = object : BroadcastReceiver() {
@@ -323,15 +202,13 @@ class SettingsFragment : Fragment(), CameraActionPickerListener {
             false
         }
 
-        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
-        viewModel.updateAssociationState(address, isAssociated, isBonded)
+        settingsViewModel.updateAssociationState(address, isAssociated, isBonded)
     }
 
     private fun checkBluetoothState() {
         val adapter = ContextCompat.getSystemService(requireContext(), BluetoothManager::class.java)?.adapter
         val enabled = adapter?.state == BluetoothAdapter.STATE_ON
-        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
-        viewModel.updateBluetoothState(enabled)
+        settingsViewModel.updateBluetoothState(enabled)
     }
 
     private fun checkLocationServiceState() {
@@ -341,8 +218,7 @@ class SettingsFragment : Fragment(), CameraActionPickerListener {
         } catch (_: Exception) {
             true // In this case, the setting has probably never been touched, which should be fine.
         }
-        val viewModel = ViewModelProvider(this)[SettingsViewModel::class.java]
-        viewModel.updateLocationServiceState(locationManager.isLocationEnabled, bleScanning)
+        settingsViewModel.updateLocationServiceState(locationManager.isLocationEnabled, bleScanning)
     }
 
     private fun checkBluetoothPermissionState(): Boolean {

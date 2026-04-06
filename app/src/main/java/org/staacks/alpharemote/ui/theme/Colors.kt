@@ -39,7 +39,6 @@ val LightColorScheme = lightColorScheme(
     onSecondaryContainer = White, // Adjust as needed
     tertiary = Fulvous, // Example, adjust if you have a tertiary color
     onTertiary = White,
-    error = LightRed,
     onError = White,
 )
 
@@ -54,7 +53,6 @@ val DarkColorScheme = darkColorScheme(
     onSecondaryContainer = White, // Adjust as needed
     tertiary = Fulvous, // Example, adjust if you have a tertiary color
     onTertiary = White,
-    error = LightRed,
     onError = White,
 )
 

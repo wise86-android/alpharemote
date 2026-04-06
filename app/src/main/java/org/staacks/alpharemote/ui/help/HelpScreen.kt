@@ -21,7 +21,6 @@ fun HelpScreen(
     onFaqClick: () -> Unit
 ) {
     Surface {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()

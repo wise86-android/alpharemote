@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -190,7 +192,7 @@ private fun CameraActionPickerContent(
             if (showDelete) {
                 IconButton(onClick = onDelete) {
                     Icon(
-                        painter = painterResource(R.drawable.baseline_delete_24),
+                        imageVector = Icons.Default.Delete,
                         contentDescription = stringResource(R.string.delete),
                     )
                 }

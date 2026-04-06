@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,19 +97,19 @@ fun CameraSettingsSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (state.cameraState == SettingsUICameraState.NOT_ASSOCIATED) {
-                Button(
+                TextButton (
                     onClick = onPairClick,
                     enabled = state.bluetoothEnabled,
                 ) {
                     Text(text = stringResource(R.string.settings_camera_add))
                 }
             } else {
-                Button(onClick = onUnpairClick) {
+                TextButton(onClick = onUnpairClick) {
                     Text(text = stringResource(R.string.settings_camera_remove))
                 }
             }
 
-            Button(onClick = onHelpClick) {
+            TextButton(onClick = onHelpClick) {
                 Text(text = stringResource(R.string.help))
             }
         }

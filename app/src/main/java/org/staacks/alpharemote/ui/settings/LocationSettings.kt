@@ -1,5 +1,6 @@
 package org.staacks.alpharemote.ui.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,19 +22,18 @@ fun LocationSettings(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(stringResource(R.string.settings_location_send))
-                Switch(
-                    checked = checked,
-                    onCheckedChange = onCheckedChange,
-                )
-            }
-        }
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(R.string.settings_location_send))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
+
 }
 
 @Preview(showBackground = true)
