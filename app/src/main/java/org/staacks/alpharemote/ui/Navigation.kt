@@ -1,4 +1,4 @@
-package org.staacks.alpharemote
+package org.staacks.alpharemote.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
