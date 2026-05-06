@@ -21,11 +21,6 @@ class CompanionAlphaRemoteService : CompanionDeviceService() {
         }
         if (!hasBluetoothPermission(this)) {
             Log.w(MainActivity.TAG, "Missing Bluetooth permission. Launching activity instead.")
-            val intent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                putExtra(MainActivity.NAVIGATE_TO_INTENT_EXTRA, R.id.navigation_settings)
-            }
-            startActivity(intent)
             stopSelf()
             return
         }

@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,13 +52,13 @@ fun AboutScreen(onOpenUrl: (String) -> Unit) {
                     buttons = listOf(
                         ActionButtonInfo(
                             text = stringResource(id = R.string.about_blog_label),
-                            iconResId = R.drawable.baseline_text_snippet_24,
+                            icon = Icons.Default.Description,
                             url = stringResource(id = R.string.about_blog_url),
                             onClick = onOpenUrl
                         ),
                         ActionButtonInfo(
                             text = stringResource(id = R.string.about_youtube_label),
-                            iconResId = R.drawable.yt_icon_mono_dark,
+                            icon = R.drawable.yt_icon_mono_dark,
                             url = stringResource(id = R.string.about_youtube_url),
                             onClick = onOpenUrl
                         )
@@ -71,7 +74,7 @@ fun AboutScreen(onOpenUrl: (String) -> Unit) {
                     buttons = listOf(
                         ActionButtonInfo(
                             text = stringResource(id = R.string.about_coffee_label),
-                            iconResId = R.drawable.buymeacoffee,
+                            icon = R.drawable.buymeacoffee,
                             url = stringResource(id = R.string.about_coffee_url),
                             onClick = onOpenUrl
                         )
@@ -87,13 +90,13 @@ fun AboutScreen(onOpenUrl: (String) -> Unit) {
                     buttons = listOf(
                         ActionButtonInfo(
                             text = stringResource(id = R.string.about_github_code_label),
-                            iconResId = R.drawable.github_mark_white,
+                            icon = R.drawable.github_mark_white,
                             url = stringResource(id = R.string.about_github_code_url),
                             onClick = onOpenUrl
                         ),
                         ActionButtonInfo(
                             text = stringResource(id = R.string.about_github_issues_label),
-                            iconResId = R.drawable.baseline_bug_report_24,
+                            icon = Icons.Default.BugReport,
                             url = stringResource(id = R.string.about_github_issues_url),
                             onClick = onOpenUrl
                         )

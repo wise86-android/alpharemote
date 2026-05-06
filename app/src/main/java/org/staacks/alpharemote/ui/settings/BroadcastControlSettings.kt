@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -49,7 +49,7 @@ fun BroadcastControlSettings(
 
         TextButton(onClick = onMoreClick) {
             Icon(
-                painter = painterResource(id = R.drawable.baseline_help_24),
+                imageVector = Icons.AutoMirrored.Filled.Help,
                 contentDescription = null,
             )
             Text(text = stringResource(R.string.settings_broadcast_control_more_label))

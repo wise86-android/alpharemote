@@ -4,8 +4,11 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import org.staacks.alpharemote.R
 import java.io.Serializable
+import kotlinx.serialization.Serializable as KSerializable
+import kotlinx.serialization.Transient
 import kotlin.math.roundToInt
 
+@KSerializable
 data class CameraAction (
     val toggle: Boolean,
     val selfTimer: Float?,
@@ -56,6 +59,7 @@ data class CameraAction (
     }
 }
 
+@KSerializable
 data class CameraActionTemplate (
     val name: Int,                                      // Resource ID for the name
     val icon: Int,                                      // Resource ID for the icon
@@ -67,6 +71,7 @@ data class CameraActionTemplate (
     val referenceJog: JogCode? = null                   // Same as reference button, but for jogs
 )
 
+@KSerializable
 enum class CameraActionTemplateOption {
     VARIABLE_DURATION, //Duration is defined by button press duration and user may set a fixed duration
     SELF_TIMER,         //User may add a selfTimer
@@ -74,6 +79,7 @@ enum class CameraActionTemplateOption {
     ADJUST_SPEED       //User may adjust speed of jog commands that have a speed set to -1
 }
 
+@KSerializable
 enum class CameraActionPreset(val template: CameraActionTemplate) {
     STOP(CameraActionTemplate(R.string.action_name_stop, R.drawable.ca_stop, false,
         listOf(), listOf(), setOf(), null

@@ -229,7 +229,7 @@ class NotificationUI(private val context: Context) {
 
         return NotificationCompat.Builder(context, channelId)
             .setContentIntent(pendingIntent)
-            .setSmallIcon(R.drawable.ic_camera_black_24dp)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(remoteViews)
             .setOnlyAlertOnce(true)

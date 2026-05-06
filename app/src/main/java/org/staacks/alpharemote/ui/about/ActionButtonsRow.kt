@@ -13,6 +13,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -21,7 +22,7 @@ import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 data class ActionButtonInfo(
     val text: String,
-    @DrawableRes val iconResId: Int,
+    val icon: Any, // Can be @DrawableRes Int or ImageVector
     val url: String,
     val onClick: (String) -> Unit
 )
@@ -37,12 +38,20 @@ fun ActionButtonsRow(buttons: List<ActionButtonInfo>) {
             TextButton(
                 onClick = { buttonInfo.onClick(buttonInfo.url) }
             ) {
-                Icon(
-                    painter = painterResource(id = buttonInfo.iconResId),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                when (val icon = buttonInfo.icon) {
+                    is Int -> Icon(
+                        painter = painterResource(id = icon),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    is ImageVector -> Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Spacer(Modifier.size(8.dp))
                 Text(text = buttonInfo.text)
             }
@@ -58,14 +67,8 @@ private fun ActionButtonsRowPreview() {
             buttons = listOf(
                 ActionButtonInfo(
                     text = "Blog",
-                    iconResId = R.drawable.baseline_text_snippet_24,
+                    icon = R.drawable.ca_stop, // Just a placeholder for preview
                     url = "https://example.com",
-                    onClick = {}
-                ),
-                ActionButtonInfo(
-                    text = "Issues",
-                    iconResId = R.drawable.baseline_bug_report_24,
-                    url = "https://example.com/issues",
                     onClick = {}
                 )
             )

@@ -4,6 +4,8 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -58,7 +60,7 @@ fun HelpScreen(
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.baseline_help_24),
+                        imageVector = Icons.AutoMirrored.Filled.Help,
                         contentDescription = null,
                         modifier = Modifier.size(ButtonDefaults.IconSize)
                     )

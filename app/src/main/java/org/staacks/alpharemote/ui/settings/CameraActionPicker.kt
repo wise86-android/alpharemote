@@ -154,7 +154,7 @@ class CameraActionPicker : DialogFragment() {
 }
 
 @Composable
-private fun CameraActionPickerContent(
+fun CameraActionPickerContent(
     startAction: CameraAction,
     showDelete: Boolean,
     selftimerSeekBarTimeMap: CameraActionPicker.SeekBarTimeMap,

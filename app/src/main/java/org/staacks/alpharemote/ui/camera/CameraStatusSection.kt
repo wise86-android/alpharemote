@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +75,7 @@ fun StatusHeader(
         if (serviceState?.countdownLabel == null) {
             IconButton(onClick = onHelp) {
                 Icon(
-                    painter = painterResource(R.drawable.baseline_help_24),
+                    imageVector = Icons.AutoMirrored.Filled.Help,
                     contentDescription = stringResource(R.string.help),
                 )
             }
