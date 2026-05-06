@@ -2,7 +2,6 @@ package org.staacks.alpharemote.ui.camera
 
 
 import android.view.MotionEvent
-import android.view.View
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -84,16 +83,11 @@ class CameraViewModel : ViewModel() {
         }
     }
 
-    fun defaultRemoteButtonOnTouchListener(view: View, event: MotionEvent): Boolean {
-        if (event.action in arrayOf(MotionEvent.ACTION_UP, MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL)) {
-            (view as? DefaultRemoteButton)?.let {
-                viewModelScope.launch {
-                    _uiAction.emit(DefaultRemoteButtonCameraUIAction(event.action, it.button))
-                }
+    fun onDefaultRemoteButtonTouch(button: DefaultRemoteButton.Button, action: Int): Boolean {
+        if (action in arrayOf(MotionEvent.ACTION_UP, MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL)) {
+            viewModelScope.launch {
+                _uiAction.emit(DefaultRemoteButtonCameraUIAction(action, button))
             }
-
-            //Set pressed state to show ripple effect
-            view.isPressed = event.action == MotionEvent.ACTION_DOWN
         }
 
         return true
