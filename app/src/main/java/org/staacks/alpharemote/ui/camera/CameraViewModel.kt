@@ -44,7 +44,7 @@ class CameraViewModel : ViewModel() {
 
     data class DefaultRemoteButtonCameraUIAction (
         val event: Int,
-        val button: DefaultRemoteButton.Button
+        val button: RemoteButton
     ) : CameraUIAction()
 
     private val _uiState = MutableStateFlow(CameraUIState())
@@ -83,7 +83,7 @@ class CameraViewModel : ViewModel() {
         }
     }
 
-    fun onDefaultRemoteButtonTouch(button: DefaultRemoteButton.Button, action: Int): Boolean {
+    fun onDefaultRemoteButtonTouch(button: RemoteButton, action: Int): Boolean {
         if (action in arrayOf(MotionEvent.ACTION_UP, MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL)) {
             viewModelScope.launch {
                 _uiAction.emit(DefaultRemoteButtonCameraUIAction(action, button))

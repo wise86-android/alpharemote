@@ -151,28 +151,28 @@ class CameraFragment : Fragment() {
 
     private fun handleDefaultRemoteButtonAction(action: CameraViewModel.DefaultRemoteButtonCameraUIAction) {
         when (action.button) {
-            DefaultRemoteButton.Button.SHUTTER ->
+            RemoteButton.SHUTTER ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.SHUTTER), action.event)
-            DefaultRemoteButton.Button.SHUTTER_HALF ->
+            RemoteButton.SHUTTER_HALF ->
                 sendCameraActionToService(CameraAction(true, null, null, null, CameraActionPreset.SHUTTER_HALF), action.event)
-            DefaultRemoteButton.Button.SELFTIMER_3S -> {
+            RemoteButton.SELFTIMER_3S -> {
                 if (action.event == MotionEvent.ACTION_UP) {
                     sendCameraActionToService(CameraAction(false, 3.0f, null, null, CameraActionPreset.TRIGGER_ONCE), null)
                 }
             }
-            DefaultRemoteButton.Button.RECORD ->
+            RemoteButton.RECORD ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.RECORD), action.event)
-            DefaultRemoteButton.Button.C1 ->
+            RemoteButton.C1 ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.C1), action.event)
-            DefaultRemoteButton.Button.AF_ON ->
+            RemoteButton.AF_ON ->
                 sendCameraActionToService(CameraAction(true, null, null, null, CameraActionPreset.AF_ON), action.event)
-            DefaultRemoteButton.Button.ZOOM_IN ->
+            RemoteButton.ZOOM_IN ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.ZOOM_IN), action.event)
-            DefaultRemoteButton.Button.ZOOM_OUT ->
+            RemoteButton.ZOOM_OUT ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.ZOOM_OUT), action.event)
-            DefaultRemoteButton.Button.FOCUS_FAR ->
+            RemoteButton.FOCUS_FAR ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.FOCUS_FAR), action.event)
-            DefaultRemoteButton.Button.FOCUS_NEAR ->
+            RemoteButton.FOCUS_NEAR ->
                 sendCameraActionToService(CameraAction(false, null, null, null, CameraActionPreset.FOCUS_NEAR), action.event)
         }
     }

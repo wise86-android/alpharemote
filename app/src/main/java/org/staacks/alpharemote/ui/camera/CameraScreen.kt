@@ -1,33 +1,23 @@
 package org.staacks.alpharemote.ui.camera
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.R
@@ -45,7 +35,7 @@ fun CameraScreen(
     customButtons: List<CameraAction>,
     onGotoSettings: () -> Unit,
     onHelp: () -> Unit,
-    onDefaultRemoteTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onDefaultRemoteTouch: (RemoteButton, Int) -> Boolean,
     onBulbToggleChanged: (Boolean) -> Unit,
     onBulbDurationChanged: (String) -> Unit,
     onIntervalToggleChanged: (Boolean) -> Unit,
@@ -55,7 +45,7 @@ fun CameraScreen(
     onCustomButtonClick: (CameraAction) -> Unit,
 ) {
     if (!uiState.connected) {
-        DisconnectedCameraContent(onGotoSettings = onGotoSettings)
+        DisconnectedCameraView(onGotoSettings = onGotoSettings)
         return
     }
 
@@ -102,35 +92,6 @@ fun CameraScreen(
                     .fillMaxWidth()
                     .weight(1f),
             )
-        }
-    }
-}
-
-@Composable
-private fun DisconnectedCameraContent(onGotoSettings: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(30.dp)
-    ) {
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.camera_not_connected),
-                modifier = Modifier.width(400.dp),
-            )
-            Spacer(modifier = Modifier.height(30.dp))
-            Button(onClick = onGotoSettings) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_settings_black_24dp),
-                    contentDescription = null,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.title_settings))
-            }
         }
     }
 }

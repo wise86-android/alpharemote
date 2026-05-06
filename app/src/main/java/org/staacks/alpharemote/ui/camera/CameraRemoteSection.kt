@@ -38,7 +38,7 @@ import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 @Composable
 fun DefaultRemote(
     cameraState: CameraState.Ready?,
-    onButtonTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.padding(top = 8.dp, bottom = 8.dp)) {
@@ -53,7 +53,7 @@ fun DefaultRemote(
 @Composable
 private fun DefaultRemotePortrait(
     cameraState: CameraState.Ready?,
-    onButtonTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onButtonTouch: (RemoteButton, Int) -> Boolean,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -62,9 +62,9 @@ private fun DefaultRemotePortrait(
                 .weight(1f),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LabeledRemoteButton(DefaultRemoteButton.Button.SHUTTER_HALF, R.drawable.ca_shutter_half, R.string.camera_button_half_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
-            LabeledRemoteButton(DefaultRemoteButton.Button.SHUTTER, R.drawable.ca_shutter, R.string.camera_button_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
-            LabeledRemoteButton(DefaultRemoteButton.Button.SELFTIMER_3S, R.drawable.ca_timer_3s, R.string.camera_button_selftimer_3s, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.SHUTTER_HALF, R.drawable.ca_shutter_half, R.string.camera_button_half_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.SHUTTER, R.drawable.ca_shutter, R.string.camera_button_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.SELFTIMER_3S, R.drawable.ca_timer_3s, R.string.camera_button_selftimer_3s, cameraState, onButtonTouch, Modifier.weight(1f))
         }
 
         Row(
@@ -75,9 +75,9 @@ private fun DefaultRemotePortrait(
         ) {
             FocusZoomCard(
                 label = R.string.camera_button_focus,
-                first = DefaultRemoteButton.Button.FOCUS_FAR,
+                first = RemoteButton.FOCUS_FAR,
                 firstIcon = R.drawable.ca_focus_far,
-                second = DefaultRemoteButton.Button.FOCUS_NEAR,
+                second = RemoteButton.FOCUS_NEAR,
                 secondIcon = R.drawable.ca_focus_near,
                 cameraState = cameraState,
                 onButtonTouch = onButtonTouch,
@@ -86,16 +86,16 @@ private fun DefaultRemotePortrait(
             )
 
             Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                LabeledRemoteButton(DefaultRemoteButton.Button.RECORD, R.drawable.ca_record, R.string.camera_button_record, cameraState, onButtonTouch, Modifier.weight(1f), tint = false)
-                RemoteTouchButton(DefaultRemoteButton.Button.AF_ON, R.drawable.ca_af_on, cameraState, onButtonTouch, Modifier.weight(1f))
-                RemoteTouchButton(DefaultRemoteButton.Button.C1, R.drawable.ca_c1, cameraState, onButtonTouch, Modifier.weight(1f))
+                LabeledRemoteButton(RemoteButton.RECORD, R.drawable.ca_record, R.string.camera_button_record, cameraState, onButtonTouch, Modifier.weight(1f), tint = false)
+                RemoteTouchButton(RemoteButton.AF_ON, R.drawable.ca_af_on, cameraState, onButtonTouch, Modifier.weight(1f))
+                RemoteTouchButton(RemoteButton.C1, R.drawable.ca_c1, cameraState, onButtonTouch, Modifier.weight(1f))
             }
 
             FocusZoomCard(
                 label = R.string.camera_button_zoom,
-                first = DefaultRemoteButton.Button.ZOOM_IN,
+                first = RemoteButton.ZOOM_IN,
                 firstIcon = R.drawable.ca_zoom_in,
-                second = DefaultRemoteButton.Button.ZOOM_OUT,
+                second = RemoteButton.ZOOM_OUT,
                 secondIcon = R.drawable.ca_zoom_out,
                 cameraState = cameraState,
                 onButtonTouch = onButtonTouch,
@@ -109,7 +109,7 @@ private fun DefaultRemotePortrait(
 @Composable
 private fun DefaultRemoteLandscape(
     cameraState: CameraState.Ready?,
-    onButtonTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onButtonTouch: (RemoteButton, Int) -> Boolean,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -118,9 +118,9 @@ private fun DefaultRemoteLandscape(
                 .weight(1f),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LabeledRemoteButton(DefaultRemoteButton.Button.SHUTTER_HALF, R.drawable.ca_shutter_half, R.string.camera_button_half_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
-            LabeledRemoteButton(DefaultRemoteButton.Button.SHUTTER, R.drawable.ca_shutter, R.string.camera_button_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
-            LabeledRemoteButton(DefaultRemoteButton.Button.SELFTIMER_3S, R.drawable.ca_timer_3s, R.string.camera_button_selftimer_3s, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.SHUTTER_HALF, R.drawable.ca_shutter_half, R.string.camera_button_half_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.SHUTTER, R.drawable.ca_shutter, R.string.camera_button_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.SELFTIMER_3S, R.drawable.ca_timer_3s, R.string.camera_button_selftimer_3s, cameraState, onButtonTouch, Modifier.weight(1f))
         }
 
         Row(
@@ -132,23 +132,23 @@ private fun DefaultRemoteLandscape(
         ) {
             FocusZoomCard(
                 label = R.string.camera_button_focus,
-                first = DefaultRemoteButton.Button.FOCUS_NEAR,
+                first = RemoteButton.FOCUS_NEAR,
                 firstIcon = R.drawable.ca_focus_near,
-                second = DefaultRemoteButton.Button.FOCUS_FAR,
+                second = RemoteButton.FOCUS_FAR,
                 secondIcon = R.drawable.ca_focus_far,
                 cameraState = cameraState,
                 onButtonTouch = onButtonTouch,
                 modifier = Modifier.weight(1.4f),
                 vertical = false,
             )
-            RemoteTouchButton(DefaultRemoteButton.Button.AF_ON, R.drawable.ca_af_on, cameraState, onButtonTouch, Modifier.weight(0.7f))
-            RemoteTouchButton(DefaultRemoteButton.Button.RECORD, R.drawable.ca_record, cameraState, onButtonTouch, Modifier.weight(0.7f), tint = false)
-            RemoteTouchButton(DefaultRemoteButton.Button.C1, R.drawable.ca_c1, cameraState, onButtonTouch, Modifier.weight(0.7f))
+            RemoteTouchButton(RemoteButton.AF_ON, R.drawable.ca_af_on, cameraState, onButtonTouch, Modifier.weight(0.7f))
+            RemoteTouchButton(RemoteButton.RECORD, R.drawable.ca_record, cameraState, onButtonTouch, Modifier.weight(0.7f), tint = false)
+            RemoteTouchButton(RemoteButton.C1, R.drawable.ca_c1, cameraState, onButtonTouch, Modifier.weight(0.7f))
             FocusZoomCard(
                 label = R.string.camera_button_zoom,
-                first = DefaultRemoteButton.Button.ZOOM_OUT,
+                first = RemoteButton.ZOOM_OUT,
                 firstIcon = R.drawable.ca_zoom_out,
-                second = DefaultRemoteButton.Button.ZOOM_IN,
+                second = RemoteButton.ZOOM_IN,
                 secondIcon = R.drawable.ca_zoom_in,
                 cameraState = cameraState,
                 onButtonTouch = onButtonTouch,
@@ -161,11 +161,11 @@ private fun DefaultRemoteLandscape(
 
 @Composable
 private fun LabeledRemoteButton(
-    button: DefaultRemoteButton.Button,
+    button: RemoteButton,
     @DrawableRes icon: Int,
     @StringRes label: Int,
     cameraState: CameraState.Ready?,
-    onButtonTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
     tint: Boolean = true,
 ) {
@@ -181,10 +181,10 @@ private fun LabeledRemoteButton(
 
 @Composable
 private fun RemoteTouchButton(
-    button: DefaultRemoteButton.Button,
+    button: RemoteButton,
     @DrawableRes icon: Int,
     cameraState: CameraState.Ready?,
-    onButtonTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
     tint: Boolean = true,
 ) {
@@ -210,12 +210,12 @@ private fun RemoteTouchButton(
 @Composable
 private fun FocusZoomCard(
     @StringRes label: Int,
-    first: DefaultRemoteButton.Button,
+    first: RemoteButton,
     @DrawableRes firstIcon: Int,
-    second: DefaultRemoteButton.Button,
+    second: RemoteButton,
     @DrawableRes secondIcon: Int,
     cameraState: CameraState.Ready?,
-    onButtonTouch: (DefaultRemoteButton.Button, Int) -> Boolean,
+    onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
     vertical: Boolean,
 ) {
@@ -239,16 +239,16 @@ private fun FocusZoomCard(
     }
 }
 
-private fun buttonIsPressed(button: DefaultRemoteButton.Button, state: CameraState.Ready): Boolean {
+private fun buttonIsPressed(button: RemoteButton, state: CameraState.Ready): Boolean {
     return when (button) {
-        DefaultRemoteButton.Button.SHUTTER -> ButtonCode.SHUTTER_FULL in state.pressedButtons
-        DefaultRemoteButton.Button.SHUTTER_HALF -> ButtonCode.SHUTTER_HALF in state.pressedButtons
-        DefaultRemoteButton.Button.C1 -> ButtonCode.C1 in state.pressedButtons
-        DefaultRemoteButton.Button.AF_ON -> ButtonCode.AF_ON in state.pressedButtons
-        DefaultRemoteButton.Button.ZOOM_IN -> JogCode.ZOOM_IN in state.pressedJogs
-        DefaultRemoteButton.Button.ZOOM_OUT -> JogCode.ZOOM_OUT in state.pressedJogs
-        DefaultRemoteButton.Button.FOCUS_FAR -> JogCode.FOCUS_FAR in state.pressedJogs
-        DefaultRemoteButton.Button.FOCUS_NEAR -> JogCode.FOCUS_NEAR in state.pressedJogs
+        RemoteButton.SHUTTER -> ButtonCode.SHUTTER_FULL in state.pressedButtons
+        RemoteButton.SHUTTER_HALF -> ButtonCode.SHUTTER_HALF in state.pressedButtons
+        RemoteButton.C1 -> ButtonCode.C1 in state.pressedButtons
+        RemoteButton.AF_ON -> ButtonCode.AF_ON in state.pressedButtons
+        RemoteButton.ZOOM_IN -> JogCode.ZOOM_IN in state.pressedJogs
+        RemoteButton.ZOOM_OUT -> JogCode.ZOOM_OUT in state.pressedJogs
+        RemoteButton.FOCUS_FAR -> JogCode.FOCUS_FAR in state.pressedJogs
+        RemoteButton.FOCUS_NEAR -> JogCode.FOCUS_NEAR in state.pressedJogs
         else -> false
     }
 }
