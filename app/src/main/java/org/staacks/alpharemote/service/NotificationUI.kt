@@ -19,6 +19,13 @@ import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.ble.BleConnectionState
+import org.staacks.alpharemote.data.SettingsStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.io.Serializable
 import java.util.Timer
 import java.util.TimerTask
@@ -47,7 +54,15 @@ class NotificationUI(private val context: Context) {
         val buttonIDs = intArrayOf(R.id.button0, R.id.button1, R.id.button2, R.id.button3, R.id.button4, R.id.button5, R.id.button6, R.id.button7, R.id.button8, R.id.button9)
     }
 
+    private val settingsStore = SettingsStore(context)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
     fun start(): Notification {
+        scope.launch {
+            settingsStore.customButtonSettings.collectLatest {
+                updateCustomButtons(it.customButtonList, it.scale)
+            }
+        }
         notifyTimer = Timer()
 
         val notificationChannel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
@@ -60,6 +75,7 @@ class NotificationUI(private val context: Context) {
     }
 
     fun stop() {
+        scope.cancel()
         try {
             notifyTask?.cancel()
         } catch (_: IllegalStateException) {}

@@ -132,7 +132,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                         is CameraState.Error -> currentState.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description)
                         is CameraState.StateNotBonded -> currentState.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)
                         is CameraState.RemoteDisabled -> currentState.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null)
-                        is CameraState.Ready -> currentState.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name, cameraError = null)
+                        is CameraState.Ready -> {
+                            if (storedAddress != camState.address) {
+                                viewModelScope.launch {
+                                    settingsStore.setCameraId(camState.name, camState.address)
+                                }
+                            }
+                            currentState.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name, cameraError = null)
+                        }
                         else -> {
                             currentState.copy(
                                 cameraState = if (isAssociated) SettingsUICameraState.OFFLINE else SettingsUICameraState.NOT_ASSOCIATED,

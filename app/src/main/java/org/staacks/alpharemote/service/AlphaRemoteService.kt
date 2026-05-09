@@ -102,9 +102,6 @@ class AlphaRemoteService : Service() {
     private val _internalServiceState = MutableStateFlow<ServiceState>(ServiceState.Gone)
     val internalServiceState = _internalServiceState.asStateFlow()
 
-
-    private val settingsStore:SettingsStore  by lazy { SettingsStore(this)}
-
     private fun startLocationUpdates() {
         if (hasLocationPermission(this)) {
             @SuppressLint("MissingPermission")
@@ -182,13 +179,8 @@ class AlphaRemoteService : Service() {
 
         scope.launch {
             _cameraState.collect {
-                when (it) {
-                    is CameraState.Ready -> {
-                        settingsStore.setCameraId(it.name, it.address)
-                        checkWaitAction(it)
-                    }
-
-                    else -> cancelPendingActionSteps()
+                if (it !is CameraState.Ready) {
+                    cancelPendingActionSteps()
                 }
             }
         }
@@ -304,17 +296,7 @@ class AlphaRemoteService : Service() {
     }
 
     private fun createNotificationUI():NotificationUI {
-        return notificationUI ?: (NotificationUI(applicationContext).also { notificationUI ->
-            scope.launch {
-                settingsStore.customButtonSettings.stateIn(
-                    scope = this,
-                    started = SharingStarted.WhileSubscribed(5000),
-                    initialValue = SettingsStore.CustomButtonSettings(null, 1.0f)
-                ).collectLatest {
-                    notificationUI.updateCustomButtons(it.customButtonList, it.scale)
-                }
-            }
-        })
+        return notificationUI ?: NotificationUI(applicationContext).also { notificationUI = it }
     }
 
     private fun collectCameraBleUpdates() {
