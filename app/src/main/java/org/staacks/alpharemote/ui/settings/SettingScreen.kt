@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
@@ -176,39 +177,45 @@ private fun SettingScreenContent(
     onBroadcastMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ) {
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .verticalScroll(rememberScrollState())
                 .padding(FragmentMargin),
-            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
                 text = stringResource(R.string.title_settings),
                 style = MaterialTheme.typography.headlineMedium,
             )
 
-            CameraSettingsSection(
-                state = uiState,
-                onPairClick = onPairClick,
-                onUnpairClick = onUnpairClick,
-                onHelpClick = onHelpConnectionClick,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                CameraSettingsSection(
+                    state = uiState,
+                    onPairClick = onPairClick,
+                    onUnpairClick = onUnpairClick,
+                    onHelpClick = onHelpConnectionClick,
+                )
 
-            MissingBluetoothPermissionSettings()
+                MissingBluetoothPermissionSettings()
+                MissingNotificationPermissionSettings()
+            }
 
-            MissingNotificationPermissionSettings()
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                MissingLocationPermissionSettings(
+                    locationUpdatesEnabled = updateCameraLocation,
+                )
 
-            MissingLocationPermissionSettings(
-                locationUpdatesEnabled = updateCameraLocation,
-            )
-
-            LocationSettings(
-                checked = updateCameraLocation,
-                onCheckedChange = onLocationUpdatesCheckedChange,
-            )
+                LocationSettings(
+                    checked = updateCameraLocation,
+                    onCheckedChange = onLocationUpdatesCheckedChange,
+                )
+            }
 
             CustomButtonsSettingsSection(
                 buttons = customButtons,
@@ -234,7 +241,7 @@ private fun SettingScreenContent(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true,)
 @Composable
 private fun SettingScreenPreview() {
     BluetoothRemoteForSonyCamerasTheme {
