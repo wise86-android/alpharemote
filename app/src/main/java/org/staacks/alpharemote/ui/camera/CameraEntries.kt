@@ -10,16 +10,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.EntryProviderScope
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
-import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.ui.AlphaRemoteNavKey
 import org.staacks.alpharemote.ui.Navigator
 
 fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
     cameraViewModel: CameraViewModel,
-    navigator: Navigator,
-    onSendCameraAction: (CameraAction, Int?) -> Unit,
-    onStartAdvancedSequence: (Float, Int, Float) -> Unit
+    navigator: Navigator
 ) {
     entry<AlphaRemoteNavKey.Camera> {
         val uiState by cameraViewModel.uiState.collectAsState()
@@ -53,12 +50,9 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
             onIntervalCountChanged = { uiState.intervalCount = it.toIntOrNull() },
             onIntervalDurationChanged = { uiState.intervalDuration = it.toDoubleOrNull() },
             onStartSequence = {
-                val bulbDuration = if (uiState.bulbToggle) { uiState.bulbDuration ?: 0.0 } else { 0.0 }
-                val intervalCount = if (uiState.intervalToggle) { uiState.intervalCount ?: 1 } else { 1 }
-                val intervalDuration = if (uiState.intervalToggle) { uiState.intervalDuration ?: 0.0 } else { 0.0 }
-                onStartAdvancedSequence(bulbDuration.toFloat(), intervalCount, intervalDuration.toFloat())
+                cameraViewModel.startAdvancedSequence()
             },
-            onCustomButtonClick = { onSendCameraAction(it, null) }
+            onCustomButtonClick = { cameraViewModel.onCustomButtonClick(it) }
         )
 
         // Handle CameraViewModel actions
@@ -76,55 +70,10 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
                                     R.string.help_camera_remote_text
                                 )
                             )
-                            CameraViewModel.GenericCameraUIActionType.START_ADVANCED_SEQUENCE -> {
-                                val currentUiState = cameraViewModel.uiState.value
-                                val bulbDuration = if (currentUiState.bulbToggle) {
-                                    currentUiState.bulbDuration ?: 0.0
-                                } else {
-                                    0.0
-                                }
-                                val intervalCount = if (currentUiState.intervalToggle) {
-                                    currentUiState.intervalCount ?: 1
-                                } else {
-                                    1
-                                }
-                                val intervalDuration = if (currentUiState.intervalToggle) {
-                                    currentUiState.intervalDuration ?: 0.0
-                                } else {
-                                    0.0
-                                }
-                                onStartAdvancedSequence(
-                                    bulbDuration.toFloat(),
-                                    intervalCount,
-                                    intervalDuration.toFloat()
-                                )
-                            }
+                            else -> {}
                         }
                     }
-                    is CameraViewModel.DefaultRemoteButtonCameraUIAction -> {
-                        val preset = when (action.button) {
-                            RemoteButton.SHUTTER -> CameraActionPreset.SHUTTER
-                            RemoteButton.SHUTTER_HALF -> CameraActionPreset.SHUTTER_HALF
-                            RemoteButton.SELFTIMER_3S -> CameraActionPreset.TRIGGER_ONCE
-                            RemoteButton.RECORD -> CameraActionPreset.RECORD
-                            RemoteButton.C1 -> CameraActionPreset.C1
-                            RemoteButton.AF_ON -> CameraActionPreset.AF_ON
-                            RemoteButton.ZOOM_IN -> CameraActionPreset.ZOOM_IN
-                            RemoteButton.ZOOM_OUT -> CameraActionPreset.ZOOM_OUT
-                            RemoteButton.FOCUS_FAR -> CameraActionPreset.FOCUS_FAR
-                            RemoteButton.FOCUS_NEAR -> CameraActionPreset.FOCUS_NEAR
-                        }
-                        val selfTimer = if (action.button == RemoteButton.SELFTIMER_3S) 3.0f else null
-                        onSendCameraAction(
-                            CameraAction(
-                                toggle = action.button in setOf(RemoteButton.SHUTTER_HALF, RemoteButton.AF_ON),
-                                selfTimer = selfTimer,
-                                duration = null,
-                                step = null,
-                                preset = preset
-                            ), action.event
-                        )
-                    }
+                    else -> {}
                 }
             }
         }

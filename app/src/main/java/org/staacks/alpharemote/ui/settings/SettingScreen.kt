@@ -1,13 +1,5 @@
 package org.staacks.alpharemote.ui.settings
 
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothManager
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.location.LocationManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,7 +43,6 @@ fun SettingScreen(
     onOpenUrl: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     val sectionSpacing = dimensionResource(R.dimen.headline_margin_top)
 
     val uiState by settingsViewModel.uiState.collectAsState()
@@ -61,62 +52,6 @@ fun SettingScreen(
     val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
 
     val broadcastDocumentationUrl = stringResource(R.string.settings_broadcast_control_more_url)
-
-    // Helper functions moved from fragment
-    fun checkAssociations() {
-        val address = CompanionDeviceHelper.getAssociation(context).firstOrNull()
-        val isAssociated = address != null
-        val isBonded = isAssociated && try {
-            val adapter = ContextCompat.getSystemService(context, BluetoothManager::class.java)?.adapter
-            adapter?.getRemoteDevice(address)?.bondState == BluetoothDevice.BOND_BONDED
-        } catch (_: SecurityException) {
-            false
-        }
-        settingsViewModel.updateAssociationState(address, isAssociated, isBonded)
-    }
-
-    fun checkBluetoothState() {
-        val adapter = ContextCompat.getSystemService(context, BluetoothManager::class.java)?.adapter
-        val enabled = adapter?.state == BluetoothAdapter.STATE_ON
-        settingsViewModel.updateBluetoothState(enabled)
-    }
-
-    fun checkLocationServiceState() {
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val bleScanning = try {
-            Settings.Global.getInt(context.contentResolver, "ble_scan_always_enabled") == 1
-        } catch (_: Exception) {
-            true
-        }
-        settingsViewModel.updateLocationServiceState(locationManager.isLocationEnabled, bleScanning)
-    }
-
-    DisposableEffect(context) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                when (intent?.action) {
-                    BluetoothDevice.ACTION_BOND_STATE_CHANGED -> checkAssociations()
-                    BluetoothAdapter.ACTION_STATE_CHANGED -> checkBluetoothState()
-                    LocationManager.MODE_CHANGED_ACTION -> checkLocationServiceState()
-                }
-            }
-        }
-        val filter = IntentFilter().apply {
-            addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
-            addAction(LocationManager.MODE_CHANGED_ACTION)
-        }
-        context.registerReceiver(receiver, filter)
-        
-        // Initial checks
-        checkBluetoothState()
-        checkLocationServiceState()
-        checkAssociations()
-
-        onDispose {
-            context.unregisterReceiver(receiver)
-        }
-    }
 
     LaunchedEffect(settingsViewModel) {
         settingsViewModel.uiAction.collect { action ->

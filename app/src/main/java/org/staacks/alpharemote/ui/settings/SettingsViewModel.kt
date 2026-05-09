@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import org.staacks.alpharemote.data.SettingsStore
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
-import org.staacks.alpharemote.service.AlphaRemoteService
+import org.staacks.alpharemote.service.AlphaRemoteRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,21 +24,16 @@ import org.staacks.alpharemote.service.ServiceState
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private var isAssociated: Boolean = false
-    private var isBonded: Boolean = false
-    private var associationName: String? = null
-
-    private var bluetoothEnabled: Boolean = false
-    private var locationServiceEnabled: Boolean = false
-    private var bleScanningEnabled: Boolean = false
+    private val repository = AlphaRemoteRepository.getInstance(application)
+    private val settingsStore = SettingsStore(application)
 
     data class SettingsUIState (
-        var cameraState: SettingsUICameraState = SettingsUICameraState.OFFLINE,
-        var cameraError: String?,
-        var cameraName: String?,
-        var bluetoothEnabled: Boolean,
-        var locationServiceEnabled: Boolean,
-        var bleScanningEnabled: Boolean
+        val cameraState: SettingsUICameraState = SettingsUICameraState.OFFLINE,
+        val cameraError: String? = null,
+        val cameraName: String? = null,
+        val bluetoothEnabled: Boolean = false,
+        val locationServiceEnabled: Boolean = false,
+        val bleScanningEnabled: Boolean = false
     )
 
     enum class SettingsUICameraState {
@@ -56,13 +53,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         HELP_CUSTOM_BUTTONS
     }
 
-    private val _uiState = MutableStateFlow(SettingsUIState(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = null, bluetoothEnabled = false, locationServiceEnabled = false, bleScanningEnabled = false))
+    private val _uiState = MutableStateFlow(SettingsUIState())
     val uiState: StateFlow<SettingsUIState> = _uiState.asStateFlow()
 
     private val _uiAction = MutableSharedFlow<SettingsUIAction>()
     val uiAction = _uiAction.asSharedFlow()
-
-    private val settingsStore = SettingsStore(application)
 
     val updateCameraLocation = settingsStore.updateCameraLocation
 
@@ -102,64 +97,53 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
             broadcastControl.value = settingsStore.getBroadcastControl()
         }
+
         viewModelScope.launch {
-            AlphaRemoteService.serviceState.collectLatest { state ->
-                when (val camState = (state as? ServiceState.Running)?.cameraState) {
-                    is CameraState.Error -> _uiState.update { it.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description) }
-                    is CameraState.StateNotBonded -> { //Service was launched but cameraBLE detected that the device is not bonded
-                        _uiState.update{it.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)}
-                    }
-                    is CameraState.RemoteDisabled -> { //Service was launched but cameraBLE suspects that the remote function is disabled
-                        _uiState.update { it.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null)}
-                    }
-                    is CameraState.Ready -> _uiState.update { it.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name , cameraError = null)}
-                    else -> {
-                        if (isBonded) {
-                            _uiState.update{it.copy(cameraState = SettingsUICameraState.OFFLINE, cameraError = null, cameraName = associationName)}
-                        } else if (isAssociated) { //Fragment detected that the camera is associated by not bonded
-                            _uiState.update { uiState.value.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)}
-                        } else {
-                            _uiState.update { uiState.value.copy(cameraState = SettingsUICameraState.NOT_ASSOCIATED, cameraError = null, cameraName = null)}
+            repository.bluetoothEnabled.collectLatest { enabled ->
+                _uiState.update { it.copy(bluetoothEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.locationEnabled.collectLatest { enabled ->
+                _uiState.update { it.copy(locationServiceEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            repository.bleScanningEnabled.collectLatest { enabled ->
+                _uiState.update { it.copy(bleScanningEnabled = enabled) }
+            }
+        }
+
+        viewModelScope.launch {
+            combine(
+                repository.serviceState,
+                repository.associations
+            ) { state, associations ->
+                val (storedAddress, storedName) = settingsStore.getCameraId()
+                val address = associations.firstOrNull()
+                val isAssociated = address != null
+                // For simplicity, we assume if it's associated, we treat it as potentially bonded or offline
+                // The actual bonding state is best handled reactively by the Repository if needed.
+                
+                _uiState.update { currentState ->
+                    when (val camState = (state as? ServiceState.Running)?.cameraState) {
+                        is CameraState.Error -> currentState.copy(cameraState = SettingsUICameraState.ERROR, cameraError = camState.description)
+                        is CameraState.StateNotBonded -> currentState.copy(cameraState = SettingsUICameraState.NOT_BONDED, cameraError = null, cameraName = null)
+                        is CameraState.RemoteDisabled -> currentState.copy(cameraState = SettingsUICameraState.REMOTE_DISABLED, cameraError = null, cameraName = null)
+                        is CameraState.Ready -> currentState.copy(cameraState = SettingsUICameraState.CONNECTED, cameraName = camState.name, cameraError = null)
+                        else -> {
+                            currentState.copy(
+                                cameraState = if (isAssociated) SettingsUICameraState.OFFLINE else SettingsUICameraState.NOT_ASSOCIATED,
+                                cameraName = if (isAssociated && storedAddress == address) storedName else null,
+                                cameraError = null
+                            )
                         }
                     }
                 }
-            }
+            }.collect()
         }
-    }
-
-    fun updateAssociationState(address: String?, isAssociated: Boolean, isBonded: Boolean) {
-        Log.d(MainActivity.TAG, "Updated association state: $address associated=$isAssociated bonded=$isBonded")
-        this.isAssociated = isAssociated
-        this.isBonded = isBonded
-        viewModelScope.launch {
-            if (isBonded) {
-                val (storedAddress, storedName) = settingsStore.getCameraId()
-                associationName = if (storedAddress == address) storedName else null
-            }
-
-            _uiState.update {
-                val state = uiState.value.copy()
-                if (state.cameraState == SettingsUICameraState.NOT_ASSOCIATED || state.cameraState == SettingsUICameraState.NOT_BONDED || state.cameraState == SettingsUICameraState.OFFLINE) {
-                    state.cameraState = if (isBonded) SettingsUICameraState.OFFLINE else if (isAssociated) SettingsUICameraState.NOT_BONDED else SettingsUICameraState.NOT_ASSOCIATED
-                }
-                if (state.cameraState != SettingsUICameraState.CONNECTED) {
-                    state.cameraName = associationName
-                }
-                state.cameraError = null
-                state
-            }
-        }
-    }
-
-    fun updateBluetoothState(enabled: Boolean) {
-        bluetoothEnabled = enabled
-        _uiState.update{it.copy(bluetoothEnabled = enabled)}
-    }
-
-    fun updateLocationServiceState(locationServiceEnabled: Boolean, bleScanningEnabled: Boolean) {
-        this.locationServiceEnabled = locationServiceEnabled
-        this.bleScanningEnabled = bleScanningEnabled
-        _uiState.update { it.copy(locationServiceEnabled = locationServiceEnabled, bleScanningEnabled = bleScanningEnabled) }
     }
 
     fun pair() {

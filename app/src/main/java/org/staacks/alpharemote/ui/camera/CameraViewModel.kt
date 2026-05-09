@@ -2,7 +2,9 @@ package org.staacks.alpharemote.ui.camera
 
 
 import android.view.MotionEvent
-import androidx.lifecycle.ViewModel
+import org.staacks.alpharemote.service.AlphaRemoteRepository
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,11 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
+import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.service.ServiceState
 
 
-class CameraViewModel : ViewModel() {
+class CameraViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository = AlphaRemoteRepository.getInstance(application)
 
     data class CameraUIState (
         var connected: Boolean = false,
@@ -55,7 +60,7 @@ class CameraViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            AlphaRemoteService.serviceState.collectLatest {
+            repository.serviceState.collectLatest {
                 (it as? ServiceState.Running)?.also { serviceRunning ->
                     _uiState.value = uiState.value.copy(
                         serviceState = serviceRunning,
@@ -85,18 +90,24 @@ class CameraViewModel : ViewModel() {
 
     fun onDefaultRemoteButtonTouch(button: RemoteButton, action: Int): Boolean {
         if (action in arrayOf(MotionEvent.ACTION_UP, MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL)) {
-            viewModelScope.launch {
-                _uiAction.emit(DefaultRemoteButtonCameraUIAction(action, button))
-            }
+            val cameraAction = button.toCameraAction()
+            repository.sendCameraAction(cameraAction, action)
         }
 
         return true
     }
 
+    fun onCustomButtonClick(action: CameraAction) {
+        repository.sendCameraAction(action, null)
+    }
+
     fun startAdvancedSequence() {
-        viewModelScope.launch {
-            _uiAction.emit(GenericCameraUIAction(GenericCameraUIActionType.START_ADVANCED_SEQUENCE))
-        }
+        val state = uiState.value
+        repository.startAdvancedSequence(
+            state.bulbDuration?.toFloat() ?: 5.0f,
+            state.intervalCount ?: 50,
+            state.intervalDuration?.toFloat() ?: 3.0f
+        )
     }
 
 }

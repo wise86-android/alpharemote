@@ -99,6 +99,9 @@ class AlphaRemoteService : Service() {
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Unknown)
     val cameraState = _cameraState.asStateFlow()
 
+    private val _internalServiceState = MutableStateFlow<ServiceState>(ServiceState.Gone)
+    val internalServiceState = _internalServiceState.asStateFlow()
+
 
     private val settingsStore:SettingsStore  by lazy { SettingsStore(this)}
 
@@ -124,9 +127,6 @@ class AlphaRemoteService : Service() {
 
     companion object {
         private val TAG = AlphaRemoteService::class.java.name
-
-        private val _serviceState = MutableStateFlow<ServiceState>(ServiceState.Gone)
-        val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
 
         const val BUTTON_INTENT_ACTION = "NOTIFICATION_BUTTON"
         const val BUTTON_INTENT_CAMERA_ACTION_EXTRA = "camera_action"
@@ -194,7 +194,7 @@ class AlphaRemoteService : Service() {
         }
         scope.launch {
             _cameraState.collectLatest { cameraState ->
-                _serviceState.update {
+                _internalServiceState.update {
                     (it as? ServiceState.Running)?.copy(cameraState = cameraState)
                         ?: ServiceState.Running(cameraState, null, null)
                 }
@@ -234,7 +234,7 @@ class AlphaRemoteService : Service() {
         Log.d(MainActivity.TAG, "onDisconnect")
         hasConnectedDevice = false
         stopLocationUpdates()
-        _serviceState.value = ServiceState.Gone
+        _internalServiceState.value = ServiceState.Gone
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
@@ -244,7 +244,7 @@ class AlphaRemoteService : Service() {
         stopSelf()
     }
 
-    private fun executeCameraAction(cameraAction: CameraAction, down: Boolean, up: Boolean) {
+    internal fun executeCameraAction(cameraAction: CameraAction, down: Boolean, up: Boolean) {
         var translatedUp = up
         var translatedDown = down
 
@@ -510,7 +510,7 @@ class AlphaRemoteService : Service() {
             pendingStepsCancelled = true
             updatePendingActionStatistics()
         }
-        _serviceState.update {
+        _internalServiceState.update {
             (it as? ServiceState.Running)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()
@@ -543,7 +543,7 @@ class AlphaRemoteService : Service() {
             if (actionStep is CAButton && actionStep.isSequenceTrigger)
                 pendingTriggerCount++
         }
-        _serviceState.update {
+        _internalServiceState.update {
             (it as? ServiceState.Running)?.copy(pendingTriggerCount = pendingTriggerCount) ?: it
         }
     }
@@ -565,7 +565,7 @@ class AlphaRemoteService : Service() {
                 countdownActionComplete()
             }
             val targetTime = SystemClock.elapsedRealtime() + time
-            _serviceState.update {
+            _internalServiceState.update {
                 (it as? ServiceState.Running)?.copy(countdown = targetTime, countdownLabel = step.label)
                     ?: it
             }
@@ -581,7 +581,7 @@ class AlphaRemoteService : Service() {
 
     @Synchronized
     fun countdownActionComplete() {
-        _serviceState.update {
+        _internalServiceState.update {
             (it as? ServiceState.Running)?.copy(countdown = null, countdownLabel = null) ?: it
         }
         notificationUI?.hideCountdown()

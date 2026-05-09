@@ -21,7 +21,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.ui.about.aboutEntries
 import org.staacks.alpharemote.ui.camera.CameraViewModel
 import org.staacks.alpharemote.ui.camera.cameraEntries
@@ -31,9 +30,7 @@ import org.staacks.alpharemote.ui.settings.settingsEntries
 @Composable
 fun MainScreen(
     onPairRequested: (IntentSender) -> Unit,
-    onOpenUrl: (String) -> Unit,
-    onSendCameraAction: (CameraAction, Int?) -> Unit,
-    onStartAdvancedSequence: (Float, Int, Float) -> Unit
+    onOpenUrl: (String) -> Unit
 ) {
     val topLevelRoutes = setOf(
         AlphaRemoteNavKey.Camera,
@@ -52,7 +49,7 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel()
 
     val entryProvider = entryProvider {
-        cameraEntries(cameraViewModel, navigator, onSendCameraAction, onStartAdvancedSequence)
+        cameraEntries(cameraViewModel, navigator)
         settingsEntries(settingsViewModel, navigator, onPairRequested, onOpenUrl)
         aboutEntries(onOpenUrl)
         commonEntries(navigator)
