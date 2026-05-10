@@ -135,7 +135,7 @@ class AlphaRemoteService : Service() {
         const val DISCONNECT_INTENT_ACTION = "DEVICE_DISCONNECT"
         const val CONNECT_INTENT_ACTION = "DEVICE_CONNECT"
         const val INTENT_EXTRA_DEVICE_ADDRESS = "DEVICE_DISCONNECT_ADDRESS"
-        fun sendDisconnectIntent(context: Context,deviceAddress: String?=null) {
+        fun sendDisconnectIntent(context: Context,deviceAddress: BluetoothDevice?=null) {
             context.startService(
                 Intent(context, AlphaRemoteService::class.java).apply {
                     action = DISCONNECT_INTENT_ACTION
@@ -144,7 +144,7 @@ class AlphaRemoteService : Service() {
             )
         }
 
-        fun sendConnectIntent(context: Context, deviceAddress: String) {
+        fun sendConnectIntent(context: Context, deviceAddress: BluetoothDevice) {
             context.startForegroundService(
                 Intent(context, AlphaRemoteService::class.java).apply {
                     action = CONNECT_INTENT_ACTION
@@ -202,10 +202,6 @@ class AlphaRemoteService : Service() {
         unregisterReceiver(bondStateReceiver)
     }
 
-    private fun getBleDeviceWithAddress(address: String): BluetoothDevice? {
-        val bleAdapter = ContextCompat.getSystemService(this, BluetoothManager::class.java)?.adapter
-        return bleAdapter?.getRemoteDevice(address)
-    }
 
     private fun onConnect() {
         Log.d(MainActivity.TAG, "onConnect")
@@ -274,10 +270,9 @@ class AlphaRemoteService : Service() {
             )
             return
         }
-        val address = intent.getStringExtra(INTENT_EXTRA_DEVICE_ADDRESS)!!
-        val bleDevice = getBleDeviceWithAddress(address)
+        val bleDevice = intent.getParcelableExtra(INTENT_EXTRA_DEVICE_ADDRESS, BluetoothDevice::class.java)
         if(bleDevice == null) {
-            Log.w(TAG, "device with address: ${address} not found!")
+            Log.w(TAG, "no device address")
             stopSelf()
             return
         }

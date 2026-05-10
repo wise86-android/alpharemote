@@ -17,7 +17,7 @@ class CompanionAlphaRemoteService : CompanionDeviceService() {
         Log.d(TAG, "onDevicePresenceEvent: associationId=$associationId, eventType=$eventType")
 
         val associationInfo = getSystemService(android.companion.CompanionDeviceManager::class.java).myAssociations.find { it.id == associationId }
-        val address = associationInfo?.deviceMacAddress?.toString()
+        val address = associationInfo?.associatedDevice?.bleDevice?.device
 
         if (address == null) {
             Log.w(TAG, "Address not found for associationId=$associationId")
@@ -36,20 +36,20 @@ class CompanionAlphaRemoteService : CompanionDeviceService() {
         }
     }
 
-    private fun handleDeviceAppeared(address: String) {
+    private fun handleDeviceAppeared(address: BluetoothDevice) {
         Log.d(TAG, "Device appeared: $address")
         if (!hasBluetoothPermission(this)) {
             Log.w(MainActivity.TAG, "Missing Bluetooth permission.")
             return
         }
         try {
-            AlphaRemoteService.sendConnectIntent(this, address)
+            AlphaRemoteService.sendConnectIntent(this,address )
         } catch (e: Exception) {
             Log.e(TAG, "Error starting service: $e")
         }
     }
 
-    private fun handleDeviceDisappeared(address: String) {
+    private fun handleDeviceDisappeared(address: BluetoothDevice) {
         Log.d(TAG, "Device disappeared: $address")
         AlphaRemoteService.sendDisconnectIntent(this, address)
     }

@@ -4,6 +4,7 @@ import android.app.Activity.RESULT_OK
 import android.companion.AssociationInfo
 import android.companion.CompanionDeviceManager
 import android.content.IntentSender
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +28,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
+import org.staacks.alpharemote.service.AlphaRemoteRepository
 import org.staacks.alpharemote.service.AlphaRemoteService
 import org.staacks.alpharemote.ui.AlphaRemoteNavKey
 import org.staacks.alpharemote.ui.Navigator
@@ -90,9 +92,10 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
                     CompanionDeviceManager.EXTRA_ASSOCIATION,
                     AssociationInfo::class.java
                 )
-                associationInfo?.associatedDevice?.bleDevice?.let { bleDevice ->
-                    CompanionDeviceHelper.startObservingDevicePresence(context, bleDevice.device)
-                }
+                val device = associationInfo?.associatedDevice?.bleDevice?.device
+
+                Log.d("CompanionDeviceManager","Association successful with device: ${device}")
+                device?.let { AlphaRemoteService.sendConnectIntent(context,it)}
             }
         }
 
@@ -101,13 +104,13 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
             onPairRequested = {
                 CompanionDeviceHelper.pairCompanionDevice(context, object : CompanionDeviceManager.Callback() {
                     override fun onAssociationPending(intentSender: IntentSender) {
+                        Log.d("CompanionDeviceManager","Association pending, launching intent sender")
                         pairLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
                     }
 
                     override fun onAssociationCreated(associationInfo: AssociationInfo) {
-                        associationInfo.associatedDevice?.bleDevice?.let { bleDevice ->
-                            CompanionDeviceHelper.startObservingDevicePresence(context, bleDevice.device)
-                        }
+                        Log.d("CompanionDeviceManager","Association created with device: ${associationInfo.associatedDevice?.bleDevice?.device}")
+                        CompanionDeviceHelper.startObservingDevicePresence(context, associationInfo)
                     }
 
                     override fun onFailure(error: CharSequence?) {

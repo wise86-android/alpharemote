@@ -170,6 +170,7 @@ class CameraBLE(
             gatt = device.connectGatt(context, true, bluetoothGattCallback)
         } else {
             _cameraConnectionState.update { BleConnectionState.BoundLost }
+            device.createBond()
             Log.e(TAG, "Camera found, but not bonded. yet")
         }
     }

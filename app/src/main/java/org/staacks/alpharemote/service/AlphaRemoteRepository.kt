@@ -110,14 +110,6 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
         context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
-    fun connect(address: String) {
-        AlphaRemoteService.sendConnectIntent(context, address)
-    }
-
-    fun disconnect() {
-        AlphaRemoteService.sendDisconnectIntent(context)
-    }
-
     fun sendCameraAction(action: CameraAction, event: Int?) {
         boundService?.executeCameraAction(action, 
             down = event == android.view.MotionEvent.ACTION_DOWN,

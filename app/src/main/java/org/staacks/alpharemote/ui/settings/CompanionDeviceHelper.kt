@@ -2,6 +2,7 @@ package org.staacks.alpharemote.ui.settings
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanFilter
+import android.companion.AssociationInfo
 import android.companion.AssociationRequest
 import android.companion.BluetoothLeDeviceFilter
 import android.companion.CompanionDeviceManager
@@ -11,6 +12,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.google.android.gms.common.logging.Logger
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 
@@ -61,24 +63,16 @@ object CompanionDeviceHelper {
         deviceManager?.associate(associationRequest, callback, null)
     }
 
-    fun startObservingDevicePresence(context: Context, device: BluetoothDevice): Boolean {
-        try {
-            device.createBond()
-            val deviceManager = ContextCompat.getSystemService(context, CompanionDeviceManager::class.java)
-            val associationId = deviceManager?.myAssociations?.find { it.deviceMacAddress?.toString() == device.address }?.id
-            if (associationId != null) {
-                val request = ObservingDevicePresenceRequest.Builder()
-                    .setAssociationId(associationId)
-                    .build()
-                deviceManager.startObservingDevicePresence(request)
-                return true
-            }
-        } catch (e: SecurityException) {
-            Log.e(MainActivity.TAG, e.toString())
-            //This should be impossible as we check the permission before attempting to pair with the companion device.
-        }
-        Log.e(MainActivity.TAG, "Failed to observe device presence.")
-        return false
+    fun startObservingDevicePresence(context: Context, associationInfo: AssociationInfo): Boolean {
+            val deviceManager =
+                ContextCompat.getSystemService(context, CompanionDeviceManager::class.java)
+            Log.d(MainActivity.TAG, "Found association for device: $associationInfo")
+            val request = ObservingDevicePresenceRequest.Builder()
+                .setAssociationId(associationInfo.id)
+                .build()
+            deviceManager?.startObservingDevicePresence(request)
+            return true
+
     }
 
     fun unpairCompanionDevice(context: Context) {
