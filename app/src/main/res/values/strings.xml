@@ -142,4 +142,8 @@
     <string name="faq_more">You might find additional help in the frequently asked questions (FAQ).</string>
     <string name="faq_url">https://github.com/Staacks/alpharemote#faq--troubleshooting</string>
 
+    <string name="settings_bluetooth_required_title">Bluetooth Required</string>
+    <string name="settings_bluetooth_required_message">Bluetooth must be enabled to add a new camera. Would you like to open Bluetooth settings now?</string>
+    <string name="settings_open_settings">Open Settings</string>
+
 </resources>

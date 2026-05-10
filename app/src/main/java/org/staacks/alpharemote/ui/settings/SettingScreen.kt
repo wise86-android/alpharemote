@@ -1,6 +1,5 @@
 package org.staacks.alpharemote.ui.settings
 
-import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,17 +13,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
@@ -61,6 +57,7 @@ fun SettingScreen(
                 SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> onAddCustomButtonRequested()
                 SettingsViewModel.SettingsUIAction.HELP_CONNECTION -> onHelpConnectionRequested()
                 SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS -> onHelpCustomButtonsRequested()
+                else -> {}
             }
         }
     }
@@ -73,7 +70,7 @@ fun SettingScreen(
         selectedButtonScaleIndex = selectedButtonScaleIndex,
         maxButtonScaleIndex = settingsViewModel.buttonScaleSteps.lastIndex,
         broadcastControlEnabled = broadcastControlEnabled,
-        onPairClick = settingsViewModel::pair,
+        onPairClick = settingsViewModel::searchNewCamera,
         onUnpairClick = settingsViewModel::unpair,
         onHelpConnectionClick = settingsViewModel::helpConnection,
         onLocationUpdatesCheckedChange = settingsViewModel::setUpdateCameraLocation,

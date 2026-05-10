@@ -23,13 +23,14 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import org.staacks.alpharemote.utils.rememberBlePermissionState
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MissingBluetoothPermissionSettings(
     modifier: Modifier = Modifier,
 ) {
-    val bluetoothPermissionState = rememberPermissionState(android.Manifest.permission.BLUETOOTH_CONNECT)
+    val bluetoothPermissionState = rememberBlePermissionState()
     val missingBluetooth = !bluetoothPermissionState.status.isGranted
     if (!missingBluetooth) return
 
@@ -49,8 +50,6 @@ fun MissingBluetoothPermissionSettings(
 fun MissingNotificationPermissionSettings(
     modifier: Modifier = Modifier,
 ) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-
     val notificationPermissionState = rememberPermissionState(android.Manifest.permission.POST_NOTIFICATIONS)
     val missingNotification = !notificationPermissionState.status.isGranted
     if (!missingNotification) return

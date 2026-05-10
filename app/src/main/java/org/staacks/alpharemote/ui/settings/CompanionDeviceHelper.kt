@@ -64,16 +64,14 @@ object CompanionDeviceHelper {
     fun startObservingDevicePresence(context: Context, device: BluetoothDevice): Boolean {
         try {
             device.createBond()
-            if (context.packageManager.hasSystemFeature(PackageManager.FEATURE_COMPANION_DEVICE_SETUP)) {
-                val deviceManager = ContextCompat.getSystemService(context, CompanionDeviceManager::class.java)
-                val associationId = deviceManager?.myAssociations?.find { it.deviceMacAddress?.toString() == device.address }?.id
-                if (associationId != null) {
-                    val request = ObservingDevicePresenceRequest.Builder()
-                        .setAssociationId(associationId)
-                        .build()
-                    deviceManager.startObservingDevicePresence(request)
-                    return true
-                }
+            val deviceManager = ContextCompat.getSystemService(context, CompanionDeviceManager::class.java)
+            val associationId = deviceManager?.myAssociations?.find { it.deviceMacAddress?.toString() == device.address }?.id
+            if (associationId != null) {
+                val request = ObservingDevicePresenceRequest.Builder()
+                    .setAssociationId(associationId)
+                    .build()
+                deviceManager.startObservingDevicePresence(request)
+                return true
             }
         } catch (e: SecurityException) {
             Log.e(MainActivity.TAG, e.toString())

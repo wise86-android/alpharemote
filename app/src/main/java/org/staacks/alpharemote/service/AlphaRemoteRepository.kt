@@ -40,9 +40,6 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
     private val _locationEnabled = MutableStateFlow(false)
     val locationEnabled: StateFlow<Boolean> = _locationEnabled.asStateFlow()
 
-    private val _bleScanningEnabled = MutableStateFlow(false)
-    val bleScanningEnabled: StateFlow<Boolean> = _bleScanningEnabled.asStateFlow()
-
     private val _associations = MutableStateFlow<List<String>>(emptyList())
     val associations: StateFlow<List<String>> = _associations.asStateFlow()
 
@@ -77,12 +74,6 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
 
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         _locationEnabled.value = locationManager.isLocationEnabled
-
-        _bleScanningEnabled.value = try {
-            Settings.Global.getInt(context.contentResolver, "ble_scan_always_enabled") == 1
-        } catch (_: Exception) {
-            true
-        }
 
         _associations.value = CompanionDeviceHelper.getAssociation(context)
     }

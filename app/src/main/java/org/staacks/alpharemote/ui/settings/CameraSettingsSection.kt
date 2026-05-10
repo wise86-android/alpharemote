@@ -45,13 +45,6 @@ fun CameraSettingsSection(
             )
         }
 
-        if (!state.bleScanningEnabled) {
-            Text(
-                text = stringResource(R.string.settings_ble_scanning_disabled),
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-
         when (state.cameraState) {
             SettingsUICameraState.OFFLINE -> {
                 Text(
@@ -99,7 +92,6 @@ fun CameraSettingsSection(
             if (state.cameraState == SettingsUICameraState.NOT_ASSOCIATED) {
                 TextButton (
                     onClick = onPairClick,
-                    enabled = state.bluetoothEnabled,
                 ) {
                     Text(text = stringResource(R.string.settings_camera_add))
                 }
@@ -127,7 +119,6 @@ private fun CameraSettingsSectionNotAssociatedPreview() {
                 cameraName = null,
                 bluetoothEnabled = true,
                 locationServiceEnabled = true,
-                bleScanningEnabled = true,
             ),
             onPairClick = {},
             onUnpairClick = {},
@@ -148,7 +139,6 @@ private fun CameraSettingsSectionConnectedPreview() {
                 cameraName = "Alpha 1",
                 bluetoothEnabled = true,
                 locationServiceEnabled = true,
-                bleScanningEnabled = true,
             ),
             onPairClick = {},
             onUnpairClick = {},
