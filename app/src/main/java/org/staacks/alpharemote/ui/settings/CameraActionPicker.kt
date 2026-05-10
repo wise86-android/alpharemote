@@ -106,7 +106,7 @@ class CameraActionPicker : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         index = arguments?.getInt(INDEX_KEY) ?: -1
-        val oldAction = arguments?.getSerializable(CAMERA_ACTION_KEY) as? CameraAction
+        val oldAction = arguments?.getSerializable(CAMERA_ACTION_KEY,CameraAction::class.java)
         val startAction = oldAction ?: defaultAction
         val showDelete = arguments?.getBoolean(SHOW_DELETE_KEY) ?: false
         val composeView = ComposeView(requireContext()).apply {

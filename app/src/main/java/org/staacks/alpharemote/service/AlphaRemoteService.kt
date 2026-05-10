@@ -41,11 +41,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
@@ -163,7 +160,7 @@ class AlphaRemoteService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "BLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             val intentDevice =
-                intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)!!
+                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)!!
             val newState =
                 intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
             Log.d(TAG, "Device changed bond state: $newState (address: ${intentDevice.address})")
@@ -390,7 +387,7 @@ class AlphaRemoteService : Service() {
             DISCONNECT_INTENT_ACTION  -> doDisconnectAction()
             BUTTON_INTENT_ACTION -> {
                 val cameraAction =
-                    intent.getSerializableExtra(BUTTON_INTENT_CAMERA_ACTION_EXTRA) as CameraAction
+                    intent.getSerializableExtra(BUTTON_INTENT_CAMERA_ACTION_EXTRA, CameraAction::class.java) ?: return@onStartCommand START_NOT_STICKY
                 val down = intent.getBooleanExtra(BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA, true)
                 val up = intent.getBooleanExtra(BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA, true)
 
@@ -400,11 +397,11 @@ class AlphaRemoteService : Service() {
 
             ADVANCED_SEQUENCE_INTENT_ACTION -> {
                 val bulbDuration =
-                    intent.getSerializableExtra(ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA) as Float
+                    intent.getFloatExtra(ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA  ,0.0f)
                 val intervalDuration =
-                    intent.getSerializableExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA) as Float
+                    intent.getFloatExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA,0.0f)
                 val intervalCount =
-                    intent.getSerializableExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA) as Int
+                    intent.getIntExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA,0)
 
                 val stepSequence: MutableList<CameraActionStep> = mutableListOf()
                 stepSequence += CAButton(pressed = true, ButtonCode.SHUTTER_HALF)

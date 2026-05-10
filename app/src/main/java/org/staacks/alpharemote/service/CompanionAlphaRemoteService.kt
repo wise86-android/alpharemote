@@ -1,5 +1,6 @@
 package org.staacks.alpharemote.service
 
+import android.bluetooth.BluetoothDevice
 import android.companion.CompanionDeviceService
 import android.companion.DevicePresenceEvent
 import android.util.Log
