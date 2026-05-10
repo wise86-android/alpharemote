@@ -1,6 +1,5 @@
 package org.staacks.alpharemote.ui
 
-import android.content.IntentSender
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -28,10 +27,7 @@ import org.staacks.alpharemote.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.settings.settingsEntries
 
 @Composable
-fun MainScreen(
-    onPairRequested: (IntentSender) -> Unit,
-    onOpenUrl: (String) -> Unit
-) {
+fun MainScreen() {
     val topLevelRoutes = setOf(
         AlphaRemoteNavKey.Camera,
         AlphaRemoteNavKey.Settings,
@@ -50,8 +46,8 @@ fun MainScreen(
 
     val entryProvider = entryProvider {
         cameraEntries(cameraViewModel, navigator)
-        settingsEntries(settingsViewModel, navigator, onPairRequested, onOpenUrl)
-        aboutEntries(onOpenUrl)
+        settingsEntries(settingsViewModel, navigator)
+        aboutEntries()
         commonEntries(navigator)
     }
 

@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "org.staacks.alpharemote"
-        minSdk = 31
+        minSdk = 36
         targetSdk = 36
         versionCode = 1000
         versionName = "1.00"

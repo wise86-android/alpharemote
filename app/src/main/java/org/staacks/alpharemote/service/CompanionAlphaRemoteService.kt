@@ -1,63 +1,59 @@
 package org.staacks.alpharemote.service
 
-import android.companion.AssociationInfo
-
 import android.companion.CompanionDeviceService
-import android.content.Intent
+import android.companion.DevicePresenceEvent
 import android.util.Log
-
 import org.staacks.alpharemote.MainActivity
-import org.staacks.alpharemote.R
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 
 class CompanionAlphaRemoteService : CompanionDeviceService() {
 
-    @Deprecated("Deprecated in Java")
-    override fun onDeviceAppeared(address: String) {
-        Log.d(TAG, "Device appeared: $address")
-        try {
-            super.onDeviceAppeared(address) //This is abstract on Android 12
-        } catch (_: AbstractMethodError) {
-        }
-        if (!hasBluetoothPermission(this)) {
-            Log.w(MainActivity.TAG, "Missing Bluetooth permission. Launching activity instead.")
-            stopSelf()
+    override fun onDevicePresenceEvent(event: DevicePresenceEvent) {
+        super.onDevicePresenceEvent(event)
+        val associationId = event.associationId
+        val eventType = event.event
+        
+        Log.d(TAG, "onDevicePresenceEvent: associationId=$associationId, eventType=$eventType")
+
+        val associationInfo = getSystemService(android.companion.CompanionDeviceManager::class.java).myAssociations.find { it.id == associationId }
+        val address = associationInfo?.deviceMacAddress?.toString()
+
+        if (address == null) {
+            Log.w(TAG, "Address not found for associationId=$associationId")
             return
         }
-        Log.d(TAG, "Start AlphaRemoteService service")
+
+        when (eventType) {
+            DevicePresenceEvent.EVENT_BLE_APPEARED, 
+            DevicePresenceEvent.EVENT_BT_CONNECTED -> {
+                handleDeviceAppeared(address)
+            }
+            DevicePresenceEvent.EVENT_BLE_DISAPPEARED, 
+            DevicePresenceEvent.EVENT_BT_DISCONNECTED -> {
+                handleDeviceDisappeared(address)
+            }
+        }
+    }
+
+    private fun handleDeviceAppeared(address: String) {
+        Log.d(TAG, "Device appeared: $address")
+        if (!hasBluetoothPermission(this)) {
+            Log.w(MainActivity.TAG, "Missing Bluetooth permission.")
+            return
+        }
         try {
-            AlphaRemoteService.sendConnectIntent(this,address)
-        }catch (e:Exception){
+            AlphaRemoteService.sendConnectIntent(this, address)
+        } catch (e: Exception) {
             Log.e(TAG, "Error starting service: $e")
         }
-
     }
 
-
-
-    override fun onDeviceAppeared(associationInfo: AssociationInfo) {
-        super.onDeviceAppeared(associationInfo)
-        Log.d(TAG, "API33 onDeviceAppeared: $associationInfo")
-    }
-
-    override fun onDeviceDisappeared(address: String) {
+    private fun handleDeviceDisappeared(address: String) {
         Log.d(TAG, "Device disappeared: $address")
-        try {
-            super.onDeviceDisappeared(address) //This is abstract on Android 12
-        } catch (_: AbstractMethodError) {
-        }
-
-        AlphaRemoteService.sendDisconnectIntent(this,address)
-        stopSelf()
+        AlphaRemoteService.sendDisconnectIntent(this, address)
     }
 
-    override fun onDeviceDisappeared(associationInfo: AssociationInfo) {
-        super.onDeviceDisappeared(associationInfo)
-        Log.d(TAG, "API33 onDeviceDisappeared: $associationInfo")
+    companion object {
+        const val TAG = "CompanionAlphaRemoteService"
     }
-
-    companion object{
-        const val TAG=  "CompanionAlphaRemoteService"
-    }
-
 }

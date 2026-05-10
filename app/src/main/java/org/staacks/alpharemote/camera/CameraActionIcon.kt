@@ -144,7 +144,6 @@ class CameraActionIcon(val context: Context, private val cameraAction: CameraAct
             baseDrawable?.setTintList(tint)
     }
 
-    @Deprecated("Deprecated in Java")
     override fun getOpacity(): Int {
         return PixelFormat.TRANSLUCENT
     }

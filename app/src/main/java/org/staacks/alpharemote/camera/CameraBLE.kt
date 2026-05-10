@@ -109,22 +109,7 @@ class CameraBLE(
             bleOperationQueue?.onWriteOperationCompleted(characteristic,status)
         }
 
-        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-        @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-        override fun onCharacteristicRead(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic,
-            status: Int
-        ) {
-            super.onCharacteristicRead(gatt, characteristic, status)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                return //Use the new version of onCharacteristicRead instead
-            Log.d(
-                TAG,
-                "Deprecated onCharacteristicRead with status $status from ${characteristic.uuid}."
-            )
-            this.onCharacteristicRead(gatt, characteristic, characteristic.value,status)
-        }
+
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
         override fun onCharacteristicRead(
@@ -146,21 +131,6 @@ class CameraBLE(
         ) {
             super.onDescriptorWrite(gatt, descriptor, status)
             bleOperationQueue?.onSubscribeOperationComplete(status,descriptor.characteristic)
-        }
-
-
-        @Deprecated("Deprecated in Java")
-        @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-        @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-        override fun onCharacteristicChanged(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic
-        ) {
-            super.onCharacteristicChanged(gatt, characteristic)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                return //Use the new version of onCharacteristicRead instead
-            Log.d(TAG, "Deprecated onCharacteristicChanged from ${characteristic.uuid}.")
-           this.onCharacteristicChanged(gatt,characteristic,characteristic.value)
         }
 
         @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)

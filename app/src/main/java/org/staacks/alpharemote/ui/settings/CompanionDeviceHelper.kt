@@ -22,7 +22,7 @@ object CompanionDeviceHelper {
     fun getAssociation(context: Context): List<String> {
         val deviceManager = ContextCompat.getSystemService(context, CompanionDeviceManager::class.java) ?: return emptyList()
 
-        return deviceManager.associations
+        return deviceManager.myAssociations.map { it.deviceMacAddress?.toString() ?: "" }.filter { it.isNotEmpty() }
     }
 
     fun pairCompanionDevice(context: Context, callback: CompanionDeviceManager.Callback) {
@@ -65,10 +65,15 @@ object CompanionDeviceHelper {
         try {
             device.createBond()
             if (context.packageManager.hasSystemFeature(PackageManager.FEATURE_COMPANION_DEVICE_SETUP)) {
-                ContextCompat.getSystemService(context,CompanionDeviceManager::class.java)?.startObservingDevicePresence(
-                    device.address
-                )
-                return true
+                val deviceManager = ContextCompat.getSystemService(context, CompanionDeviceManager::class.java)
+                val associationId = deviceManager?.myAssociations?.find { it.deviceMacAddress?.toString() == device.address }?.id
+                if (associationId != null) {
+                    val request = ObservingDevicePresenceRequest.Builder()
+                        .setAssociationId(associationId)
+                        .build()
+                    deviceManager.startObservingDevicePresence(request)
+                    return true
+                }
             }
         } catch (e: SecurityException) {
             Log.e(MainActivity.TAG, e.toString())
@@ -82,21 +87,18 @@ object CompanionDeviceHelper {
         val deviceManager =
             ContextCompat.getSystemService(context, CompanionDeviceManager::class.java) ?: return
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-            for (association in deviceManager.myAssociations) {
-                Log.d(MainActivity.TAG, "Disassociating ${association.deviceMacAddress}.")
-                val request = ObservingDevicePresenceRequest.Builder().setAssociationId(association.id).build()
-                deviceManager.stopObservingDevicePresence(request)
-                if (hasBluetoothPermission(context))
+        for (association in deviceManager.myAssociations) {
+            Log.d(MainActivity.TAG, "Disassociating ${association.deviceMacAddress}.")
+            val request = ObservingDevicePresenceRequest.Builder().setAssociationId(association.id).build()
+            deviceManager.stopObservingDevicePresence(request)
+            if (hasBluetoothPermission(context)) {
+                try {
                     deviceManager.removeBond(association.id)
-                deviceManager.disassociate(association.id)
+                } catch (e: SecurityException) {
+                    Log.e(MainActivity.TAG, "Failed to remove bond: $e")
+                }
             }
-        } else {
-            for (address in deviceManager.associations) {
-                Log.d(MainActivity.TAG, "Disassociating $address.")
-                deviceManager.stopObservingDevicePresence(address)
-                deviceManager.disassociate(address)
-            }
+            deviceManager.disassociate(association.id)
         }
     }
 }
