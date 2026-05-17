@@ -1,5 +1,16 @@
 package org.staacks.alpharemote.camera
 
+enum class FocusState {
+    LOST,
+    ACQUIRED,
+    SEARCHING,
+}
+
+enum class ShutterState {
+    PRESSED,
+    RELEASED
+}
+
 sealed class CameraState {
     object Disconnected : CameraState()
     object NotBonded : CameraState()
@@ -9,8 +20,8 @@ sealed class CameraState {
         data class Ready(
             val name: String,
             val address: String,
-            val focus: Boolean,
-            val shutter: Boolean,
+            val focus: FocusState = FocusState.LOST,
+            val shutter: ShutterState = ShutterState.RELEASED,
             val recording: Boolean,
             val pressedButtons: Set<ButtonCode> = emptySet(),
             val pressedJogs: Set<JogCode> = emptySet(),

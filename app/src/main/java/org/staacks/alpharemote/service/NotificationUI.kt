@@ -26,6 +26,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.camera.FocusState
+import org.staacks.alpharemote.camera.ShutterState
 import java.io.Serializable
 import java.util.Timer
 import java.util.TimerTask
@@ -161,12 +163,12 @@ class NotificationUI(private val context: Context) {
                     remoteViews.setFloat(
                         R.id.status_focus,
                         "setAlpha",
-                        if (state.focus) 1.0f else 0.5f
+                        if (state.focus == FocusState.ACQUIRED) 1.0f else 0.5f
                     )
                     remoteViews.setFloat(
                         R.id.status_shutter,
                         "setAlpha",
-                        if (state.shutter) 1.0f else 0.5f
+                        if (state.shutter == ShutterState.PRESSED) 1.0f else 0.5f
                     )
                     remoteViews.setFloat(
                         R.id.status_recording,

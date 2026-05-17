@@ -43,11 +43,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
+import org.staacks.alpharemote.camera.FocusState
+import org.staacks.alpharemote.camera.ShutterState
 import org.staacks.alpharemote.camera.ble.BleConnectionState
-import org.staacks.alpharemote.camera.ble.FocusState
 import org.staacks.alpharemote.camera.ble.LocationService
 import org.staacks.alpharemote.camera.ble.RemoteControlService
-import org.staacks.alpharemote.camera.ble.ShutterState
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 import org.staacks.alpharemote.utils.hasLocationPermission
 import java.util.LinkedList
@@ -317,8 +317,8 @@ class AlphaRemoteService : Service() {
                             else -> CameraState.Connected.Ready(
                                 name = newName,
                                 deviceAddress,
-                                focus = false,
-                                shutter = false,
+                                focus = FocusState.LOST,
+                                shutter = ShutterState.RELEASED,
                                 recording = false
                             )
                         }
@@ -331,8 +331,8 @@ class AlphaRemoteService : Service() {
                     _cameraState.update {
                         when (it) {
                             is CameraState.Connected.Ready -> it.copy(
-                                focus = newStatus.focus === FocusState.ACQUIRED,
-                                shutter = newStatus.shutter === ShutterState.PRESSED,
+                                focus = newStatus.focus,
+                                shutter = newStatus.shutter,
                                 recording = newStatus.isRecording
                             )
 
@@ -340,8 +340,8 @@ class AlphaRemoteService : Service() {
                                 CameraState.Connected.Ready(
                                     deviceName.value,
                                     deviceAddress,
-                                    focus = newStatus.focus === FocusState.ACQUIRED,
-                                    shutter = newStatus.shutter === ShutterState.PRESSED,
+                                    focus = newStatus.focus,
+                                    shutter = newStatus.shutter,
                                     recording = newStatus.isRecording,
                                 )
 
@@ -560,17 +560,17 @@ class AlphaRemoteService : Service() {
         val nextAction = pendingActionSteps.peek()
         if (nextAction is CAWaitFor) {
             when (nextAction.target) {
-                WaitTarget.FOCUS -> if (state.focus) {
+                WaitTarget.FOCUS -> if (state.focus == FocusState.ACQUIRED) {
                     pendingActionSteps.removeFirst()
                     executeNextCameraActionStep()
                 }
 
-                WaitTarget.SHUTTER -> if (state.shutter) {
+                WaitTarget.SHUTTER -> if (state.shutter == ShutterState.PRESSED) {
                     pendingActionSteps.removeFirst()
                     executeNextCameraActionStep()
                 }
 
-                WaitTarget.RECORDING -> if (state.shutter) {
+                WaitTarget.RECORDING -> if (state.shutter == ShutterState.PRESSED) {
                     pendingActionSteps.removeFirst()
                     executeNextCameraActionStep()
                 }

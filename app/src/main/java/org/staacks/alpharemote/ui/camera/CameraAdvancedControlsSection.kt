@@ -46,6 +46,7 @@ import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraState
+import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.ui.theme.CustomButtonHeightInActivity
 
@@ -257,8 +258,8 @@ private fun AdvancedControlsSheetPreview() {
                     cameraState = CameraState.Connected.Ready(
                         name = "Alpha 7",
                         address = "00:00:00:00:00:00",
-                        focus = false,
-                        shutter = false,
+                        focus = FocusState.LOST,
+                        shutter = org.staacks.alpharemote.camera.ShutterState.RELEASED,
                         recording = false,
                         pendingTriggerCount = 3,
                     ),

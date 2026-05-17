@@ -31,6 +31,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraState
+import org.staacks.alpharemote.camera.FocusState
+import org.staacks.alpharemote.camera.ShutterState
 import org.staacks.alpharemote.ui.theme.ActivityStatusSize
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
@@ -54,12 +56,12 @@ fun StatusHeader(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusIcon(
                     icon = R.drawable.status_focus,
-                    alpha = if (state?.focus == true) 1f else 0.5f,
+                    alpha = if (state?.focus == FocusState.ACQUIRED) 1f else 0.5f,
                     content = R.string.status_focus,
                 )
                 StatusIcon(
                     icon = R.drawable.status_shutter,
-                    alpha = if (state?.shutter == true) 1f else 0.5f,
+                    alpha = if (state?.shutter == ShutterState.PRESSED) 1f else 0.5f,
                     content = R.string.status_shutter,
                 )
                 StatusIcon(
@@ -123,8 +125,8 @@ private fun StatusHeaderPreview() {
                     cameraState = CameraState.Connected.Ready(
                         name = "Alpha 7",
                         address = "00:00:00:00:00:00",
-                        focus = true,
-                        shutter = false,
+                        focus = FocusState.ACQUIRED,
+                        shutter = ShutterState.RELEASED,
                         recording = true,
                     ),
                 ),

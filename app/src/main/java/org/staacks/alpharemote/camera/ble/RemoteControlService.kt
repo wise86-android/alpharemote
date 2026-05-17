@@ -15,7 +15,9 @@ import org.staacks.alpharemote.camera.ButtonCode
 import org.staacks.alpharemote.camera.CAButton
 import org.staacks.alpharemote.camera.CAJog
 import org.staacks.alpharemote.camera.CameraActionStep
+import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.camera.JogCode
+import org.staacks.alpharemote.camera.ShutterState
 import java.util.UUID
 import kotlin.text.toHexString
 
@@ -149,17 +151,6 @@ class RemoteControlService : BleServiceManager {
         val COMMAND_CHARACTERISTIC_UUID = UUID.fromString("0000ff01-0000-1000-8000-00805f9b34fb")!!
         val STATUS_CHARACTERISTIC_UUID = UUID.fromString("0000ff02-0000-1000-8000-00805f9b34fb")!!
     }
-}
-
-enum class FocusState{
-    LOST,
-    ACQUIRED,
-    SEARCHING,
-}
-
-enum class ShutterState{
-    PRESSED,
-    RELEASED
 }
 
 data class CameraStatus(val isRecording: Boolean = false,

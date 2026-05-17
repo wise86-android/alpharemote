@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.ButtonCode
 import org.staacks.alpharemote.camera.CameraState
+import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.camera.JogCode
+import org.staacks.alpharemote.camera.ShutterState
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 @Composable
@@ -262,8 +264,8 @@ private fun DefaultRemotePreview() {
                 cameraState = CameraState.Connected.Ready(
                     name = "Alpha 7",
                     address = "00:00:00:00:00:00",
-                    focus = true,
-                    shutter = false,
+                    focus = FocusState.ACQUIRED,
+                    shutter = ShutterState.RELEASED,
                     recording = false,
                 ),
                 onButtonTouch = { _, _ -> true },
