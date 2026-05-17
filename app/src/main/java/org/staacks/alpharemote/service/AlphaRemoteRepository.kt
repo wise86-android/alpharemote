@@ -3,7 +3,6 @@ package org.staacks.alpharemote.service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
-import android.companion.CompanionDeviceManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -12,8 +11,6 @@ import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.location.LocationManager
 import android.os.IBinder
-import android.provider.Settings
-import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +28,8 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    private val _serviceState = MutableStateFlow<ServiceState>(ServiceState.Gone)
-    val serviceState: StateFlow<ServiceState> = _serviceState.asStateFlow()
+    private val _cameraState = MutableStateFlow<CameraState>(CameraState.Disconnected)
+    val cameraState: StateFlow<CameraState> = _cameraState.asStateFlow()
 
     private val _bluetoothEnabled = MutableStateFlow(false)
     val bluetoothEnabled: StateFlow<Boolean> = _bluetoothEnabled.asStateFlow()
@@ -50,15 +47,15 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
             val binder = service as AlphaRemoteService.LocalBinder
             boundService = binder.getService()
             scope.launch {
-                boundService?.internalServiceState?.collectLatest {
-                    _serviceState.value = it
+                boundService?.cameraState?.collectLatest {
+                    _cameraState.value = it
                 }
             }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             boundService = null
-            _serviceState.value = ServiceState.Gone
+            _cameraState.value = CameraState.Disconnected
         }
     }
 

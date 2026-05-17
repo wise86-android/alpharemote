@@ -31,7 +31,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.delay
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.service.ServiceState
 import org.staacks.alpharemote.ui.theme.ActivityStatusSize
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
@@ -41,7 +40,6 @@ fun StatusHeader(
     onHelp: () -> Unit,
 ) {
     val state = uiState.cameraState
-    val serviceState = uiState.serviceState
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -72,7 +70,7 @@ fun StatusHeader(
             }
         }
 
-        if (serviceState?.countdownLabel == null) {
+        if (state?.countdownLabel == null) {
             IconButton(onClick = onHelp) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Help,
@@ -81,8 +79,8 @@ fun StatusHeader(
             }
         } else {
             Column(horizontalAlignment = Alignment.End) {
-                Text(text = serviceState.countdownLabel)
-                serviceState.countdown?.let { CountdownLabel(countdownBase = it) }
+                Text(text = state.countdownLabel)
+                state.countdown?.let { CountdownLabel(countdownBase = it) }
             }
         }
     }
@@ -122,18 +120,7 @@ private fun StatusHeaderPreview() {
             StatusHeader(
                 uiState = CameraViewModel.CameraUIState(
                     connected = true,
-                    serviceState = ServiceState.Running(
-                        cameraState = CameraState.Ready(
-                            name = "Alpha 7",
-                            address = "00:00:00:00:00:00",
-                            focus = true,
-                            shutter = false,
-                            recording = true,
-                        ),
-                        countdown = null,
-                        countdownLabel = null,
-                    ),
-                    cameraState = CameraState.Ready(
+                    cameraState = CameraState.Connected.Ready(
                         name = "Alpha 7",
                         address = "00:00:00:00:00:00",
                         focus = true,
@@ -146,4 +133,3 @@ private fun StatusHeaderPreview() {
         }
     }
 }
-

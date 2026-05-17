@@ -24,7 +24,6 @@ import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.service.ServiceState
 import org.staacks.alpharemote.ui.theme.AdvancedControlsDrawerPeek
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
@@ -104,18 +103,7 @@ private fun CameraScreenPreview() {
             CameraScreen(
                 uiState = CameraViewModel.CameraUIState(
                     connected = true,
-                    serviceState = ServiceState.Running(
-                        cameraState = CameraState.Ready(
-                            name = "Alpha 7",
-                            address = "00:00:00:00:00:00",
-                            focus = true,
-                            shutter = false,
-                            recording = false,
-                        ),
-                        countdown = null,
-                        countdownLabel = null,
-                    ),
-                    cameraState = CameraState.Ready(
+                    cameraState = CameraState.Connected.Ready(
                         name = "Alpha 7",
                         address = "00:00:00:00:00:00",
                         focus = true,

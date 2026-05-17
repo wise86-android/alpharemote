@@ -46,7 +46,6 @@ import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.service.ServiceState
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.ui.theme.CustomButtonHeightInActivity
 
@@ -134,7 +133,7 @@ fun AdvancedControlsSheet(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val pendingCount = uiState.serviceState?.pendingTriggerCount ?: 0
+                val pendingCount = uiState.cameraState?.pendingTriggerCount ?: 0
                 if (pendingCount > 0) {
                     Text(
                         text = stringResource(R.string.camera_advanced_pending_triggers, pendingCount),
@@ -147,7 +146,7 @@ fun AdvancedControlsSheet(
                     enabled = uiState.bulbToggle || uiState.intervalToggle,
                 ) {
                     Text(
-                        text = if (uiState.serviceState?.countdown == null)
+                        text = if (uiState.cameraState?.countdown == null)
                             stringResource(R.string.camera_advanced_start)
                         else
                             stringResource(R.string.camera_advanced_abort)
@@ -192,7 +191,7 @@ private fun NumberField(
 @Composable
 private fun CustomButtonsRow(
     customButtons: List<CameraAction>,
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onCustomButtonClick: (CameraAction) -> Unit,
 ) {
     val context = LocalContext.current
@@ -228,7 +227,7 @@ private fun CustomButtonsRow(
     }
 }
 
-private fun customActionTint(cameraAction: CameraAction, cameraState: CameraState.Ready?): Color? {
+private fun customActionTint(cameraAction: CameraAction, cameraState: CameraState.Connected.Ready?): Color? {
     if (cameraAction.preset.template.preserveColor) {
         return null
     }
@@ -255,24 +254,13 @@ private fun AdvancedControlsSheetPreview() {
             AdvancedControlsSheet(
                 uiState = CameraViewModel.CameraUIState(
                     connected = true,
-                    serviceState = ServiceState.Running(
-                        cameraState = CameraState.Ready(
-                            name = "Alpha 7",
-                            address = "00:00:00:00:00:00",
-                            focus = false,
-                            shutter = false,
-                            recording = false,
-                        ),
-                        countdown = null,
-                        countdownLabel = null,
-                        pendingTriggerCount = 3,
-                    ),
-                    cameraState = CameraState.Ready(
+                    cameraState = CameraState.Connected.Ready(
                         name = "Alpha 7",
                         address = "00:00:00:00:00:00",
                         focus = false,
                         shutter = false,
                         recording = false,
+                        pendingTriggerCount = 3,
                     ),
                     bulbToggle = true,
                     bulbDuration = 5.0,
@@ -296,4 +284,3 @@ private fun AdvancedControlsSheetPreview() {
         }
     }
 }
-

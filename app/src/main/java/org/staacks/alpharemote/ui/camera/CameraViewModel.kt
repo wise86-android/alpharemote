@@ -15,8 +15,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.CameraAction
-import org.staacks.alpharemote.service.AlphaRemoteService
-import org.staacks.alpharemote.service.ServiceState
 
 
 class CameraViewModel(application: Application) : AndroidViewModel(application) {
@@ -25,8 +23,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     data class CameraUIState (
         var connected: Boolean = false,
-        var serviceState: ServiceState.Running? = null,
-        var cameraState: CameraState.Ready? = null,
+        var cameraState: CameraState.Connected.Ready? = null,
 
         var bulbToggle: Boolean = false,
         var bulbDuration: Double? = 5.0,
@@ -60,16 +57,12 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         viewModelScope.launch {
-            repository.serviceState.collectLatest {
-                (it as? ServiceState.Running)?.also { serviceRunning ->
-                    _uiState.value = uiState.value.copy(
-                        serviceState = serviceRunning,
-                        cameraState = (serviceRunning.cameraState as? CameraState.Ready),
-                        connected = (serviceRunning.cameraState is CameraState.Ready)
-                    )
-                } ?: run {
-                    _uiState.value = uiState.value.copy(serviceState = null, cameraState = null, connected = false)
-                }
+            repository.cameraState.collectLatest {
+                val readyState = it as? CameraState.Connected.Ready
+                _uiState.value = uiState.value.copy(
+                    cameraState = readyState,
+                    connected = readyState != null
+                )
             }
         }
     }

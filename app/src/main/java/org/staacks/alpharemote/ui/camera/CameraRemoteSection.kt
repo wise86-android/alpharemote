@@ -37,7 +37,7 @@ import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 @Composable
 fun DefaultRemote(
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -52,7 +52,7 @@ fun DefaultRemote(
 
 @Composable
 private fun DefaultRemotePortrait(
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onButtonTouch: (RemoteButton, Int) -> Boolean,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -108,7 +108,7 @@ private fun DefaultRemotePortrait(
 
 @Composable
 private fun DefaultRemoteLandscape(
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onButtonTouch: (RemoteButton, Int) -> Boolean,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -164,7 +164,7 @@ private fun LabeledRemoteButton(
     button: RemoteButton,
     @DrawableRes icon: Int,
     @StringRes label: Int,
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
     tint: Boolean = true,
@@ -183,7 +183,7 @@ private fun LabeledRemoteButton(
 private fun RemoteTouchButton(
     button: RemoteButton,
     @DrawableRes icon: Int,
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
     tint: Boolean = true,
@@ -214,7 +214,7 @@ private fun FocusZoomCard(
     @DrawableRes firstIcon: Int,
     second: RemoteButton,
     @DrawableRes secondIcon: Int,
-    cameraState: CameraState.Ready?,
+    cameraState: CameraState.Connected.Ready?,
     onButtonTouch: (RemoteButton, Int) -> Boolean,
     modifier: Modifier = Modifier,
     vertical: Boolean,
@@ -239,7 +239,7 @@ private fun FocusZoomCard(
     }
 }
 
-private fun buttonIsPressed(button: RemoteButton, state: CameraState.Ready): Boolean {
+private fun buttonIsPressed(button: RemoteButton, state: CameraState.Connected.Ready): Boolean {
     return when (button) {
         RemoteButton.SHUTTER -> ButtonCode.SHUTTER_FULL in state.pressedButtons
         RemoteButton.SHUTTER_HALF -> ButtonCode.SHUTTER_HALF in state.pressedButtons
@@ -259,7 +259,7 @@ private fun DefaultRemotePreview() {
     BluetoothRemoteForSonyCamerasTheme {
         Surface {
             DefaultRemote(
-                cameraState = CameraState.Ready(
+                cameraState = CameraState.Connected.Ready(
                     name = "Alpha 7",
                     address = "00:00:00:00:00:00",
                     focus = true,
@@ -272,4 +272,3 @@ private fun DefaultRemotePreview() {
         }
     }
 }
-

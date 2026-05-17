@@ -133,7 +133,7 @@ class NotificationUI(private val context: Context) {
 
         cameraState?.let { state ->
             when (state) {
-                is CameraState.Ready -> {
+                is CameraState.Connected.Ready -> {
                     val white = context.getColor(R.color.white)
                     val black = context.getColor(R.color.black)
 
@@ -192,16 +192,17 @@ class NotificationUI(private val context: Context) {
                     )
                 }
 
-                else -> {}
-                }
-                buttonIDs.forEachIndexed { index, buttonID ->
-                    customButtons?.getOrNull(index)?.also { cameraAction ->
-                        remoteViews.setImageViewBitmap(buttonID, getIconBmp(cameraAction,
-                            available = false,
-                            pressed = false
-                        ))
+                else -> {
+                    buttonIDs.forEachIndexed { index, buttonID ->
+                        customButtons?.getOrNull(index)?.also { cameraAction ->
+                            remoteViews.setImageViewBitmap(buttonID, getIconBmp(cameraAction,
+                                available = false,
+                                pressed = false
+                            ))
+                        }
                     }
                 }
+            }
         }
 
         connectionState?.let {

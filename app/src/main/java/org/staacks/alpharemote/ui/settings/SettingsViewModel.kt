@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.service.ServiceState
-import org.staacks.alpharemote.service.ServiceState.Running
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -61,13 +59,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _manualError = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<SettingsUIState> = combine(
-        repository.serviceState,
+        repository.cameraState,
         repository.associations,
         repository.bluetoothEnabled,
         repository.locationEnabled,
         _manualError
     ) { flows ->
-        val serviceState = flows[0] as ServiceState
+        val camState = flows[0] as CameraState
         @Suppress("UNCHECKED_CAST")
         val associations = flows[1] as List<String>
         val btEnabled = flows[2] as Boolean
@@ -82,23 +80,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val cameraName: String?
         val cameraError: String?
 
-        when (val camState = (serviceState as? Running)?.cameraState) {
+        when (camState) {
             is CameraState.Error -> {
                 cameraState = SettingsUICameraState.ERROR
                 cameraError = camState.description
                 cameraName = null
             }
-            is CameraState.StateNotBonded -> {
+            is CameraState.NotBonded -> {
                 cameraState = SettingsUICameraState.NOT_BONDED
                 cameraError = null
                 cameraName = null
             }
-            is CameraState.RemoteDisabled -> {
+            is CameraState.Connected.RemoteDisabled -> {
                 cameraState = SettingsUICameraState.REMOTE_DISABLED
                 cameraError = null
                 cameraName = null
             }
-            is CameraState.Ready -> {
+            is CameraState.Connected.Ready -> {
                 if (storedAddress != camState.address) {
                     viewModelScope.launch {
                         settingsStore.setCameraId(camState.name, camState.address)
