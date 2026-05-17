@@ -40,6 +40,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
@@ -128,21 +131,21 @@ class AlphaRemoteService : Service() {
 
         const val DISCONNECT_INTENT_ACTION = "DEVICE_DISCONNECT"
         const val CONNECT_INTENT_ACTION = "DEVICE_CONNECT"
-        const val INTENT_EXTRA_DEVICE_ADDRESS = "DEVICE_DISCONNECT_ADDRESS"
-        fun sendDisconnectIntent(context: Context,deviceAddress: BluetoothDevice?=null) {
+        const val INTENT_EXTRA_DEVICE = "BLE_DEVICE"
+        fun sendDisconnectIntent(context: Context, device: BluetoothDevice? = null) {
             context.startService(
                 Intent(context, AlphaRemoteService::class.java).apply {
                     action = DISCONNECT_INTENT_ACTION
-                    putExtra(INTENT_EXTRA_DEVICE_ADDRESS,deviceAddress)
+                    putExtra(INTENT_EXTRA_DEVICE, device)
                 }
             )
         }
 
-        fun sendConnectIntent(context: Context, deviceAddress: BluetoothDevice) {
+        fun sendConnectIntent(context: Context, device: BluetoothDevice) {
             context.startForegroundService(
                 Intent(context, AlphaRemoteService::class.java).apply {
                     action = CONNECT_INTENT_ACTION
-                    putExtra(INTENT_EXTRA_DEVICE_ADDRESS,deviceAddress)
+                    putExtra(INTENT_EXTRA_DEVICE, device)
                 }
             )
         }
@@ -154,7 +157,10 @@ class AlphaRemoteService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "BLE received BluetoothDevice.ACTION_BOND_STATE_CHANGED.")
             val intentDevice =
-                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)!!
+                intent.getParcelableExtra(
+                    BluetoothDevice.EXTRA_DEVICE,
+                    BluetoothDevice::class.java
+                )!!
             val newState =
                 intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
             Log.d(TAG, "Device changed bond state: $newState (address: ${intentDevice.address})")
@@ -168,18 +174,11 @@ class AlphaRemoteService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        scope.launch {
-            _cameraState.collect {
-                if (it !is CameraState.Connected.Ready) {
-                    cancelPendingActionSteps()
-                }
-            }
-        }
-        scope.launch {
-            _cameraState.collect { cameraState ->
-                notificationUI?.onCameraStateUpdate(cameraState)
-            }
-        }
+        _cameraState.filterIsInstance(CameraState.Connected.Ready::class).onEach {
+            cancelPendingActionSteps()
+        }.launchIn(scope)
+
+        _cameraState.onEach { notificationUI?.onCameraStateUpdate(it) }.launchIn(scope)
 
         registerReceiver(
             bondStateReceiver,
@@ -243,135 +242,124 @@ class AlphaRemoteService : Service() {
             startCameraAction(cameraAction.getReleaseStepList())
     }
 
-
-    private fun doDisconnectAction(){
-        if(hasBluetoothPermission(this)) {
+    private fun doDisconnectAction() {
+        if (hasBluetoothPermission(this)) {
             @SuppressLint("MissingPermission")
             cameraBLE?.disconnectFromDevice()
         }
     }
 
-    private  fun doConnectAction(intent: Intent){
-        if(cameraBLE !== null) {
+    private fun doConnectAction(intent: Intent) {
+        if (cameraBLE !== null) {
             Log.w(
                 TAG,
                 "onDeviceAppeared ignored as cameraBLE has already been instantiated."
             )
             return
         }
-        val bleDevice = intent.getParcelableExtra(INTENT_EXTRA_DEVICE_ADDRESS, BluetoothDevice::class.java)
-        if(bleDevice == null) {
-            Log.w(TAG, "no device address")
+        val bleDevice = intent.getParcelableExtra(INTENT_EXTRA_DEVICE, BluetoothDevice::class.java)
+        if (bleDevice == null) {
+            Log.w(TAG, "INTENT_EXTRA_DEVICE is missing from the connecting intent")
             stopSelf()
             return
         }
 
         cancelPendingActionSteps()
-        cameraBLE = CameraBLE(bleDevice)
-        collectCameraBleUpdates()
-        @SuppressLint("MissingPermission")
-        cameraBLE?.connectToDevice(this)
+        cameraBLE = CameraBLE(bleDevice).apply {
+            collectCameraBleUpdates(this)
+            @SuppressLint("MissingPermission")
+            connectToDevice(this@AlphaRemoteService)
+        }
 
         notificationUI = createNotificationUI()
-
     }
 
-    private fun createNotificationUI():NotificationUI {
+    private fun createNotificationUI(): NotificationUI {
         return notificationUI ?: NotificationUI(applicationContext).also { notificationUI = it }
     }
 
-    private fun collectCameraBleUpdates() {
-        this.cameraBLE?.apply {
-            scope.launch {
-                connectionState.collect {
-                    Log.d(TAG, "Connection state: $it")
-                    when (it) {
-                        BleConnectionState.Connected -> onConnect()
-                        BleConnectionState.Disconnected -> onDisconnect()
-                        else -> {}
-                    }
+    private fun collectCameraBleUpdates(cameraBLE: CameraBLE) = with(cameraBLE) {
+        connectionState.onEach {
+            Log.d(TAG, "Connection state: $it")
+            when (it) {
+                BleConnectionState.Connected -> onConnect()
+                BleConnectionState.Disconnected -> onDisconnect()
+                else -> {}
+            }
+            notificationUI?.onCameraConnectionUpdate(it)
+        }.launchIn(scope)
+
+        locationUpdateStatus.onEach { newStatus ->
+            when (newStatus) {
+                LocationService.Status.LocationUpdateEnabled -> startLocationUpdates()
+                LocationService.Status.LocationUpdateDisabled -> stopLocationUpdates()
+                else -> {}
+            }
+        }.launchIn(scope)
+
+        deviceName.onEach { newName ->
+            _cameraState.update {
+                when (it) {
+                    is CameraState.Connected.Ready ->
+                        it.copy(name = newName)
+
+                    else -> CameraState.Connected.Ready(
+                        name = newName,
+                        deviceAddress,
+                        focus = FocusState.LOST,
+                        shutter = ShutterState.RELEASED,
+                        recording = false
+                    )
                 }
             }
+        }.launchIn(scope)
 
-            scope.launch {
-                connectionState.collect { notificationUI?.onCameraConnectionUpdate(it) }
-            }
+        deviceStatus.onEach { newStatus ->
+            Log.d(TAG, "New status: $newStatus")
+            _cameraState.update {
+                when (it) {
+                    is CameraState.Connected.Ready -> it.copy(
+                        focus = newStatus.focus,
+                        shutter = newStatus.shutter,
+                        recording = newStatus.isRecording
+                    )
 
-            scope.launch {
-                locationUpdateStatus.collect { newStatus ->
-                    when (newStatus) {
-                        LocationService.Status.LocationUpdateEnabled -> startLocationUpdates()
-                        LocationService.Status.LocationUpdateDisabled -> stopLocationUpdates()
-                        else -> {}
-                    }
+                    is CameraState.Connected.RemoteDisabled ->
+                        CameraState.Connected.Ready(
+                            deviceName.value,
+                            deviceAddress,
+                            focus = newStatus.focus,
+                            shutter = newStatus.shutter,
+                            recording = newStatus.isRecording,
+                        )
+
+                    else -> it
                 }
             }
+        }.launchIn(scope)
 
-            scope.launch {
-                deviceName.collect { newName ->
-                    _cameraState.update {
-                        when (it) {
-                            is CameraState.Connected.Ready ->
-                                it.copy(name = newName)
-
-                            else -> CameraState.Connected.Ready(
-                                name = newName,
-                                deviceAddress,
-                                focus = FocusState.LOST,
-                                shutter = ShutterState.RELEASED,
-                                recording = false
-                            )
-                        }
-                    }
-                }
+        remoteCommandStatus.onEach { newStatus ->
+            if (newStatus == RemoteControlService.CommandStatus.Fail) {
+                //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
+                _cameraState.emit(CameraState.Connected.RemoteDisabled)
             }
-            scope.launch {
-                deviceStatus.collect { newStatus ->
-                    Log.d(TAG, "New status: $newStatus")
-                    _cameraState.update {
-                        when (it) {
-                            is CameraState.Connected.Ready -> it.copy(
-                                focus = newStatus.focus,
-                                shutter = newStatus.shutter,
-                                recording = newStatus.isRecording
-                            )
-
-                            is CameraState.Connected.RemoteDisabled ->
-                                CameraState.Connected.Ready(
-                                    deviceName.value,
-                                    deviceAddress,
-                                    focus = newStatus.focus,
-                                    shutter = newStatus.shutter,
-                                    recording = newStatus.isRecording,
-                                )
-
-                            else -> it
-                        }
-                    }
-                }
-            }
-            scope.launch {
-                remoteCommandStatus.collect { newStatus ->
-                    if (newStatus == RemoteControlService.CommandStatus.Fail) {
-                        //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
-                        _cameraState.emit(CameraState.Connected.RemoteDisabled)
-                    }
-                }
-            }
-        }
+        }.launchIn(scope)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(MainActivity.TAG, "onStartCommand: $intent")
-        if(intent?.action !== CONNECT_INTENT_ACTION && !hasConnectedDevice )
+        if (intent?.action !== CONNECT_INTENT_ACTION && !hasConnectedDevice)
             return START_NOT_STICKY
 
         when (intent?.action) {
             CONNECT_INTENT_ACTION -> doConnectAction(intent)
-            DISCONNECT_INTENT_ACTION  -> doDisconnectAction()
+            DISCONNECT_INTENT_ACTION -> doDisconnectAction()
             BUTTON_INTENT_ACTION -> {
                 val cameraAction =
-                    intent.getSerializableExtra(BUTTON_INTENT_CAMERA_ACTION_EXTRA, CameraAction::class.java) ?: return@onStartCommand START_NOT_STICKY
+                    intent.getSerializableExtra(
+                        BUTTON_INTENT_CAMERA_ACTION_EXTRA,
+                        CameraAction::class.java
+                    ) ?: return@onStartCommand START_NOT_STICKY
                 val down = intent.getBooleanExtra(BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA, true)
                 val up = intent.getBooleanExtra(BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA, true)
 
@@ -381,11 +369,11 @@ class AlphaRemoteService : Service() {
 
             ADVANCED_SEQUENCE_INTENT_ACTION -> {
                 val bulbDuration =
-                    intent.getFloatExtra(ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA  ,0.0f)
+                    intent.getFloatExtra(ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA, 0.0f)
                 val intervalDuration =
-                    intent.getFloatExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA,0.0f)
+                    intent.getFloatExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA, 0.0f)
                 val intervalCount =
-                    intent.getIntExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA,0)
+                    intent.getIntExtra(ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA, 0)
 
                 val stepSequence: MutableList<CameraActionStep> = mutableListOf()
                 stepSequence += CAButton(pressed = true, ButtonCode.SHUTTER_HALF)
@@ -474,7 +462,8 @@ class AlphaRemoteService : Service() {
             updatePendingActionStatistics()
         }
         _cameraState.update {
-            (it as? CameraState.Connected.Ready)?.copy(countdown = null, countdownLabel = null) ?: it
+            (it as? CameraState.Connected.Ready)?.copy(countdown = null, countdownLabel = null)
+                ?: it
         }
         notificationUI?.hideCountdown()
         return pendingStepsCancelled
@@ -507,7 +496,8 @@ class AlphaRemoteService : Service() {
                 pendingTriggerCount++
         }
         _cameraState.update {
-            (it as? CameraState.Connected.Ready)?.copy(pendingTriggerCount = pendingTriggerCount) ?: it
+            (it as? CameraState.Connected.Ready)?.copy(pendingTriggerCount = pendingTriggerCount)
+                ?: it
         }
     }
 
@@ -529,23 +519,27 @@ class AlphaRemoteService : Service() {
             }
             val targetTime = SystemClock.elapsedRealtime() + time
             _cameraState.update {
-                (it as? CameraState.Connected.Ready)?.copy(countdown = targetTime, countdownLabel = step.label)
+                (it as? CameraState.Connected.Ready)?.copy(
+                    countdown = targetTime,
+                    countdownLabel = step.label
+                )
                     ?: it
             }
             notificationUI?.showCountdown(targetTime, step.label)
             return
         }
 
-            (_cameraState.value as? CameraState.Connected.Ready)?.let { cameraState ->
-                checkWaitAction(cameraState)
-            }
+        (_cameraState.value as? CameraState.Connected.Ready)?.let { cameraState ->
+            checkWaitAction(cameraState)
+        }
 
     }
 
     @Synchronized
     fun countdownActionComplete() {
         _cameraState.update {
-            (it as? CameraState.Connected.Ready)?.copy(countdown = null, countdownLabel = null) ?: it
+            (it as? CameraState.Connected.Ready)?.copy(countdown = null, countdownLabel = null)
+                ?: it
         }
         notificationUI?.hideCountdown()
         val nextAction = pendingActionSteps.peek()
