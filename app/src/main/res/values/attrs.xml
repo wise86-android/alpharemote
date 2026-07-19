@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <attr name="colorTextConnected" format="reference" />
-    <attr name="colorTextError" format="reference" />
-    <attr name="colorCustomButton" format="reference" />
-    <attr name="colorCustomButtonBG" format="reference" />
-    <attr name="colorZoomFocusBG" format="reference" />
-
-</resources>

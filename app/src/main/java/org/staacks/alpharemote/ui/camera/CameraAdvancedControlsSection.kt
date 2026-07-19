@@ -1,11 +1,10 @@
 package org.staacks.alpharemote.ui.camera
 
-import android.content.Context
-import android.content.res.ColorStateList
-import android.util.TypedValue
-import android.widget.ImageView
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,20 +27,24 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.graphics.drawable.toBitmap
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
@@ -199,7 +202,9 @@ private fun CustomButtonsRow(
     onCustomButtonClick: (CameraAction) -> Unit,
 ) {
     val context = LocalContext.current
-    val rippleBackground = resolveSelectableItemBackground(context)
+    val iconSizePx = with(LocalDensity.current) {
+        (CustomButtonHeightInActivity - 20.dp).roundToPx()
+    }
 
     Row(
         modifier = Modifier
@@ -210,22 +215,23 @@ private fun CustomButtonsRow(
     ) {
         customButtons.forEach { cameraAction ->
             val tint = customActionTint(cameraAction, cameraState)
-            AndroidView(
-                factory = { viewContext ->
-                    ImageView(viewContext).apply {
-                        setBackgroundResource(rippleBackground)
-                        isClickable = true
-                        setOnClickListener { onCustomButtonClick(cameraAction) }
-                    }
-                },
-                update = { imageView ->
-                    imageView.setImageDrawable(cameraAction.getIcon(context))
-                    imageView.imageTintList = tint?.let { ColorStateList.valueOf(it.toArgb()) }
-                },
+            // CameraActionIcon is a plain Drawable (shared with the notification), so it is
+            // rasterized once per button at display size and drawn as a regular Image.
+            val icon = remember(cameraAction, iconSizePx) {
+                cameraAction.getIcon(context).toBitmap(iconSizePx, iconSizePx).asImageBitmap()
+            }
+            Image(
+                bitmap = icon,
+                contentDescription = cameraAction.getName(context),
+                colorFilter = tint?.let { ColorFilter.tint(it) },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .aspectRatio(1f),
+                    .aspectRatio(1f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = false),
+                    ) { onCustomButtonClick(cameraAction) },
             )
         }
     }
@@ -242,12 +248,6 @@ private fun customActionTint(cameraAction: CameraAction, cameraState: CameraStat
             cameraAction.preset.template.referenceJog in cameraState.pressedJogs -> Fulvous
         else -> White
     }
-}
-
-private fun resolveSelectableItemBackground(context: Context): Int {
-    val ripple = TypedValue()
-    context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, ripple, true)
-    return ripple.resourceId
 }
 
 @Preview(showBackground = true, widthDp = 420)
