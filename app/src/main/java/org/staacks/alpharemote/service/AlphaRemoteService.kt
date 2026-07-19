@@ -36,8 +36,8 @@ import org.staacks.alpharemote.camera.CameraBLE
 import org.staacks.alpharemote.camera.WaitTarget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -64,8 +64,14 @@ class AlphaRemoteService : Service() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + job)
 
+    // Parent job of the collectors belonging to a single CameraBLE connection. Cancelled on
+    // disconnect, unlike the service-lifetime collectors launched in onCreate.
+    private var connectionJob: Job? = null
+
     private var timer: TimerTask? = null
     private var notificationUI: NotificationUI? = null
+
+    private val pendingActionSteps = LinkedList<CameraActionStep>()
 
     private val fusedLocationClient: FusedLocationProviderClient by lazy {
         LocationServices.getFusedLocationProviderClient(this)
@@ -149,8 +155,6 @@ class AlphaRemoteService : Service() {
                 }
             )
         }
-
-        private var pendingActionSteps = LinkedList<CameraActionStep>()
     }
 
     private val bondStateReceiver = object : BroadcastReceiver() {
@@ -189,19 +193,22 @@ class AlphaRemoteService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(bondStateReceiver)
+        job.cancel()
     }
 
 
     private fun onConnect() {
         Log.d(MainActivity.TAG, "onConnect")
         hasConnectedDevice = true
-        notificationUI?.let {
-            startForeground(
-                it.notificationId,
-                it.start(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-            )
-        }
+    }
+
+    private fun foregroundServiceTypes(): Int {
+        // The location type may only be used if the location permission is granted, otherwise
+        // startForeground throws a SecurityException.
+        return if (hasLocationPermission(this))
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        else
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
     }
 
     private fun onDisconnect() {
@@ -211,8 +218,15 @@ class AlphaRemoteService : Service() {
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
+        // NotificationUI cannot be restarted after stop() (its scope is cancelled), so drop it
+        // and create a fresh instance on the next connection.
+        notificationUI = null
         cameraBLE = null
-        job.cancelChildren()
+        // Cancel only the collectors of this connection. While the service is bound (e.g. by
+        // AlphaRemoteRepository) it survives stopSelf() and onCreate will not run again, so the
+        // service-lifetime collectors launched there must stay active for the next connection.
+        connectionJob?.cancel()
+        connectionJob = null
         _cameraState.update { CameraState.Disconnected }
         stopSelf()
     }
@@ -265,13 +279,20 @@ class AlphaRemoteService : Service() {
         }
 
         cancelPendingActionSteps()
+
+        // The service was started with startForegroundService, which requires startForeground
+        // to be called within a few seconds. Bonding and connecting to the camera can take much
+        // longer (especially on first pairing), so go foreground immediately with a
+        // "connecting" notification instead of waiting for the GATT connection.
+        createNotificationUI().let {
+            startForeground(it.notificationId, it.start(), foregroundServiceTypes())
+        }
+
         cameraBLE = CameraBLE(bleDevice).apply {
             collectCameraBleUpdates(this)
             @SuppressLint("MissingPermission")
             connectToDevice(this@AlphaRemoteService)
         }
-
-        notificationUI = createNotificationUI()
     }
 
     private fun createNotificationUI(): NotificationUI {
@@ -279,6 +300,10 @@ class AlphaRemoteService : Service() {
     }
 
     private fun collectCameraBleUpdates(cameraBLE: CameraBLE) = with(cameraBLE) {
+        connectionJob?.cancel()
+        val connectionScope =
+            CoroutineScope(Dispatchers.IO + SupervisorJob(job).also { connectionJob = it })
+
         connectionState.onEach {
             Log.d(TAG, "Connection state: $it")
             when (it) {
@@ -287,7 +312,7 @@ class AlphaRemoteService : Service() {
                 else -> {}
             }
             notificationUI?.onCameraConnectionUpdate(it)
-        }.launchIn(scope)
+        }.launchIn(connectionScope)
 
         locationUpdateStatus.onEach { newStatus ->
             when (newStatus) {
@@ -295,7 +320,7 @@ class AlphaRemoteService : Service() {
                 LocationService.Status.LocationUpdateDisabled -> stopLocationUpdates()
                 else -> {}
             }
-        }.launchIn(scope)
+        }.launchIn(connectionScope)
 
         deviceName.onEach { newName ->
             _cameraState.update {
@@ -312,7 +337,7 @@ class AlphaRemoteService : Service() {
                     )
                 }
             }
-        }.launchIn(scope)
+        }.launchIn(connectionScope)
 
         deviceStatus.onEach { newStatus ->
             Log.d(TAG, "New status: $newStatus")
@@ -336,19 +361,24 @@ class AlphaRemoteService : Service() {
                     else -> it
                 }
             }
-        }.launchIn(scope)
+        }.launchIn(connectionScope)
 
         remoteCommandStatus.onEach { newStatus ->
             if (newStatus == RemoteControlService.CommandStatus.Fail) {
                 //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
                 _cameraState.emit(CameraState.Connected.RemoteDisabled)
             }
-        }.launchIn(scope)
+        }.launchIn(connectionScope)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(MainActivity.TAG, "onStartCommand: $intent")
-        if (intent?.action !== CONNECT_INTENT_ACTION && !hasConnectedDevice)
+        // Note: structural comparison (!=) is required here. The intent is re-parceled by the
+        // system, so its action string is a different instance than the constant.
+        if (intent?.action != CONNECT_INTENT_ACTION &&
+            intent?.action != DISCONNECT_INTENT_ACTION &&
+            !hasConnectedDevice
+        )
             return START_NOT_STICKY
 
         when (intent?.action) {

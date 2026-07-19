@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import org.staacks.alpharemote.camera.ble.BleCommandQueue
 import org.staacks.alpharemote.camera.ble.BleConnectionState
 import org.staacks.alpharemote.camera.ble.ChangeMtu
-import org.staacks.alpharemote.camera.ble.Disconnect
 import org.staacks.alpharemote.camera.ble.GenericAccessService
 import org.staacks.alpharemote.camera.ble.LocationService
 import org.staacks.alpharemote.camera.ble.RemoteControlService
@@ -190,7 +189,14 @@ class CameraBLE(
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun disconnectFromDevice() {
         Log.d(TAG, "disconnectFromDevice")
-        bleOperationQueue?.enqueueOperation(Disconnect)
+        // Tear down directly instead of enqueuing a disconnect operation:
+        // - Before the GATT connection is established (still connecting, waiting for bonding or
+        //   a failed attempt) there is no operation queue at all.
+        // - Once gatt.close() has been called, the STATE_DISCONNECTED callback is not guaranteed
+        //   to be delivered anymore, so an enqueued disconnect may never emit the Disconnected
+        //   state that the service relies on for cleanup.
+        // In both cases this CameraBLE instance would linger and block future connection attempts.
+        notifyDisconnect()
     }
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun executeCameraActionStep(action: CameraActionStep) {
