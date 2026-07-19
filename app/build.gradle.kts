@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "org.staacks.alpharemote"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "org.staacks.alpharemote"
         minSdk = 36
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1000
         versionName = "1.00"
 
