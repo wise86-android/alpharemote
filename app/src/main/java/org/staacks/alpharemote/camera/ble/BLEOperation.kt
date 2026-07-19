@@ -4,7 +4,6 @@ import android.Manifest
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
@@ -43,14 +42,7 @@ data class Write(
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun execute(gatt: BluetoothGatt) {
         Log.d(TAG, "Writing: 0x${data.toHexString()}")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeCharacteristic(characteristic, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-        } else {
-            @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-            characteristic.value = data
-            @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-            gatt.writeCharacteristic(characteristic)
-        }
+        gatt.writeCharacteristic(characteristic, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
     }
 }
 
@@ -74,14 +66,7 @@ data class SubscribeForUpdate(
     override fun execute(gatt: BluetoothGatt) {
         gatt.setCharacteristicNotification(characteristic, true)
         val descriptor = characteristic.getDescriptor(configDescriptorUUID)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
-        } else {
-            @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-            descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-            @Suppress("DEPRECATION", "Used for backwards compatibility on API<33")
-            gatt.writeDescriptor(descriptor)
-        }
+        gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
     }
 
     companion object{
