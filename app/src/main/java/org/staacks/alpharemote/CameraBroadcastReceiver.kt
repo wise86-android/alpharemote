@@ -4,9 +4,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
-import org.staacks.alpharemote.data.SettingsStore
+import org.staacks.alpharemote.data.BehaviorSettings
 import org.staacks.alpharemote.service.AlphaRemoteService
 import java.io.Serializable
 import java.util.Locale
@@ -15,13 +18,6 @@ class CameraBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(MainActivity.TAG, "BroadcastReceiver received: $intent")
-
-        val settings = SettingsStore(context)
-
-        if (!settings.handleExternalBroadcastMessage) {
-            Log.w(MainActivity.TAG, "Broadcast control not allowed by user.")
-            return
-        }
 
         if (intent.action != EXTERNAL_INTENT_ACTION) {
             return
@@ -40,18 +36,32 @@ class CameraBroadcastReceiver : BroadcastReceiver() {
         val down = intent.getBooleanExtra(EXTERNAL_INTENT_DOWN_EXTRA, true)
         val up = intent.getBooleanExtra(EXTERNAL_INTENT_UP_EXTRA, true)
 
-        try {
-            val preset = CameraActionPreset.valueOf(presetIn.uppercase(Locale.getDefault()))
-            val cameraAction = CameraAction(toggle, selftimer, duration, step, preset)
-            val serviceIntent = Intent(context, AlphaRemoteService::class.java).apply {
-                action = AlphaRemoteService.BUTTON_INTENT_ACTION
-                putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_EXTRA, cameraAction as Serializable)
-                putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA, up)
-                putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA, down)
+        // The setting lives in DataStore, so read it asynchronously instead of blocking the main
+        // thread with runBlocking.
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                if (!BehaviorSettings(context).getBroadcastControl()) {
+                    Log.w(MainActivity.TAG, "Broadcast control not allowed by user.")
+                    return@launch
+                }
+
+                try {
+                    val preset = CameraActionPreset.valueOf(presetIn.uppercase(Locale.getDefault()))
+                    val cameraAction = CameraAction(toggle, selftimer, duration, step, preset)
+                    val serviceIntent = Intent(context, AlphaRemoteService::class.java).apply {
+                        action = AlphaRemoteService.BUTTON_INTENT_ACTION
+                        putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_EXTRA, cameraAction as Serializable)
+                        putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_UP_EXTRA, up)
+                        putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_DOWN_EXTRA, down)
+                    }
+                    context.startService(serviceIntent)
+                } catch (e: IllegalArgumentException) {
+                    Log.e(MainActivity.TAG,"Invalid intent:\nPreset = $presetIn\nToggle = $toggle\nSelftimer = $selftimerIn\nDuration = $durationIn\nStep = $stepIn\nError: $e")
+                }
+            } finally {
+                pendingResult.finish()
             }
-            context.startService(serviceIntent)
-        } catch (e: IllegalArgumentException) {
-            Log.e(MainActivity.TAG,"Invalid intent:\nPreset = $presetIn\nToggle = $toggle\nSelftimer = $selftimerIn\nDuration = $durationIn\nStep = $stepIn\nError: $e")
         }
     }
 

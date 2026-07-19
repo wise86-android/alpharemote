@@ -7,10 +7,12 @@ import android.bluetooth.BluetoothGattService
 import android.location.Location
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.time.ZoneOffset
@@ -21,107 +23,107 @@ import java.util.TimeZone
 import java.util.UUID
 import kotlin.experimental.and
 import kotlin.time.Duration.Companion.microseconds
-import kotlin.time.Duration.Companion.minutes
 
 class LocationService : BleServiceManager {
 
     enum class Status{
-        Init,
-        ReadingSettings,
-        LocationUpdateEnabled,
-        LocationUpdateDisabled
+        Init,                   // camera location service not (yet) discovered
+        CameraReady,            // camera reports it can receive location updates
+        LocationUpdateDisabled, // camera reports it can not receive location updates
+        LocationUpdateEnabled   // enable sequence completed, location may be pushed
     }
-    private lateinit var bleOperationQueue: BleCommandQueue
+    private var bleOperationQueue: BleCommandQueue? = null
     private var writeLocationCharacteristics: BluetoothGattCharacteristic? = null
-    private lateinit var locationGattService: BluetoothGattService
+    private var locationGattService: BluetoothGattService? = null
     private val _status = MutableStateFlow(Status.Init)
     val status: StateFlow<Status> = _status.asStateFlow()
-    private lateinit var payloadSettings: PayloadSettings
+    private var payloadSettings: PayloadSettings? = null
 
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue) {
+    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue, scope: CoroutineScope) {
         this.bleOperationQueue = bleCommandQueue
-        val genericAccessService = gatt.getService(SERVICE_UUID)
-        writeLocationCharacteristics = genericAccessService?.getCharacteristic(UPDATE_LOCATION)
-        genericAccessService?.let { service ->
-            locationGattService = service
-            enableStatusNotification(service)
+        val service = gatt.getService(SERVICE_UUID)
+        if (service == null) {
+            Log.d(TAG, "Camera does not expose the location service.")
+            return
+        }
+        locationGattService = service
+        writeLocationCharacteristics = service.getCharacteristic(UPDATE_LOCATION)
+        service.getCharacteristic(SERVICE_STATUS)?.let { characteristic ->
+            scope.launch {
+                bleCommandQueue.subscribe(characteristic)
+            }
         }
     }
 
     override fun onDisconnect() {
         _status.update { Status.Init }
+        payloadSettings = null
+        writeLocationCharacteristics = null
+        locationGattService = null
+        bleOperationQueue = null
     }
 
-    @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    private fun enableStatusNotification(service: BluetoothGattService) {
-        service.getCharacteristic(SERVICE_STATUS)?.let { characteristic ->
-            _status.update { Status.ReadingSettings }
-            bleOperationQueue.enqueueOperation(SubscribeForUpdate(characteristic))
-        }
-    }
-
-    @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    private fun acquireLock(service:BluetoothGattService){
-        val lockChar = service.getCharacteristic(LOCK)
-        if(lockChar!=null){
-            Log.e(TAG,"acquire lock")
-
-            bleOperationQueue.enqueueOperation(Write(lockChar,LOCK_MESSAGE,{status,_value ->
-                if(status != BluetoothGatt.GATT_SUCCESS){
-                    Log.e(TAG,"Failed to acquire lock")
-                }
-                service.getCharacteristic(LOCATION_INFO)?.let { locationInfo ->
-                    bleOperationQueue.enqueueOperation(Write(locationInfo,LOCATION_INFO_ENABLE, { status, _value ->
-                        Log.e(TAG,"read time correction")
-                        service.getCharacteristic(TIME_CORRECTION_SETTINGS)?.let {
-                            bleOperationQueue.enqueueOperation(Read(it,{status,value ->
-                                Log.d(TAG,"Time correction settings: ${value.toHexString()}")
-                            }))
-                        }
-                        Log.e(TAG,"area time correction")
-                        service.getCharacteristic(AREA_ADJUST_SETTINGS)?.let {
-                            bleOperationQueue.enqueueOperation(Read(it,{status,value ->
-                                Log.d(TAG,"Area correction settings: ${value.toHexString()}")
-                            }))
-                        }
-                        Log.e(TAG,"payload time correction")
-                        service.getCharacteristic(PAYLOAD_SETTINGS)?.let {
-                            bleOperationQueue.enqueueOperation(Read(it,{status,value ->
-                                Log.d(TAG,"Payload settings: ${value.toHexString()}")
-                                Log.d(TAG,"Payload settings: ${PayloadSettings(value)}")
-                                this.payloadSettings = PayloadSettings(value)
-                                _status.update { Status.LocationUpdateEnabled }
-                            }))
-                        }
-                    }))
-                }
-            }))
-        }else{
-            service.getCharacteristic(PAYLOAD_SETTINGS)?.let {
-                bleOperationQueue.enqueueOperation(Read(it,{status,value ->
-                    Log.d(TAG,"Payload settings: ${value.toHexString()}")
-                    this.payloadSettings = PayloadSettings(value)
-                    _status.update { Status.LocationUpdateEnabled }
-                }))
-            }
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onCharacteristicsChanged(
         characteristic: BluetoothGattCharacteristic,
         newValue: ByteArray
     ){
-        if(characteristic.uuid == SERVICE_STATUS){
-            Log.d(TAG,"status update: ${newValue.toHexString()}")
-            if(newValue.contentEquals(DISABLE_LOCATION_UPDATE)){
-                Log.e(TAG,"Camera can not receive location update")
-                _status.update { Status.LocationUpdateDisabled }
-            }else if(newValue.contentEquals(ENABLE_LOCATION_UPDATE)){
-                Log.e(TAG,"Camera is ready to receive location update")
-                acquireLock(locationGattService)
+        if(characteristic.uuid != SERVICE_STATUS){
+            return
+        }
+        Log.d(TAG,"status update: ${newValue.toHexString()}")
+        if(newValue.contentEquals(DISABLE_LOCATION_UPDATE)){
+            Log.d(TAG,"Camera can not receive location updates")
+            _status.update { Status.LocationUpdateDisabled }
+        }else if(newValue.contentEquals(ENABLE_LOCATION_UPDATE)){
+            Log.d(TAG,"Camera is ready to receive location updates")
+            // Do NOT run the enable sequence here. Occupying the camera's location function is
+            // an explicit user choice (some cameras can not use the Bluetooth remote and the
+            // location link at the same time), so it only happens when enableSync() is called.
+            if (_status.value != Status.LocationUpdateEnabled) {
+                _status.update { Status.CameraReady }
+            }
+        }
+    }
+
+    /**
+     * Acquires the camera's location lock, enables its location-info link and reads the payload
+     * settings. Must only be called when the user opted in to location sync.
+     */
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    suspend fun enableSync() {
+        val service = locationGattService ?: return
+        val queue = bleOperationQueue ?: return
+        if (_status.value != Status.CameraReady) {
+            Log.d(TAG, "enableSync skipped, camera not ready (${_status.value})")
+            return
+        }
+
+        service.getCharacteristic(LOCK)?.let { lockCharacteristic ->
+            Log.d(TAG, "Acquiring location lock")
+            if (queue.write(lockCharacteristic, LOCK_MESSAGE) != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "Failed to acquire lock")
+            }
+            service.getCharacteristic(LOCATION_INFO)?.let { locationInfo ->
+                queue.write(locationInfo, LOCATION_INFO_ENABLE)
+            }
+            service.getCharacteristic(TIME_CORRECTION_SETTINGS)?.let {
+                Log.d(TAG, "Time correction settings: ${queue.read(it).second.toHexString()}")
+            }
+            service.getCharacteristic(AREA_ADJUST_SETTINGS)?.let {
+                Log.d(TAG, "Area correction settings: ${queue.read(it).second.toHexString()}")
+            }
+        }
+
+        service.getCharacteristic(PAYLOAD_SETTINGS)?.let {
+            val (readStatus, value) = queue.read(it)
+            if (readStatus == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Payload settings: ${value.toHexString()}")
+                payloadSettings = PayloadSettings(value)
+                _status.update { Status.LocationUpdateEnabled }
+            } else {
+                Log.e(TAG, "Failed to read payload settings: $readStatus")
             }
         }
     }
@@ -129,15 +131,16 @@ class LocationService : BleServiceManager {
     @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun updateLocationAndTime(location: Location,time: Date){
         if(_status.value != Status.LocationUpdateEnabled) {
-            Log.e(TAG,"Location update not enabled, Skipped update")
+            Log.d(TAG,"Location update not enabled, skipped update")
             return
         }
+        val queue = bleOperationQueue ?: return
 
         writeLocationCharacteristics?.let {
                 val message = LocationInformationUpdateMessage(location, time)
-                bleOperationQueue.enqueueOperation(
+                queue.enqueueOperation(
                     Write(
-                        it, message.buildRawPayload(payloadSettings.shouldSendTimezoneAndDst),
+                        it, message.buildRawPayload(payloadSettings?.shouldSendTimezoneAndDst == true),
                         { status, _value ->
                             if (status != BluetoothGatt.GATT_SUCCESS) {
                                 Log.e(TAG, "Failed to update location: $location staus: $status")

@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.EntryProviderScope
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
-import org.staacks.alpharemote.data.SettingsStore
+import org.staacks.alpharemote.data.AppearanceSettings
 import org.staacks.alpharemote.ui.AlphaRemoteNavKey
 import org.staacks.alpharemote.ui.Navigator
 
@@ -21,10 +21,10 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
     entry<AlphaRemoteNavKey.Camera> {
         val uiState by cameraViewModel.uiState.collectAsState()
         var customButtons by remember { mutableStateOf(emptyList<CameraAction>()) }
-        val settingsStore = SettingsStore(LocalContext.current)
+        val appearanceSettings = AppearanceSettings(LocalContext.current)
 
         LaunchedEffect(Unit) {
-            settingsStore.customButtonSettings.collect {
+            appearanceSettings.customButtonSettings.collect {
                 customButtons = it.customButtonList ?: emptyList()
             }
         }

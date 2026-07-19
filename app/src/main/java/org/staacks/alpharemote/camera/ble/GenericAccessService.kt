@@ -2,11 +2,12 @@ package org.staacks.alpharemote.camera.ble
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattService
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.nio.ByteOrder.LITTLE_ENDIAN
 import java.util.UUID
@@ -21,15 +22,33 @@ class GenericAccessService : BleServiceManager{
     val preferredConnectionParametersFlow: StateFlow<PreferredConnectionParameters?> =
         _preferredConnectionParametersFlow.asStateFlow()
 
-    private lateinit var bleOperationQueue: BleCommandQueue
-
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue) {
-        this.bleOperationQueue = bleCommandQueue
+    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue, scope: CoroutineScope) {
         val genericAccessService = gatt.getService(SERVICE_UUID)
-        genericAccessService?.let { service ->
-            readDeviceName(service, bleOperationQueue)
-            readConnectionParametersName(service, bleOperationQueue)
+        if (genericAccessService == null) {
+            Log.e(TAG, "Generic access service not found")
+            return
+        }
+        scope.launch {
+            genericAccessService.getCharacteristic(DEVICE_NAME_UUID)?.let { nameCharacteristic ->
+                val (status, value) = bleCommandQueue.read(nameCharacteristic)
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    val newName = value.toString(Charsets.UTF_8)
+                    Log.d(TAG, "Read Device name: $newName")
+                    _deviceNameFlow.tryEmit(newName)
+                }
+            }
+            genericAccessService.getCharacteristic(DEVICE_PREFERRED_CONNECTION_PARAMS_UUID)?.let { parametersCharacteristic ->
+                val (status, value) = bleCommandQueue.read(parametersCharacteristic)
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    runCatching { PreferredConnectionParameters.parse(value) }
+                        .onSuccess { connectionParameters ->
+                            Log.d(TAG, "Read connection parameters: $connectionParameters")
+                            _preferredConnectionParametersFlow.tryEmit(connectionParameters)
+                        }
+                        .onFailure { Log.e(TAG, "Failed to parse connection parameters: $it") }
+                }
+            }
         }
     }
 
@@ -40,39 +59,10 @@ class GenericAccessService : BleServiceManager{
         newValue: ByteArray
     ) = Unit
 
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    private fun readDeviceName(service: BluetoothGattService, bleOperationQueue: BleCommandQueue) {
-        service.getCharacteristic(DEVICE_NAME_UUID)?.let { nameChar ->
-            bleOperationQueue.enqueueOperation(Read(nameChar) { status, value ->
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val newName = value.toString(Charsets.UTF_8)
-                    Log.d(TAG, "Read Device name: $newName")
-                    _deviceNameFlow.tryEmit(newName)
-                }
-            })
-        }
-    }
-
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    private fun readConnectionParametersName(
-        service: BluetoothGattService,
-        bleOperationQueue: BleCommandQueue
-    ) {
-        service.getCharacteristic(DEVICE_PREFERRED_CONNECTION_PARAMS_UUID)?.let { nameChar ->
-            bleOperationQueue.enqueueOperation(Read(nameChar) { status, value ->
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val connectionParameters = PreferredConnectionParameters.parse(value)
-                    Log.d(TAG, "Read connection parameters: $connectionParameters")
-                    _preferredConnectionParametersFlow.tryEmit(connectionParameters)
-                }
-            })
-        }
-    }
-
 
     companion object {
         private const val TAG = "GenericAccessService"
-        private const val DEFAULT_DEVICE_NAME = "Unknow"
+        private const val DEFAULT_DEVICE_NAME = "Unknown"
         val SERVICE_UUID = UUID.fromString("00001800-0000-1000-8000-00805f9b34fb")!!
         val DEVICE_NAME_UUID = UUID.fromString("00002a00-0000-1000-8000-00805f9b34fb")!!
         val DEVICE_PREFERRED_CONNECTION_PARAMS_UUID =

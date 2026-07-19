@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +23,7 @@ import java.util.UUID
 import kotlin.text.toHexString
 
 class RemoteControlService : BleServiceManager {
-    private lateinit var bleOperationQueue: BleCommandQueue
+    private var bleOperationQueue: BleCommandQueue? = null
     private var commandCharacteristic: BluetoothGattCharacteristic? = null
     private val _deviceStatusFlow = MutableStateFlow(CameraStatus())
     val deviceStatus: StateFlow<CameraStatus> = _deviceStatusFlow.asStateFlow()
@@ -38,23 +39,30 @@ class RemoteControlService : BleServiceManager {
 
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue) {
+    override fun onConnect(gatt: BluetoothGatt, bleCommandQueue: BleCommandQueue, scope: CoroutineScope) {
         this.bleOperationQueue = bleCommandQueue
-        val genericAccessService = gatt.getService(REMOTE_SERVICE_UUID)
-        genericAccessService?.let { service ->
-            enableStatusNotification(service)
+        // getService returns a platform type and is null when the camera does not expose the
+        // remote control service - do not assume it exists.
+        val remoteControlService = gatt.getService(REMOTE_SERVICE_UUID)
+        if (remoteControlService == null) {
+            Log.e(TAG, "Remote control service not found")
+            commandCharacteristic = null
+            return
         }
-        commandCharacteristic = genericAccessService.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
+        enableStatusNotification(remoteControlService)
+        commandCharacteristic = remoteControlService.getCharacteristic(COMMAND_CHARACTERISTIC_UUID)
     }
 
     override fun onDisconnect() {
         _deviceStatusFlow.tryEmit(CameraStatus())
+        commandCharacteristic = null
+        bleOperationQueue = null
     }
 
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     private fun enableStatusNotification(service: BluetoothGattService){
         service.getCharacteristic(STATUS_CHARACTERISTIC_UUID)?.let { characteristic ->
-            bleOperationQueue.enqueueOperation(SubscribeForUpdate(characteristic))
+            bleOperationQueue?.enqueueOperation(SubscribeForUpdate(characteristic))
         }
     }
 
@@ -75,7 +83,7 @@ class RemoteControlService : BleServiceManager {
             return
         commandCharacteristic?.let {
 
-            bleOperationQueue.enqueueOperation(Write(it,payload, { status, _ ->
+            bleOperationQueue?.enqueueOperation(Write(it,payload, { status, _ ->
             if(status != GATT_SUCCESS){
                 Log.e(TAG,"Failed to send command: $status")
                 _lastCommandState.tryEmit(CommandStatus.Fail)

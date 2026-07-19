@@ -10,6 +10,10 @@ import android.content.Context
 import android.location.Location
 import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -38,6 +42,10 @@ class CameraBLE(
     private var gatt: BluetoothGatt? = null
     private var bleOperationQueue: BleCommandQueue?=null
 
+    // Bound to the GATT connection, cancelled on disconnect. Handed to the service managers for
+    // their suspend BLE operations.
+    private var connectionScope: CoroutineScope? = null
+
     private val genericAccessService = GenericAccessService()
     private val remoteControlService = RemoteControlService()
     private val locationService = LocationService()
@@ -61,6 +69,8 @@ class CameraBLE(
             super.onConnectionStateChange(gatt, status, newState)
             Log.d(TAG, "onConnectionStateChange: status $status, newState $newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                connectionScope?.cancel()
+                connectionScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
                 bleOperationQueue = BleCommandQueue(gatt)
                 bleOperationQueue?.enqueueOperation(ChangeMtu(PREFERRED_CONNECTION_MTU,{ newMtu,status ->
                     Log.d(TAG, "MTU change: $newMtu, $status")
@@ -79,7 +89,9 @@ class CameraBLE(
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 logAllCharacteristics(gatt,TAG)
                 bleOperationQueue?.let { commandQueue ->
-                    managedService.forEach { it.onConnect(gatt, commandQueue) }
+                    connectionScope?.let { scope ->
+                        managedService.forEach { it.onConnect(gatt, commandQueue, scope) }
+                    }
                 }
             } else {
                 Log.e(TAG, "discovery failed: $status")
@@ -177,6 +189,9 @@ class CameraBLE(
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     private fun notifyDisconnect() {
         Log.d(TAG, "notifyDisconnect")
+        connectionScope?.cancel()
+        connectionScope = null
+        managedService.forEach { it.onDisconnect() }
         bleOperationQueue?.resetOperationQueue()
         gatt?.disconnect()
         gatt?.close()
@@ -209,6 +224,16 @@ class CameraBLE(
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     fun setCameraLocation(location: Location){
         locationService.updateLocationAndTime(location, Date())
+    }
+
+    /**
+     * Runs the camera-side location-link enable sequence. Only call this when the user has opted
+     * in to location sync - the writes occupy the camera's location function, which on some models
+     * conflicts with the Bluetooth remote setting.
+     */
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    suspend fun enableLocationSync() {
+        locationService.enableSync()
     }
 
     companion object {

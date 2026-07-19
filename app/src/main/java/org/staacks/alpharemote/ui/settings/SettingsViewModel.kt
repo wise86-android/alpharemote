@@ -3,7 +3,8 @@ package org.staacks.alpharemote.ui.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import org.staacks.alpharemote.data.SettingsStore
+import org.staacks.alpharemote.data.AppearanceSettings
+import org.staacks.alpharemote.data.BehaviorSettings
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.service.AlphaRemoteRepository
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -22,7 +23,8 @@ import org.staacks.alpharemote.utils.hasBluetoothPermission
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = AlphaRemoteRepository.getInstance(application)
-    private val settingsStore = SettingsStore(application)
+    private val appearanceSettings = AppearanceSettings(application)
+    private val behaviorSettings = BehaviorSettings(application)
 
     data class SettingsUIState (
         val cameraState: SettingsUICameraState = SettingsUICameraState.OFFLINE,
@@ -72,7 +74,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val locEnabled = flows[3] as Boolean
         val manualError = flows[4] as? String
 
-        val (storedAddress, storedName) = settingsStore.getCameraId()
+        val (storedAddress, storedName) = behaviorSettings.getCameraId()
         val address = associations.firstOrNull()
         val isAssociated = address != null
 
@@ -99,7 +101,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             is CameraState.Connected.Ready -> {
                 if (storedAddress != camState.address) {
                     viewModelScope.launch {
-                        settingsStore.setCameraId(camState.name, camState.address)
+                        behaviorSettings.setCameraId(camState.name, camState.address)
                     }
                 }
                 cameraState = SettingsUICameraState.CONNECTED
@@ -123,17 +125,28 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUIState())
 
-    val updateCameraLocation = settingsStore.updateCameraLocation
+    val updateCameraLocation = behaviorSettings.updateCameraLocation
 
     fun setUpdateCameraLocation(boolean: Boolean){
         viewModelScope.launch {
-            settingsStore.setUpdateCameraLocation(boolean)
+            behaviorSettings.setUpdateCameraLocation(boolean)
         }
     }
 
     val buttonScaleSteps = listOf(0.6f, 0.7f, 0.85f, 1.0f, 1.15f, 1.3f, 1.5f)
-    var buttonScaleIndex = MutableStateFlow(buttonScaleSteps.indexOf(1.0f))
-    var broadcastControl = MutableStateFlow(false)
+
+    // All settings state derives directly from the DataStore flows, so the store stays the
+    // single source of truth and changes from anywhere (including other processes of the app,
+    // e.g. the service) are reflected here.
+    val buttonScaleIndex: StateFlow<Int> = appearanceSettings.customButtonSettings
+        .map { settings ->
+            buttonScaleSteps.indexOf(settings.scale).takeIf { it >= 0 }
+                ?: buttonScaleSteps.indexOf(1.0f)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), buttonScaleSteps.indexOf(1.0f))
+
+    val broadcastControl: StateFlow<Boolean> = behaviorSettings.broadcastControl
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val defaultCustomButtonList = listOf(
         CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
@@ -141,25 +154,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         CameraAction(false, null, null, null, CameraActionPreset.RECORD),
     )
 
-    private val _customButtonListFlow = MutableStateFlow(defaultCustomButtonList)
-    val customButtonListFlow: StateFlow<List<CameraAction>> = _customButtonListFlow.asStateFlow()
+    val customButtonListFlow: StateFlow<List<CameraAction>> = appearanceSettings.customButtonSettings
+        .map { it.customButtonList ?: defaultCustomButtonList }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), defaultCustomButtonList)
 
     init {
+        // Seed the default buttons on first run so the notification has buttons before the user
+        // ever edits the list.
         viewModelScope.launch {
-            settingsStore.getNotificationButtonSize()?.let {
-                val i = buttonScaleSteps.indexOf(it)
-                if (i >= 0)
-                    buttonScaleIndex.value = i
+            if (appearanceSettings.getCustomButtonList() == null) {
+                appearanceSettings.saveCustomButtonList(defaultCustomButtonList)
             }
-
-            var customButtonList = settingsStore.getCustomButtonList()
-            if (customButtonList == null) {
-                customButtonList = defaultCustomButtonList
-                settingsStore.saveCustomButtonList(defaultCustomButtonList)
-            }
-            _customButtonListFlow.value = customButtonList
-
-            broadcastControl.value = settingsStore.getBroadcastControl()
         }
     }
 
@@ -213,27 +218,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setButtonScaleIndex(progressValue: Int) {
         val normalizedValue = progressValue.coerceIn(0, buttonScaleSteps.lastIndex)
         viewModelScope.launch {
-            buttonScaleIndex.value = normalizedValue
-            settingsStore.setNotificationButtonSize(buttonScaleSteps[normalizedValue])
+            appearanceSettings.setNotificationButtonSize(buttonScaleSteps[normalizedValue])
         }
     }
 
 
     fun setBroadcastControl(isChecked: Boolean) {
         viewModelScope.launch {
-            broadcastControl.value = isChecked
-            settingsStore.setBroadcastControl(isChecked)
+            behaviorSettings.setBroadcastControl(isChecked)
         }
     }
 
     fun removeCustomButton(index: Int) {
-        val currentList = _customButtonListFlow.value
+        val currentList = customButtonListFlow.value
         if (index !in currentList.indices) return
         persistCustomButtonList(currentList.toMutableList().apply { removeAt(index) })
     }
 
     fun moveCustomButton(from: Int, to: Int) {
-        val currentList = _customButtonListFlow.value
+        val currentList = customButtonListFlow.value
         if (from !in currentList.indices || to !in currentList.indices || from == to) return
         persistCustomButtonList(currentList.toMutableList().apply {
             val item = removeAt(from)
@@ -242,7 +245,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateCustomButton(index: Int, action: CameraAction) {
-        val currentList = _customButtonListFlow.value
+        val currentList = customButtonListFlow.value
         val nextList = if (index < 0) {
             currentList + action
         } else if (index in currentList.indices) {
@@ -254,9 +257,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun persistCustomButtonList(nextList: List<CameraAction>) {
-        _customButtonListFlow.value = nextList
         viewModelScope.launch {
-            settingsStore.saveCustomButtonList(nextList)
+            appearanceSettings.saveCustomButtonList(nextList)
         }
     }
 }

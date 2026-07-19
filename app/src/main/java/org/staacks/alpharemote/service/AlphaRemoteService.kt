@@ -13,18 +13,11 @@ import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.os.Binder
 import android.os.IBinder
-import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.data.SettingsStore
+import org.staacks.alpharemote.data.AppearanceSettings
 import org.staacks.alpharemote.camera.ButtonCode
 import org.staacks.alpharemote.camera.CAButton
 import org.staacks.alpharemote.camera.CACountdown
@@ -49,7 +42,6 @@ import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.camera.ShutterState
 import org.staacks.alpharemote.camera.ble.BleConnectionState
-import org.staacks.alpharemote.camera.ble.LocationService
 import org.staacks.alpharemote.camera.ble.RemoteControlService
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 import org.staacks.alpharemote.utils.hasLocationPermission
@@ -58,7 +50,6 @@ import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
 import kotlin.math.roundToLong
-import kotlin.time.Duration.Companion.seconds
 
 class AlphaRemoteService : Service() {
     private val job = SupervisorJob()
@@ -73,54 +64,14 @@ class AlphaRemoteService : Service() {
 
     private val pendingActionSteps = LinkedList<CameraActionStep>()
 
-    private val fusedLocationClient: FusedLocationProviderClient by lazy {
-        LocationServices.getFusedLocationProviderClient(this)
-    }
+    private val locationSyncController by lazy { LocationSyncController(this) }
 
     private var hasConnectedDevice: Boolean = false
 
     private var cameraBLE: CameraBLE? = null
 
-    private val locationRequest = LocationRequest.Builder(
-        Priority.PRIORITY_HIGH_ACCURACY,
-        20.seconds.inWholeMilliseconds
-    ) // 20 seconds
-        .setMinUpdateIntervalMillis(10.seconds.inWholeMilliseconds) // 10 seconds (minimum interval)
-        .build()
-
-    private val locationCallback: LocationCallback = object : LocationCallback() {
-
-        override fun onLocationResult(locationResult: LocationResult) {
-            val lastLocation = locationResult.lastLocation
-            if (lastLocation !== null && hasBluetoothPermission(this@AlphaRemoteService))
-                @SuppressLint("MissingPermission")
-                cameraBLE?.setCameraLocation(lastLocation)
-        }
-
-    }
-
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Disconnected)
     val cameraState = _cameraState.asStateFlow()
-
-    private fun startLocationUpdates() {
-        if (hasLocationPermission(this)) {
-            @SuppressLint("MissingPermission")
-            fusedLocationClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.getMainLooper()
-            )
-            Log.d(TAG, "Location updates started.")
-        } else {
-            Log.d(TAG, "Location updates missing permission.")
-        }
-
-    }
-
-    private fun stopLocationUpdates() {
-        fusedLocationClient.removeLocationUpdates(locationCallback)
-        Log.d(TAG, "Location updates stopped.")
-    }
 
     companion object {
         private val TAG = AlphaRemoteService::class.java.name
@@ -214,7 +165,7 @@ class AlphaRemoteService : Service() {
     private fun onDisconnect() {
         Log.d(MainActivity.TAG, "onDisconnect")
         hasConnectedDevice = false
-        stopLocationUpdates()
+        locationSyncController.stop()
         cancelPendingActionSteps()
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationUI?.stop()
@@ -314,13 +265,8 @@ class AlphaRemoteService : Service() {
             notificationUI?.onCameraConnectionUpdate(it)
         }.launchIn(connectionScope)
 
-        locationUpdateStatus.onEach { newStatus ->
-            when (newStatus) {
-                LocationService.Status.LocationUpdateEnabled -> startLocationUpdates()
-                LocationService.Status.LocationUpdateDisabled -> stopLocationUpdates()
-                else -> {}
-            }
-        }.launchIn(connectionScope)
+        // GPS push to the camera is handled by the controller, gated behind the user setting.
+        locationSyncController.start(cameraBLE, connectionScope)
 
         deviceName.onEach { newName ->
             _cameraState.update {
@@ -458,8 +404,9 @@ class AlphaRemoteService : Service() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         scope.launch {
-            SettingsStore(application).getCustomButtonList().let { customButtonList ->
-                SettingsStore(application).getNotificationButtonSize()
+            val appearanceSettings = AppearanceSettings(application)
+            appearanceSettings.getCustomButtonList().let { customButtonList ->
+                appearanceSettings.getNotificationButtonSize()
                     ?.let { notificationButtonSize ->
                         notificationUI?.updateCustomButtons(
                             customButtonList,

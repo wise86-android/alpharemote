@@ -4,8 +4,10 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 
 import android.util.Log
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
 import java.util.LinkedList
+import kotlin.coroutines.resume
 
 class BleCommandQueue(private val gatt: BluetoothGatt) {
     private val operationQueue = LinkedList<BLEOperation>()
@@ -29,6 +31,35 @@ class BleCommandQueue(private val gatt: BluetoothGatt) {
         operationQueue.clear()
         currentOperation = null
     }
+
+    // Suspend wrappers around the callback-based queue. They resume when the corresponding GATT
+    // callback completes the operation. If the queue is reset (disconnect), the continuation is
+    // never resumed - callers are expected to run in a connection-scoped coroutine that gets
+    // cancelled on disconnect.
+
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    suspend fun write(characteristic: BluetoothGattCharacteristic, data: ByteArray): Int =
+        suspendCancellableCoroutine { continuation ->
+            enqueueOperation(Write(characteristic, data) { status, _ ->
+                continuation.resume(status)
+            })
+        }
+
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    suspend fun read(characteristic: BluetoothGattCharacteristic): Pair<Int, ByteArray> =
+        suspendCancellableCoroutine { continuation ->
+            enqueueOperation(Read(characteristic) { status, value ->
+                continuation.resume(status to value)
+            })
+        }
+
+    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    suspend fun subscribe(characteristic: BluetoothGattCharacteristic): Int =
+        suspendCancellableCoroutine { continuation ->
+            enqueueOperation(SubscribeForUpdate(characteristic) { status ->
+                continuation.resume(status)
+            })
+        }
 
     @Synchronized
     @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
@@ -78,6 +109,7 @@ class BleCommandQueue(private val gatt: BluetoothGatt) {
         currentOperation?.let {
             if (it is SubscribeForUpdate && it.characteristic == gattCharacteristic) {
                 operationComplete()
+                it.resultCallback(status)
             }
         }
     }

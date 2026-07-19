@@ -59,7 +59,8 @@ data class Read(
 }
 
 data class SubscribeForUpdate(
-    val characteristic: BluetoothGattCharacteristic
+    val characteristic: BluetoothGattCharacteristic,
+    val resultCallback: (Int) -> Unit = {}
 ) : BLEOperation{
     override val hightPriority: Boolean = false
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
