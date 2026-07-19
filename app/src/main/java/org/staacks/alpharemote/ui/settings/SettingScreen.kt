@@ -13,54 +13,36 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
+import org.staacks.alpharemote.ui.components.LabeledSwitchRow
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.ui.theme.FragmentMargin
 
 @Composable
 fun SettingScreen(
     settingsViewModel: SettingsViewModel,
-    onPairRequested: () -> Unit,
-    onUnpairRequested: () -> Unit,
-    onAddCustomButtonRequested: () -> Unit,
-    onHelpConnectionRequested: () -> Unit,
-    onHelpCustomButtonsRequested: () -> Unit,
     onEditCustomButton: (Int, CameraAction) -> Unit,
     onOpenUrl: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sectionSpacing = dimensionResource(R.dimen.headline_margin_top)
 
-    val uiState by settingsViewModel.uiState.collectAsState()
-    val updateCameraLocation by settingsViewModel.updateCameraLocation.collectAsState(false)
-    val customButtons by settingsViewModel.customButtonListFlow.collectAsState()
-    val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsState(0)
-    val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsState(false)
+    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val updateCameraLocation by settingsViewModel.updateCameraLocation.collectAsStateWithLifecycle(false)
+    val customButtons by settingsViewModel.customButtonListFlow.collectAsStateWithLifecycle()
+    val selectedButtonScaleIndex by settingsViewModel.buttonScaleIndex.collectAsStateWithLifecycle()
+    val broadcastControlEnabled by settingsViewModel.broadcastControl.collectAsStateWithLifecycle()
 
     val broadcastDocumentationUrl = stringResource(R.string.settings_broadcast_control_more_url)
-
-    LaunchedEffect(settingsViewModel) {
-        settingsViewModel.uiAction.collect { action ->
-            when (action) {
-                SettingsViewModel.SettingsUIAction.PAIR -> onPairRequested()
-                SettingsViewModel.SettingsUIAction.UNPAIR -> onUnpairRequested()
-                SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> onAddCustomButtonRequested()
-                SettingsViewModel.SettingsUIAction.HELP_CONNECTION -> onHelpConnectionRequested()
-                SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS -> onHelpCustomButtonsRequested()
-                else -> {}
-            }
-        }
-    }
 
     SettingScreenContent(
         sectionSpacing = sectionSpacing,
@@ -143,7 +125,8 @@ private fun SettingScreenContent(
                     locationUpdatesEnabled = updateCameraLocation,
                 )
 
-                LocationSettings(
+                LabeledSwitchRow(
+                    label = stringResource(R.string.settings_location_send),
                     checked = updateCameraLocation,
                     onCheckedChange = onLocationUpdatesCheckedChange,
                 )

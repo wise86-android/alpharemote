@@ -1,10 +1,8 @@
 package org.staacks.alpharemote.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -13,8 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.R
+import org.staacks.alpharemote.ui.components.SettingsSection
 import org.staacks.alpharemote.ui.settings.SettingsViewModel.SettingsUICameraState
 import org.staacks.alpharemote.ui.settings.SettingsViewModel.SettingsUIState
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
@@ -29,15 +27,10 @@ fun CameraSettingsSection(
 ) {
     val cameraName = state.cameraName ?: stringResource(R.string.settings_camera_unknown_name)
 
-    Column(
+    SettingsSection(
+        title = stringResource(R.string.settings_camera),
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = stringResource(R.string.settings_camera),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-
         if (!state.bluetoothEnabled) {
             Text(
                 text = stringResource(R.string.settings_bluetooth_disabled),

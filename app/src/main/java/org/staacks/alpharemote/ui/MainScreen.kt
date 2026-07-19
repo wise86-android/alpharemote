@@ -1,5 +1,6 @@
 package org.staacks.alpharemote.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
@@ -26,17 +28,23 @@ import org.staacks.alpharemote.ui.camera.cameraEntries
 import org.staacks.alpharemote.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.settings.settingsEntries
 
+private data class TopLevelDestination(
+    val route: AlphaRemoteNavKey,
+    val icon: ImageVector,
+    @StringRes val labelRes: Int,
+)
+
+private val topLevelDestinations = listOf(
+    TopLevelDestination(AlphaRemoteNavKey.Camera, Icons.Default.PhotoCamera, R.string.title_camera),
+    TopLevelDestination(AlphaRemoteNavKey.Settings, Icons.Default.Settings, R.string.title_settings),
+    TopLevelDestination(AlphaRemoteNavKey.About, Icons.Default.Info, R.string.title_about),
+)
+
 @Composable
 fun MainScreen() {
-    val topLevelRoutes = setOf(
-        AlphaRemoteNavKey.Camera,
-        AlphaRemoteNavKey.Settings,
-        AlphaRemoteNavKey.About
-    )
-
     val navigationState = rememberNavigationState(
         startRoute = AlphaRemoteNavKey.Camera,
-        topLevelRoutes = topLevelRoutes
+        topLevelRoutes = topLevelDestinations.map { it.route }.toSet()
     )
 
     val navigator = remember { Navigator(navigationState) }
@@ -54,24 +62,14 @@ fun MainScreen() {
     Scaffold(
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(
-                    selected = navigationState.topLevelRoute == AlphaRemoteNavKey.Camera,
-                    onClick = { navigator.navigate(AlphaRemoteNavKey.Camera) },
-                    icon = { Icon(Icons.Default.PhotoCamera, null) },
-                    label = { Text(stringResource(R.string.title_camera)) }
-                )
-                NavigationBarItem(
-                    selected = navigationState.topLevelRoute == AlphaRemoteNavKey.Settings,
-                    onClick = { navigator.navigate(AlphaRemoteNavKey.Settings) },
-                    icon = { Icon(Icons.Default.Settings, null) },
-                    label = { Text(stringResource(R.string.title_settings)) }
-                )
-                NavigationBarItem(
-                    selected = navigationState.topLevelRoute == AlphaRemoteNavKey.About,
-                    onClick = { navigator.navigate(AlphaRemoteNavKey.About) },
-                    icon = { Icon(Icons.Default.Info, null) },
-                    label = { Text(stringResource(R.string.title_about)) }
-                )
+                topLevelDestinations.forEach { destination ->
+                    NavigationBarItem(
+                        selected = navigationState.topLevelRoute == destination.route,
+                        onClick = { navigator.navigate(destination.route) },
+                        icon = { Icon(destination.icon, contentDescription = null) },
+                        label = { Text(stringResource(destination.labelRes)) }
+                    )
+                }
             }
         }
     ) { padding ->

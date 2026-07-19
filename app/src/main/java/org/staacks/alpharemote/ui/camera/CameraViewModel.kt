@@ -8,28 +8,37 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.CameraAction
+import org.staacks.alpharemote.data.AppearanceSettings
 
 
 class CameraViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = AlphaRemoteRepository.getInstance(application)
+    private val appearanceSettings = AppearanceSettings(application)
 
+    // Immutable UI state: every change goes through update { copy(...) } so Compose and
+    // StateFlow observers are notified. Text field inputs are kept as raw strings and only
+    // parsed when the sequence is started.
     data class CameraUIState (
-        var connected: Boolean = false,
-        var cameraState: CameraState.Connected.Ready? = null,
+        val connected: Boolean = false,
+        val cameraState: CameraState.Connected.Ready? = null,
 
-        var bulbToggle: Boolean = false,
-        var bulbDuration: Double? = 5.0,
-        var intervalToggle: Boolean = false,
-        var intervalCount: Int? = 50,
-        var intervalDuration: Double? = 3.0,
+        val bulbToggle: Boolean = false,
+        val bulbDuration: String = "5.0",
+        val intervalToggle: Boolean = false,
+        val intervalCount: String = "50",
+        val intervalDuration: String = "3.0",
     )
 
     sealed class CameraUIAction
@@ -55,19 +64,33 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiAction = MutableSharedFlow<CameraUIAction>()
     val uiAction = _uiAction.asSharedFlow()
 
+    val customButtons: StateFlow<List<CameraAction>> = appearanceSettings.customButtonSettings
+        .map { it.customButtonList ?: emptyList() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         viewModelScope.launch {
-            repository.cameraState.collectLatest {
-                val readyState = it as? CameraState.Connected.Ready
-                _uiState.value = uiState.value.copy(
-                    cameraState = readyState,
-                    connected = readyState != null
-                )
+            repository.cameraState.collectLatest { state ->
+                val readyState = state as? CameraState.Connected.Ready
+                _uiState.update {
+                    it.copy(
+                        cameraState = readyState,
+                        connected = readyState != null
+                    )
+                }
             }
         }
     }
 
+    fun setBulbToggle(enabled: Boolean) = _uiState.update { it.copy(bulbToggle = enabled) }
 
+    fun setBulbDuration(value: String) = _uiState.update { it.copy(bulbDuration = value) }
+
+    fun setIntervalToggle(enabled: Boolean) = _uiState.update { it.copy(intervalToggle = enabled) }
+
+    fun setIntervalCount(value: String) = _uiState.update { it.copy(intervalCount = value) }
+
+    fun setIntervalDuration(value: String) = _uiState.update { it.copy(intervalDuration = value) }
 
     fun gotoDeviceSettings() {
         viewModelScope.launch {
@@ -97,9 +120,9 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     fun startAdvancedSequence() {
         val state = uiState.value
         repository.startAdvancedSequence(
-            state.bulbDuration?.toFloat() ?: 5.0f,
-            state.intervalCount ?: 50,
-            state.intervalDuration?.toFloat() ?: 3.0f
+            state.bulbDuration.toFloatOrNull() ?: 5.0f,
+            state.intervalCount.toIntOrNull() ?: 50,
+            state.intervalDuration.toFloatOrNull() ?: 3.0f
         )
     }
 

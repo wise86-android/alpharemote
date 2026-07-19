@@ -2,7 +2,6 @@ package org.staacks.alpharemote.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import org.staacks.alpharemote.R
+import org.staacks.alpharemote.ui.components.SettingsSection
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 @Composable
@@ -28,13 +28,11 @@ fun NotificationButtonSizeSettings(
 ) {
     val normalizedIndex = selectedIndex.coerceIn(0, maxIndex)
 
-    Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.settings_button_size),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(text = stringResource(R.string.settings_button_size_explanation))
-
+    SettingsSection(
+        title = stringResource(R.string.settings_button_size),
+        description = stringResource(R.string.settings_button_size_explanation),
+        modifier = modifier,
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),

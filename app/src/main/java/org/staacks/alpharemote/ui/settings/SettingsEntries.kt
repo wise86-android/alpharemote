@@ -67,23 +67,6 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
             )
         }
 
-        LaunchedEffect(settingsViewModel) {
-            settingsViewModel.uiAction.collect { action ->
-                when (action) {
-                    SettingsViewModel.SettingsUIAction.SHOW_BLUETOOTH_REQUIRED_DIALOG -> {
-                        showBluetoothDialog = true
-                    }
-                    SettingsViewModel.SettingsUIAction.OPEN_BLUETOOTH_SETTINGS -> {
-                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
-                    }
-                    SettingsViewModel.SettingsUIAction.REQUEST_BLUETOOTH_PERMISSION -> {
-                        bluetoothPermissionState.launchPermissionRequest()
-                    }
-                    else -> {}
-                }
-            }
-        }
-
         val pairLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartIntentSenderForResult()
         ) { result ->
@@ -99,54 +82,74 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
             }
         }
 
+        fun startPairing() {
+            CompanionDeviceHelper.pairCompanionDevice(context, object : CompanionDeviceManager.Callback() {
+                override fun onAssociationPending(intentSender: IntentSender) {
+                    Log.d("CompanionDeviceManager","Association pending, launching intent sender")
+                    pairLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
+                }
+
+                override fun onAssociationCreated(associationInfo: AssociationInfo) {
+                    Log.d("CompanionDeviceManager","Association created with device: ${associationInfo.associatedDevice?.bleDevice?.device}")
+                    CompanionDeviceHelper.startObservingDevicePresence(context, associationInfo)
+                }
+
+                override fun onFailure(error: CharSequence?) {
+                    settingsViewModel.reportErrorState(error.toString())
+                }
+            })
+        }
+
+        // Single collector for all view model events - the entry owns the wiring to
+        // navigation, system intents and the pairing flow, the screen stays presentational.
+        LaunchedEffect(settingsViewModel) {
+            settingsViewModel.uiAction.collect { action ->
+                when (action) {
+                    SettingsViewModel.SettingsUIAction.PAIR -> startPairing()
+                    SettingsViewModel.SettingsUIAction.UNPAIR -> {
+                        CompanionDeviceHelper.unpairCompanionDevice(context)
+                        AlphaRemoteService.sendDisconnectIntent(context)
+                    }
+                    SettingsViewModel.SettingsUIAction.ADD_CUSTOM_BUTTON -> {
+                        navigator.navigate(
+                            AlphaRemoteNavKey.CameraActionPicker(
+                                -1,
+                                CameraAction(false, null, null, null, CameraActionPreset.STOP),
+                                false
+                            )
+                        )
+                    }
+                    SettingsViewModel.SettingsUIAction.HELP_CONNECTION -> {
+                        navigator.navigate(
+                            AlphaRemoteNavKey.Help(
+                                R.string.help_settings_connection_troubleshooting_title,
+                                R.string.help_settings_connection_troubleshooting_text
+                            )
+                        )
+                    }
+                    SettingsViewModel.SettingsUIAction.HELP_CUSTOM_BUTTONS -> {
+                        navigator.navigate(
+                            AlphaRemoteNavKey.Help(
+                                R.string.help_settings_custom_buttons_title,
+                                R.string.help_settings_custom_buttons_text
+                            )
+                        )
+                    }
+                    SettingsViewModel.SettingsUIAction.SHOW_BLUETOOTH_REQUIRED_DIALOG -> {
+                        showBluetoothDialog = true
+                    }
+                    SettingsViewModel.SettingsUIAction.OPEN_BLUETOOTH_SETTINGS -> {
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
+                    }
+                    SettingsViewModel.SettingsUIAction.REQUEST_BLUETOOTH_PERMISSION -> {
+                        bluetoothPermissionState.launchPermissionRequest()
+                    }
+                }
+            }
+        }
+
         SettingScreen(
             settingsViewModel = settingsViewModel,
-            onPairRequested = {
-                CompanionDeviceHelper.pairCompanionDevice(context, object : CompanionDeviceManager.Callback() {
-                    override fun onAssociationPending(intentSender: IntentSender) {
-                        Log.d("CompanionDeviceManager","Association pending, launching intent sender")
-                        pairLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
-                    }
-
-                    override fun onAssociationCreated(associationInfo: AssociationInfo) {
-                        Log.d("CompanionDeviceManager","Association created with device: ${associationInfo.associatedDevice?.bleDevice?.device}")
-                        CompanionDeviceHelper.startObservingDevicePresence(context, associationInfo)
-                    }
-
-                    override fun onFailure(error: CharSequence?) {
-                        settingsViewModel.reportErrorState(error.toString())
-                    }
-                })
-            },
-            onUnpairRequested = {
-                CompanionDeviceHelper.unpairCompanionDevice(context)
-                AlphaRemoteService.sendDisconnectIntent(context)
-            },
-            onAddCustomButtonRequested = {
-                navigator.navigate(
-                    AlphaRemoteNavKey.CameraActionPicker(
-                        -1,
-                        CameraAction(false, null, null, null, CameraActionPreset.STOP),
-                        false
-                    )
-                )
-            },
-            onHelpConnectionRequested = {
-                navigator.navigate(
-                    AlphaRemoteNavKey.Help(
-                        R.string.help_settings_connection_troubleshooting_title,
-                        R.string.help_settings_connection_troubleshooting_text
-                    )
-                )
-            },
-            onHelpCustomButtonsRequested = {
-                navigator.navigate(
-                    AlphaRemoteNavKey.Help(
-                        R.string.help_settings_custom_buttons_title,
-                        R.string.help_settings_custom_buttons_text
-                    )
-                )
-            },
             onEditCustomButton = { index, action ->
                 navigator.navigate(AlphaRemoteNavKey.CameraActionPicker(index, action, true))
             },

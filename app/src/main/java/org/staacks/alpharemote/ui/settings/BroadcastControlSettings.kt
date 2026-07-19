@@ -1,24 +1,17 @@
 package org.staacks.alpharemote.ui.settings
 
-import android.graphics.drawable.Icon
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import org.staacks.alpharemote.R
+import org.staacks.alpharemote.ui.components.LabeledSwitchRow
+import org.staacks.alpharemote.ui.components.SettingsSection
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 @Composable
@@ -28,24 +21,16 @@ fun BroadcastControlSettings(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.settings_broadcast_control),
-            style = MaterialTheme.typography.headlineSmall,
+    SettingsSection(
+        title = stringResource(R.string.settings_broadcast_control),
+        description = stringResource(R.string.settings_broadcast_control_explanation),
+        modifier = modifier,
+    ) {
+        LabeledSwitchRow(
+            label = stringResource(R.string.settings_broadcast_control_toggle),
+            checked = enabled,
+            onCheckedChange = onCheckedChange,
         )
-        Text(text = stringResource(R.string.settings_broadcast_control_explanation))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = stringResource(R.string.settings_broadcast_control_toggle))
-            Switch(
-                checked = enabled,
-                onCheckedChange = onCheckedChange,
-            )
-        }
 
         TextButton(onClick = onMoreClick) {
             Icon(
@@ -68,4 +53,3 @@ private fun BroadcastControlSettingsPreview() {
         )
     }
 }
-

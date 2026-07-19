@@ -49,6 +49,9 @@ import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.ui.theme.CustomButtonHeightInActivity
+import org.staacks.alpharemote.ui.theme.Fulvous
+import org.staacks.alpharemote.ui.theme.Gray50
+import org.staacks.alpharemote.ui.theme.White
 
 @Composable
 fun AdvancedControlsSheet(
@@ -101,7 +104,7 @@ fun AdvancedControlsSheet(
                 label = R.string.camera_advanced_bulb_duration,
                 suffix = R.string.seconds,
                 enabled = uiState.bulbToggle,
-                value = uiState.bulbDuration?.toString() ?: "",
+                value = uiState.bulbDuration,
                 onValueChanged = onBulbDurationChanged,
                 keyboardType = KeyboardType.Decimal,
             )
@@ -116,7 +119,7 @@ fun AdvancedControlsSheet(
                 label = R.string.camera_advanced_interval_count,
                 suffix = null,
                 enabled = uiState.intervalToggle,
-                value = uiState.intervalCount?.toString() ?: "",
+                value = uiState.intervalCount,
                 onValueChanged = onIntervalCountChanged,
                 keyboardType = KeyboardType.Number,
             )
@@ -124,7 +127,7 @@ fun AdvancedControlsSheet(
                 label = R.string.camera_advanced_interval_duration,
                 suffix = R.string.seconds,
                 enabled = uiState.intervalToggle,
-                value = uiState.intervalDuration?.toString() ?: "",
+                value = uiState.intervalDuration,
                 onValueChanged = onIntervalDurationChanged,
                 keyboardType = KeyboardType.Decimal,
             )
@@ -234,10 +237,10 @@ private fun customActionTint(cameraAction: CameraAction, cameraState: CameraStat
     }
 
     return when {
-        cameraState == null -> Color(0xFF808080)
+        cameraState == null -> Gray50
         cameraAction.preset.template.referenceButton in cameraState.pressedButtons ||
-            cameraAction.preset.template.referenceJog in cameraState.pressedJogs -> Color(0xFFE98A15)
-        else -> Color.White
+            cameraAction.preset.template.referenceJog in cameraState.pressedJogs -> Fulvous
+        else -> White
     }
 }
 
@@ -264,10 +267,10 @@ private fun AdvancedControlsSheetPreview() {
                         pendingTriggerCount = 3,
                     ),
                     bulbToggle = true,
-                    bulbDuration = 5.0,
+                    bulbDuration = "5.0",
                     intervalToggle = true,
-                    intervalCount = 50,
-                    intervalDuration = 3.0,
+                    intervalCount = "50",
+                    intervalDuration = "3.0",
                 ),
                 customButtons = listOf(
                     CameraAction(false, null, null, null, CameraActionPreset.SHUTTER),

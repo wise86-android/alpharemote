@@ -1,16 +1,10 @@
 package org.staacks.alpharemote.ui.camera
 
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.camera.CameraAction
-import org.staacks.alpharemote.data.AppearanceSettings
 import org.staacks.alpharemote.ui.AlphaRemoteNavKey
 import org.staacks.alpharemote.ui.Navigator
 
@@ -19,15 +13,8 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
     navigator: Navigator
 ) {
     entry<AlphaRemoteNavKey.Camera> {
-        val uiState by cameraViewModel.uiState.collectAsState()
-        var customButtons by remember { mutableStateOf(emptyList<CameraAction>()) }
-        val appearanceSettings = AppearanceSettings(LocalContext.current)
-
-        LaunchedEffect(Unit) {
-            appearanceSettings.customButtonSettings.collect {
-                customButtons = it.customButtonList ?: emptyList()
-            }
-        }
+        val uiState by cameraViewModel.uiState.collectAsStateWithLifecycle()
+        val customButtons by cameraViewModel.customButtons.collectAsStateWithLifecycle()
 
         CameraScreen(
             uiState = uiState,
@@ -44,11 +31,11 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
             onDefaultRemoteTouch = { button, action ->
                 cameraViewModel.onDefaultRemoteButtonTouch(button, action)
             },
-            onBulbToggleChanged = { uiState.bulbToggle = it },
-            onBulbDurationChanged = { uiState.bulbDuration = it.toDoubleOrNull() },
-            onIntervalToggleChanged = { uiState.intervalToggle = it },
-            onIntervalCountChanged = { uiState.intervalCount = it.toIntOrNull() },
-            onIntervalDurationChanged = { uiState.intervalDuration = it.toDoubleOrNull() },
+            onBulbToggleChanged = cameraViewModel::setBulbToggle,
+            onBulbDurationChanged = cameraViewModel::setBulbDuration,
+            onIntervalToggleChanged = cameraViewModel::setIntervalToggle,
+            onIntervalCountChanged = cameraViewModel::setIntervalCount,
+            onIntervalDurationChanged = cameraViewModel::setIntervalDuration,
             onStartSequence = {
                 cameraViewModel.startAdvancedSequence()
             },

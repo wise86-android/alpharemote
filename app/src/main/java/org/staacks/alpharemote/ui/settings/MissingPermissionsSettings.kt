@@ -1,13 +1,6 @@
 package org.staacks.alpharemote.ui.settings
 
-import android.os.Build
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,11 +10,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import org.staacks.alpharemote.R
+import org.staacks.alpharemote.ui.components.PermissionWarning
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.utils.rememberBlePermissionState
 
@@ -34,15 +27,12 @@ fun MissingBluetoothPermissionSettings(
     val missingBluetooth = !bluetoothPermissionState.status.isGranted
     if (!missingBluetooth) return
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.settings_missing_bluetooth_permission_warning),
-            color = MaterialTheme.colorScheme.error,
-        )
-        TextButton(onClick = bluetoothPermissionState::launchPermissionRequest) {
-            Text(text = stringResource(R.string.settings_bluetooth_permission_button))
-        }
-    }
+    PermissionWarning(
+        warningText = stringResource(R.string.settings_missing_bluetooth_permission_warning),
+        buttonText = stringResource(R.string.settings_bluetooth_permission_button),
+        onRequestClick = bluetoothPermissionState::launchPermissionRequest,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -54,15 +44,12 @@ fun MissingNotificationPermissionSettings(
     val missingNotification = !notificationPermissionState.status.isGranted
     if (!missingNotification) return
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.settings_missing_notification_permission_warning),
-            color = MaterialTheme.colorScheme.error,
-        )
-        TextButton(onClick = notificationPermissionState::launchPermissionRequest) {
-            Text(text = stringResource(R.string.settings_notification_permission_button))
-        }
-    }
+    PermissionWarning(
+        warningText = stringResource(R.string.settings_missing_notification_permission_warning),
+        buttonText = stringResource(R.string.settings_notification_permission_button),
+        onRequestClick = notificationPermissionState::launchPermissionRequest,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -92,15 +79,12 @@ fun MissingLocationPermissionSettings(
 
     if (!missingLocation) return
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.settings_missing_location_permission_warning),
-            color = MaterialTheme.colorScheme.error,
-        )
-        TextButton(onClick = { showPermissionDialog = true }) {
-            Text(text = stringResource(R.string.settings_location_permission_button))
-        }
-    }
+    PermissionWarning(
+        warningText = stringResource(R.string.settings_missing_location_permission_warning),
+        buttonText = stringResource(R.string.settings_location_permission_button),
+        onRequestClick = { showPermissionDialog = true },
+        modifier = modifier,
+    )
 
     if (showPermissionDialog && dialogStep != null) {
         val onConfirmRequest = when (dialogStep) {
