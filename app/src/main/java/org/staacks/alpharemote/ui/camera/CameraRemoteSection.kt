@@ -66,7 +66,7 @@ private fun DefaultRemotePortrait(
         ) {
             LabeledRemoteButton(RemoteButton.SHUTTER_HALF, R.drawable.ca_shutter_half, R.string.camera_button_half_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
             LabeledRemoteButton(RemoteButton.SHUTTER, R.drawable.ca_shutter, R.string.camera_button_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
-            LabeledRemoteButton(RemoteButton.SELFTIMER_3S, R.drawable.ca_timer_3s, R.string.camera_button_selftimer_3s, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.TRIGGER_ONCE, R.drawable.ca_trigger_once, R.string.action_name_trigger_once, cameraState, onButtonTouch, Modifier.weight(1f))
         }
 
         Row(
@@ -122,7 +122,7 @@ private fun DefaultRemoteLandscape(
         ) {
             LabeledRemoteButton(RemoteButton.SHUTTER_HALF, R.drawable.ca_shutter_half, R.string.camera_button_half_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
             LabeledRemoteButton(RemoteButton.SHUTTER, R.drawable.ca_shutter, R.string.camera_button_shutter, cameraState, onButtonTouch, Modifier.weight(1f))
-            LabeledRemoteButton(RemoteButton.SELFTIMER_3S, R.drawable.ca_timer_3s, R.string.camera_button_selftimer_3s, cameraState, onButtonTouch, Modifier.weight(1f))
+            LabeledRemoteButton(RemoteButton.TRIGGER_ONCE, R.drawable.ca_trigger_once, R.string.action_name_trigger_once, cameraState, onButtonTouch, Modifier.weight(1f))
         }
 
         Row(

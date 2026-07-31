@@ -50,9 +50,9 @@ class AppearanceSettingsTest {
     @Test
     fun saveCustomButtonListRoundTripsAllActionOptions() = runTest {
         val list = listOf(
-            CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-            CameraAction(true, 3.0f, 1.5f, 0.5f, CameraActionPreset.ZOOM_IN),
-            CameraAction(false, null, null, null, CameraActionPreset.RECORD),
+            CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+            CameraAction(true, 0.5f, CameraActionPreset.ZOOM_IN),
+            CameraAction(false, null, CameraActionPreset.RECORD),
         )
 
         appearanceSettings.saveCustomButtonList(list)
@@ -65,14 +65,14 @@ class AppearanceSettingsTest {
     fun savingAShorterListRemovesTheLeftoverEntries() = runTest {
         appearanceSettings.saveCustomButtonList(
             listOf(
-                CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-                CameraAction(false, 3.0f, null, null, CameraActionPreset.TRIGGER_ONCE),
-                CameraAction(false, null, null, null, CameraActionPreset.RECORD),
+                CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+                CameraAction(false, null, CameraActionPreset.SHUTTER),
+                CameraAction(false, null, CameraActionPreset.RECORD),
             )
         )
 
         val shorterList = listOf(
-            CameraAction(false, null, null, null, CameraActionPreset.SHUTTER),
+            CameraAction(false, null, CameraActionPreset.SHUTTER),
         )
         appearanceSettings.saveCustomButtonList(shorterList)
 
@@ -91,7 +91,7 @@ class AppearanceSettingsTest {
         appearanceSettings.setNotificationButtonSize(0.7f)
 
         appearanceSettings.saveCustomButtonList(
-            listOf(CameraAction(false, null, null, null, CameraActionPreset.SHUTTER))
+            listOf(CameraAction(false, null, CameraActionPreset.SHUTTER))
         )
 
         assertEquals(0.7f, appearanceSettings.customButtonSettings.first().scale)

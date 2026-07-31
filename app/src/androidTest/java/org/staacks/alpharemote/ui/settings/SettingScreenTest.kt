@@ -48,8 +48,8 @@ class SettingScreenTest {
     }
 
     private val buttons = listOf(
-        CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-        CameraAction(false, null, null, null, CameraActionPreset.RECORD),
+        CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+        CameraAction(false, null, CameraActionPreset.RECORD),
     )
 
     @Composable

@@ -6,12 +6,6 @@ import kotlinx.serialization.Serializable
 sealed class CameraActionStep
 
 @Serializable
-data class CACountdown (
-    val label: String,
-    val duration: Float
-) : CameraActionStep()
-
-@Serializable
 data class CAWaitFor (
     val target: WaitTarget
 ) : CameraActionStep()
@@ -20,7 +14,6 @@ data class CAWaitFor (
 data class CAButton (
     val pressed: Boolean,
     val button: ButtonCode,
-    val isSequenceTrigger: Boolean = false,
 ) : CameraActionStep()
 
 @Serializable

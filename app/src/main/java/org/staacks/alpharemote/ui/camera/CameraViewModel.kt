@@ -28,17 +28,10 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     private val appearanceSettings = AppearanceSettings(application)
 
     // Immutable UI state: every change goes through update { copy(...) } so Compose and
-    // StateFlow observers are notified. Text field inputs are kept as raw strings and only
-    // parsed when the sequence is started.
+    // StateFlow observers are notified.
     data class CameraUIState (
         val connected: Boolean = false,
         val cameraState: CameraState.Connected.Ready? = null,
-
-        val bulbToggle: Boolean = false,
-        val bulbDuration: String = "5.0",
-        val intervalToggle: Boolean = false,
-        val intervalCount: String = "50",
-        val intervalDuration: String = "3.0",
     )
 
     sealed class CameraUIAction
@@ -49,8 +42,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     enum class GenericCameraUIActionType {
         GOTO_DEVICE_SETTINGS,
-        HELP_REMOTE,
-        START_ADVANCED_SEQUENCE
+        HELP_REMOTE
     }
 
     data class DefaultRemoteButtonCameraUIAction (
@@ -82,16 +74,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setBulbToggle(enabled: Boolean) = _uiState.update { it.copy(bulbToggle = enabled) }
-
-    fun setBulbDuration(value: String) = _uiState.update { it.copy(bulbDuration = value) }
-
-    fun setIntervalToggle(enabled: Boolean) = _uiState.update { it.copy(intervalToggle = enabled) }
-
-    fun setIntervalCount(value: String) = _uiState.update { it.copy(intervalCount = value) }
-
-    fun setIntervalDuration(value: String) = _uiState.update { it.copy(intervalDuration = value) }
-
     fun gotoDeviceSettings() {
         viewModelScope.launch {
             _uiAction.emit(GenericCameraUIAction(GenericCameraUIActionType.GOTO_DEVICE_SETTINGS))
@@ -115,15 +97,6 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onCustomButtonClick(action: CameraAction) {
         repository.sendCameraAction(action, null)
-    }
-
-    fun startAdvancedSequence() {
-        val state = uiState.value
-        repository.startAdvancedSequence(
-            state.bulbDuration.toFloatOrNull() ?: 5.0f,
-            state.intervalCount.toIntOrNull() ?: 50,
-            state.intervalDuration.toFloatOrNull() ?: 3.0f
-        )
     }
 
 }

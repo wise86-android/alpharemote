@@ -172,9 +172,9 @@ private fun SettingScreenPreview() {
             ),
             updateCameraLocation = true,
             customButtons = listOf(
-                CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-                CameraAction(false, 3.0f, null, null, CameraActionPreset.TRIGGER_ONCE),
-                CameraAction(false, null, null, null, CameraActionPreset.RECORD),
+                CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+                CameraAction(false, null, CameraActionPreset.SHUTTER),
+                CameraAction(false, null, CameraActionPreset.RECORD),
             ),
             selectedButtonScaleIndex = 3,
             maxButtonScaleIndex = 6,

@@ -58,23 +58,23 @@ class AppearanceSettings(context: Context) {
             for ((i, item) in list.withIndex()) {
                 val keyPreset = stringPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_preset")
                 val keyToggle = booleanPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_toggle")
-                val keySelftimer = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_selftimer")
-                val keyDuration = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_duration")
                 val keyStep = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_step")
 
                 data[keyPreset] = item.preset.name
                 data[keyToggle] = item.toggle
 
-                setNullableFloat(data, keySelftimer, item.selfTimer)
-                setNullableFloat(data, keyDuration, item.duration)
                 setNullableFloat(data, keyStep, item.step)
+
+                // Self timer and hold duration no longer exist. Purge values left behind by
+                // older versions instead of letting them linger in the store forever.
+                for (legacyKey in legacyKeys(i)) {
+                    data -= legacyKey
+                }
             }
             var i = list.count()
             while (true) {
                 val keyPreset = stringPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_preset")
                 val keyToggle = booleanPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_toggle")
-                val keySelftimer = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_selftimer")
-                val keyDuration = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_duration")
                 val keyStep = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_step")
 
                 if (!data.contains(keyPreset))
@@ -82,9 +82,10 @@ class AppearanceSettings(context: Context) {
 
                 data -= keyPreset
                 data -= keyToggle
-                data -= keySelftimer
-                data -= keyDuration
                 data -= keyStep
+                for (legacyKey in legacyKeys(i)) {
+                    data -= legacyKey
+                }
                 i++
             }
         }
@@ -95,6 +96,11 @@ class AppearanceSettings(context: Context) {
             assembleCameraActionList(it)
         }
     }
+
+    private fun legacyKeys(index: Int): List<Preferences.Key<Float>> = listOf(
+        floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + index + "_selftimer"),
+        floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + index + "_duration"),
+    )
 
     private fun setNullableFloat(data: MutablePreferences, key: Preferences.Key<Float>, value: Float?) {
         if (value == null) {
@@ -113,8 +119,6 @@ class AppearanceSettings(context: Context) {
         while (true) {
             val keyPreset = stringPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_preset")
             val keyToggle = booleanPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_toggle")
-            val keySelftimer = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_selftimer")
-            val keyDuration = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_duration")
             val keyStep = floatPreferencesKey(CUSTOM_BUTTON_LIST_BASE_KEY + "_" + i + "_step")
 
             if (!data.contains(keyPreset))
@@ -122,8 +126,6 @@ class AppearanceSettings(context: Context) {
 
             list.add(CameraAction(
                 data[keyToggle] ?: false,
-                data[keySelftimer],
-                data[keyDuration],
                 data[keyStep],
                 CameraActionPreset.valueOf(data[keyPreset] ?: CameraActionPreset.STOP.name)
             ))

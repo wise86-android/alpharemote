@@ -42,7 +42,6 @@ import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraActionTemplateOption
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
-import kotlin.math.roundToInt
 
 interface CameraActionPickerListener {
     fun onConfirmCameraActionPicker(index: Int, cameraAction: CameraAction)
@@ -55,39 +54,8 @@ class CameraActionPicker : DialogFragment() {
     private var index = -1
 
     val defaultAction = CameraAction(
-        false, null, null, null, CameraActionPreset.STOP
+        false, null, CameraActionPreset.STOP
     )
-
-    class SeekBarTimeMap(min: Int, max: Int) {
-
-        private val mapping = generateSequence(min) {
-            if (it < 10)
-                it + 1
-            else if (it < 50)
-                it + 5
-            else if (it < 300)
-                it + 10
-            else if (it < 600)
-                it + 50
-            else
-                it + 100
-        }.takeWhile { it <= max }.toList()
-
-        fun getMax(): Int {
-            return mapping.count() - 1
-        }
-
-        fun indexToTime(i: Int): Float {
-            return mapping[i] / 10.0f
-        }
-
-        fun timeToIndex(t: Float): Int {
-            return mapping.indexOf((t * 10.0f).roundToInt())
-        }
-    }
-
-    val selftimerSeekBarTimeMap = SeekBarTimeMap(10, 600)
-    val holdSeekBarTimeMap = SeekBarTimeMap(0, 100)
 
     companion object {
         const val CAMERA_ACTION_KEY = "cameraAction"
@@ -117,8 +85,6 @@ class CameraActionPicker : DialogFragment() {
                         CameraActionPickerContent(
                             startAction = startAction,
                             showDelete = showDelete,
-                            selftimerSeekBarTimeMap = selftimerSeekBarTimeMap,
-                            holdSeekBarTimeMap = holdSeekBarTimeMap,
                             onCancel = {
                                 (parentFragment as? CameraActionPickerListener)?.onCancelCameraActionPicker()
                                 dismiss()
@@ -130,8 +96,6 @@ class CameraActionPicker : DialogFragment() {
                             onSave = { action ->
                                 val options = action.preset.template.userOptions
                                 val prunedAction = action.copy(
-                                    selfTimer = if (options.contains(CameraActionTemplateOption.SELF_TIMER)) action.selfTimer else null,
-                                    duration = if (options.contains(CameraActionTemplateOption.VARIABLE_DURATION)) action.duration else null,
                                     toggle = options.contains(CameraActionTemplateOption.TOGGLE) && action.toggle,
                                     step = if (options.contains(CameraActionTemplateOption.ADJUST_SPEED)) action.step else null,
                                 )
@@ -157,8 +121,6 @@ class CameraActionPicker : DialogFragment() {
 fun CameraActionPickerContent(
     startAction: CameraAction,
     showDelete: Boolean,
-    selftimerSeekBarTimeMap: CameraActionPicker.SeekBarTimeMap,
-    holdSeekBarTimeMap: CameraActionPicker.SeekBarTimeMap,
     onCancel: () -> Unit,
     onDelete: () -> Unit,
     onSave: (CameraAction) -> Unit,
@@ -167,8 +129,6 @@ fun CameraActionPickerContent(
     var presetExpanded by remember { mutableStateOf(false) }
 
     val options = action.preset.template.userOptions
-    val selfTimerEnabled = action.selfTimer != null
-    val holdEnabled = action.duration != null
 
     Column(
         modifier = Modifier.padding(12.dp),
@@ -212,8 +172,6 @@ fun CameraActionPickerContent(
                         val opt = preset.template.userOptions
                         action = old.copy(
                             preset = preset,
-                            selfTimer = if (opt.contains(CameraActionTemplateOption.SELF_TIMER)) old.selfTimer else null,
-                            duration = if (opt.contains(CameraActionTemplateOption.VARIABLE_DURATION)) old.duration else null,
                             toggle = if (opt.contains(CameraActionTemplateOption.TOGGLE)) old.toggle else false,
                             step = if (opt.contains(CameraActionTemplateOption.ADJUST_SPEED)) old.step ?: 0.5f else null,
                         )
@@ -221,70 +179,6 @@ fun CameraActionPickerContent(
                     },
                 )
             }
-        }
-
-        if (options.contains(CameraActionTemplateOption.SELF_TIMER)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = selfTimerEnabled,
-                    onCheckedChange = { checked ->
-                        action = action.copy(selfTimer = if (checked) (action.selfTimer ?: 3.0f) else null)
-                    },
-                )
-                Text(text = stringResource(R.string.self_timer))
-            }
-            val selfTimerProgress = selftimerSeekBarTimeMap.timeToIndex(action.selfTimer ?: 3.0f).coerceAtLeast(0)
-            Slider(
-                value = selfTimerProgress.toFloat(),
-                onValueChange = { progress ->
-                    action = action.copy(selfTimer = selftimerSeekBarTimeMap.indexToTime(progress.roundToInt()))
-                },
-                valueRange = 0f..selftimerSeekBarTimeMap.getMax().toFloat(),
-                enabled = selfTimerEnabled,
-            )
-            Text(
-                text = if (selfTimerEnabled) {
-                    stringResource(R.string.seconds_formatted, action.selfTimer ?: 3.0f)
-                } else {
-                    "-"
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-
-        if (options.contains(CameraActionTemplateOption.VARIABLE_DURATION)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = holdEnabled,
-                    onCheckedChange = { checked ->
-                        action = action.copy(duration = if (checked) (action.duration ?: 0.0f) else null)
-                    },
-                )
-                Text(text = stringResource(R.string.hold_button))
-            }
-            val holdProgress = holdSeekBarTimeMap.timeToIndex(action.duration ?: 3.0f).coerceAtLeast(0)
-            Slider(
-                value = holdProgress.toFloat(),
-                onValueChange = { progress ->
-                    action = action.copy(duration = holdSeekBarTimeMap.indexToTime(progress.roundToInt()))
-                },
-                valueRange = 0f..holdSeekBarTimeMap.getMax().toFloat(),
-                enabled = holdEnabled,
-            )
-            Text(
-                text = if (holdEnabled) {
-                    stringResource(R.string.seconds_formatted, action.duration ?: 3.0f)
-                } else {
-                    "-"
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
 
         if (options.contains(CameraActionTemplateOption.TOGGLE)) {
@@ -334,14 +228,10 @@ private fun CameraActionPickerContentPreview() {
             CameraActionPickerContent(
                 startAction = CameraAction(
                     toggle = true,
-                    selfTimer = 3.0f,
-                    duration = 5.0f,
                     step = null,
                     preset = CameraActionPreset.SHUTTER,
                 ),
                 showDelete = true,
-                selftimerSeekBarTimeMap = CameraActionPicker.SeekBarTimeMap(10, 600),
-                holdSeekBarTimeMap = CameraActionPicker.SeekBarTimeMap(0, 100),
                 onCancel = {},
                 onDelete = {},
                 onSave = {},

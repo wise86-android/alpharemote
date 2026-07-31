@@ -11,8 +11,6 @@ import kotlin.math.roundToInt
 @KSerializable
 data class CameraAction (
     val toggle: Boolean,
-    val selfTimer: Float?,
-    val duration: Float?,
     val step: Float?,
     val preset: CameraActionPreset
 ) : Serializable {
@@ -22,8 +20,6 @@ data class CameraAction (
     fun getName(context: Context): String {
         return context.getString(preset.template.name) +
                 (if (toggle) " " + context.getString(R.string.toggle) else "") +
-                (if (selfTimer != null) " timer=" + selfTimer + "s" else "") +
-                (if (duration != null) " duration=" + duration + "s" else "") +
                 (if (step != null) " " + "›".repeat((3.0*step).roundToInt()) else "")
     }
     private fun applyStepToStepList(list: List<CameraActionStep>): List<CameraActionStep> {
@@ -36,26 +32,16 @@ data class CameraAction (
         }
     }
 
-    fun getPressStepList(context: Context): List<CameraActionStep> {
-        return if (selfTimer != null) {
-            val label = context.getString(R.string.self_timer)
-            listOf(CACountdown(label, selfTimer)) + applyStepToStepList(preset.template.press)
-        } else {
-            applyStepToStepList(preset.template.press)
-        }
+    fun getPressStepList(): List<CameraActionStep> {
+        return applyStepToStepList(preset.template.press)
     }
 
     fun getReleaseStepList(): List<CameraActionStep> {
         return applyStepToStepList(preset.template.release)
     }
 
-    fun getClickStepList(context: Context): List<CameraActionStep> {
-        return if (duration != null) {
-            val label = context.getString(R.string.hold_button)
-            getPressStepList(context) + listOf(CACountdown(label, duration)) + getReleaseStepList()
-        } else {
-            getPressStepList(context) + getReleaseStepList()
-        }
+    fun getClickStepList(): List<CameraActionStep> {
+        return getPressStepList() + getReleaseStepList()
     }
 }
 
@@ -73,8 +59,6 @@ data class CameraActionTemplate (
 
 @KSerializable
 enum class CameraActionTemplateOption {
-    VARIABLE_DURATION, //Duration is defined by button press duration and user may set a fixed duration
-    SELF_TIMER,         //User may add a selfTimer
     TOGGLE,            //May be used as a toggle
     ADJUST_SPEED       //User may adjust speed of jog commands that have a speed set to -1
 }
@@ -95,7 +79,6 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
                 CAButton(true, ButtonCode.SHUTTER_FULL)),
         release = listOf(CAButton(false, ButtonCode.SHUTTER_FULL),
                 CAButton(false, ButtonCode.SHUTTER_HALF)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
     TRIGGER_ONCE(CameraActionTemplate(R.string.action_name_trigger_once, R.drawable.ca_trigger_once,
@@ -104,7 +87,6 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
                 CAWaitFor(WaitTarget.SHUTTER),
                 CAButton(false, ButtonCode.SHUTTER_FULL),
                 CAButton(false, ButtonCode.SHUTTER_HALF)),
-        userOptions = setOf(CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
     TRIGGER_ON_FOCUS(CameraActionTemplate(R.string.action_name_trigger_on_focus, R.drawable.ca_trigger_on_focus,
@@ -113,13 +95,11 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
             CAButton(true, ButtonCode.SHUTTER_FULL)),
         release = listOf(CAButton(false, ButtonCode.SHUTTER_FULL),
             CAButton(false, ButtonCode.SHUTTER_HALF)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.SHUTTER_FULL
     )),
     RECORD(CameraActionTemplate(R.string.action_name_record, R.drawable.ca_record, true,
         press = listOf(CAButton(true, ButtonCode.RECORD)),
         release = listOf(CAButton(false, ButtonCode.RECORD)),
-        userOptions = setOf(CameraActionTemplateOption.SELF_TIMER),
         referenceButton = ButtonCode.RECORD
     )),
     AF_ON(CameraActionTemplate(R.string.action_name_af_on, R.drawable.ca_af_on,
@@ -136,25 +116,25 @@ enum class CameraActionPreset(val template: CameraActionTemplate) {
     ZOOM_IN(CameraActionTemplate(R.string.action_name_zoom_in, R.drawable.ca_zoom_in,
         press = listOf(CAJog(true, -1, JogCode.ZOOM_IN)),
         release = listOf(CAJog(false, -1, JogCode.ZOOM_IN)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.ADJUST_SPEED),
+        userOptions = setOf(CameraActionTemplateOption.ADJUST_SPEED),
         referenceJog = JogCode.ZOOM_IN
     )),
     ZOOM_OUT(CameraActionTemplate(R.string.action_name_zoom_out, R.drawable.ca_zoom_out,
         press = listOf(CAJog(true, -1, JogCode.ZOOM_OUT)),
         release = listOf(CAJog(false, -1, JogCode.ZOOM_OUT)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.ADJUST_SPEED),
+        userOptions = setOf(CameraActionTemplateOption.ADJUST_SPEED),
         referenceJog = JogCode.ZOOM_OUT
     )),
     FOCUS_FAR(CameraActionTemplate(R.string.action_name_focus_far, R.drawable.ca_focus_far,
         press = listOf(CAJog(true, -1, JogCode.FOCUS_FAR)),
         release = listOf(CAJog(false, -1, JogCode.FOCUS_FAR)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.ADJUST_SPEED),
+        userOptions = setOf(CameraActionTemplateOption.ADJUST_SPEED),
         referenceJog = JogCode.FOCUS_FAR
     )),
     FOCUS_NEAR(CameraActionTemplate(R.string.action_name_focus_near, R.drawable.ca_focus_near,
         press = listOf(CAJog(true, -1, JogCode.FOCUS_NEAR)),
         release = listOf(CAJog(false, -1, JogCode.FOCUS_NEAR)),
-        userOptions = setOf(CameraActionTemplateOption.VARIABLE_DURATION, CameraActionTemplateOption.ADJUST_SPEED),
+        userOptions = setOf(CameraActionTemplateOption.ADJUST_SPEED),
         referenceJog = JogCode.FOCUS_NEAR
     ))
 }

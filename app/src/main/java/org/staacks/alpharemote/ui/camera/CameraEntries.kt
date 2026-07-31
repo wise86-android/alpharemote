@@ -31,14 +31,6 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
             onDefaultRemoteTouch = { button, action ->
                 cameraViewModel.onDefaultRemoteButtonTouch(button, action)
             },
-            onBulbToggleChanged = cameraViewModel::setBulbToggle,
-            onBulbDurationChanged = cameraViewModel::setBulbDuration,
-            onIntervalToggleChanged = cameraViewModel::setIntervalToggle,
-            onIntervalCountChanged = cameraViewModel::setIntervalCount,
-            onIntervalDurationChanged = cameraViewModel::setIntervalDuration,
-            onStartSequence = {
-                cameraViewModel.startAdvancedSequence()
-            },
             onCustomButtonClick = { cameraViewModel.onCustomButtonClick(it) }
         )
 
@@ -57,7 +49,6 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
                                     R.string.help_camera_remote_text
                                 )
                             )
-                            else -> {}
                         }
                     }
                     else -> {}

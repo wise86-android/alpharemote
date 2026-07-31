@@ -14,7 +14,7 @@ The protocol was documented by others first. This app's implementation stands on
 > **Scope of the protocol.** Control is essentially *one-directional*: the phone sends
 > button/jog presses to the camera. The only feedback from the camera is three status flags
 > (focus, shutter, recording). There is no live view, image transfer, or ability to read or set
-> camera settings. Anything α-Remote does (intervalometer, bulb timer, …) is built out of blind
+> camera settings. Anything α-Remote does is built out of blind
 > button presses only — the same things a person could do by pressing buttons on the physical
 > remote.
 
@@ -297,8 +297,8 @@ The BLE layer only ever sees `CameraActionStep`s. The mapping is:
 
 - `CAButton` → `0x01`-family write ([§3.1](#31-button-commands--opcode-0x01)).
 - `CAJog` → `0x02`-family write ([§3.2](#32-jog-commands--opcode-0x02)).
-- `CACountdown` (timed wait) and `CAWaitFor` (wait for a camera status) never touch BLE — they are
-  handled by the service's action queue. `CAWaitFor` resumes on the status notifications from
+- `CAWaitFor` (wait for a camera status) never touches BLE — it is handled by the service's action
+  queue and resumes on the status notifications from
   [§4](#4-status-characteristic-camera--phone).
 
 Higher-level `CameraActionPreset`s (SHUTTER, TRIGGER_ONCE, RECORD, ZOOM_*, FOCUS_*, …) are just
@@ -307,9 +307,8 @@ encoding here in `RemoteControlService`; adding a new *behavior* out of existing
 requires new presets/templates.
 
 The service drains a queue of steps: `CAButton`/`CAJog` are sent to BLE immediately, then the loop
-*parks* on the next `CACountdown` (timer) or `CAWaitFor` (camera status) and resumes when the
-condition is met. Pressing another button cancels a pending long-running sequence rather than
-queuing behind it.
+*parks* on the next `CAWaitFor` and resumes when the camera reports the state it waits for.
+Pressing another button cancels a pending long-running sequence rather than queuing behind it.
 
 ```mermaid
 flowchart TD
@@ -318,8 +317,6 @@ flowchart TD
     C -->|CAButton / CAJog| D[Encode to bytes]
     D --> E[BleCommandQueue → Command char 0xFF01]
     E --> C
-    C -->|CACountdown| F[Wait for timer, show countdown]
-    F --> C
     C -->|CAWaitFor| G[Park until status notification]
     H[Status char 0xFF02 notification] -.->|focus / shutter / recording| G
     G --> C

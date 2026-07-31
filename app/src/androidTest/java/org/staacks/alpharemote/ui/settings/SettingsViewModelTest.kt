@@ -158,7 +158,7 @@ class SettingsViewModelTest {
     fun updateCustomButtonWithNegativeIndexAppends() = runBlocking {
         val viewModel = SettingsViewModel(application)
         val seeded = awaitSeededButtonList()
-        val newAction = CameraAction(true, null, 1.5f, null, CameraActionPreset.ZOOM_IN)
+        val newAction = CameraAction(true, null, CameraActionPreset.ZOOM_IN)
 
         viewModel.updateCustomButton(-1, newAction)
 
@@ -171,7 +171,7 @@ class SettingsViewModelTest {
     fun updateCustomButtonReplacesTheRequestedIndex() = runBlocking {
         val viewModel = SettingsViewModel(application)
         val seeded = awaitSeededButtonList()
-        val newAction = CameraAction(false, 10.0f, null, null, CameraActionPreset.SHUTTER)
+        val newAction = CameraAction(false, null, CameraActionPreset.SHUTTER)
 
         viewModel.updateCustomButton(0, newAction)
 
@@ -185,7 +185,7 @@ class SettingsViewModelTest {
         val viewModel = SettingsViewModel(application)
         val seeded = awaitSeededButtonList()
 
-        viewModel.updateCustomButton(seeded.size, CameraAction(false, null, null, null, CameraActionPreset.SHUTTER))
+        viewModel.updateCustomButton(seeded.size, CameraAction(false, null, CameraActionPreset.SHUTTER))
 
         // The list must stay unchanged; give a potential (faulty) write a moment to land.
         delay(500)

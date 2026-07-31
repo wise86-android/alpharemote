@@ -114,7 +114,7 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
                         navigator.navigate(
                             AlphaRemoteNavKey.CameraActionPicker(
                                 -1,
-                                CameraAction(false, null, null, null, CameraActionPreset.STOP),
+                                CameraAction(false, null, CameraActionPreset.STOP),
                                 false
                             )
                         )
@@ -169,8 +169,6 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
                     CameraActionPickerContent(
                         startAction = key.action,
                         showDelete = key.showDelete,
-                        selftimerSeekBarTimeMap = remember { CameraActionPicker.SeekBarTimeMap(10, 600) },
-                        holdSeekBarTimeMap = remember { CameraActionPicker.SeekBarTimeMap(0, 100) },
                         onCancel = { navigator.goBack() },
                         onDelete = {
                             settingsViewModel.removeCustomButton(key.index)

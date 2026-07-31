@@ -26,7 +26,7 @@ import org.staacks.alpharemote.camera.CameraActionPreset
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.camera.ShutterState
-import org.staacks.alpharemote.ui.theme.AdvancedControlsDrawerPeek
+import org.staacks.alpharemote.ui.theme.CustomButtonsDrawerPeek
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,12 +37,6 @@ fun CameraScreen(
     onGotoSettings: () -> Unit,
     onHelp: () -> Unit,
     onDefaultRemoteTouch: (RemoteButton, Int) -> Boolean,
-    onBulbToggleChanged: (Boolean) -> Unit,
-    onBulbDurationChanged: (String) -> Unit,
-    onIntervalToggleChanged: (Boolean) -> Unit,
-    onIntervalCountChanged: (String) -> Unit,
-    onIntervalDurationChanged: (String) -> Unit,
-    onStartSequence: () -> Unit,
     onCustomButtonClick: (CameraAction) -> Unit,
 ) {
     if (!uiState.connected) {
@@ -57,17 +51,11 @@ fun CameraScreen(
 
     BottomSheetScaffold(
         scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState),
-        sheetPeekHeight = AdvancedControlsDrawerPeek,
+        sheetPeekHeight = CustomButtonsDrawerPeek,
         sheetContent = {
-            AdvancedControlsSheet(
+            CustomButtonsSheet(
                 uiState = uiState,
                 customButtons = customButtons,
-                onBulbToggleChanged = onBulbToggleChanged,
-                onBulbDurationChanged = onBulbDurationChanged,
-                onIntervalToggleChanged = onIntervalToggleChanged,
-                onIntervalCountChanged = onIntervalCountChanged,
-                onIntervalDurationChanged = onIntervalDurationChanged,
-                onStartSequence = onStartSequence,
                 onCustomButtonClick = onCustomButtonClick,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,18 +102,12 @@ private fun CameraScreenPreview() {
                     ),
                 ),
                 customButtons = listOf(
-                    CameraAction(false, null, null, null, CameraActionPreset.SHUTTER),
-                    CameraAction(false, null, null, null, CameraActionPreset.AF_ON),
+                    CameraAction(false, null, CameraActionPreset.SHUTTER),
+                    CameraAction(false, null, CameraActionPreset.AF_ON),
                 ),
                 onGotoSettings = {},
                 onHelp = {},
                 onDefaultRemoteTouch = { _, _ -> true },
-                onBulbToggleChanged = {},
-                onBulbDurationChanged = {},
-                onIntervalToggleChanged = {},
-                onIntervalCountChanged = {},
-                onIntervalDurationChanged = {},
-                onStartSequence = {},
                 onCustomButtonClick = {},
             )
         }

@@ -25,9 +25,6 @@ sealed class CameraState {
             val recording: Boolean,
             val pressedButtons: Set<ButtonCode> = emptySet(),
             val pressedJogs: Set<JogCode> = emptySet(),
-            val countdown: Long? = null,
-            val countdownLabel: String? = null,
-            val pendingTriggerCount: Int = 0
         ) : Connected() {
             fun applyCommand(command: CameraActionStep): Ready {
                 return when (command) {

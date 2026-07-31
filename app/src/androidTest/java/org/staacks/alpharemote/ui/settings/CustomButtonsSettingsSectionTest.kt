@@ -26,9 +26,9 @@ class CustomButtonsSettingsSectionTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     private val buttons = listOf(
-        CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-        CameraAction(false, 3.0f, null, null, CameraActionPreset.TRIGGER_ONCE),
-        CameraAction(false, null, null, null, CameraActionPreset.RECORD),
+        CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+        CameraAction(false, null, CameraActionPreset.SHUTTER),
+        CameraAction(false, null, CameraActionPreset.RECORD),
     )
 
     private fun setContent(

@@ -1,7 +1,5 @@
 package org.staacks.alpharemote.ui.camera
 
-import android.os.SystemClock
-import android.text.format.DateUtils
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -19,8 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,7 +24,6 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import kotlinx.coroutines.delay
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraState
 import org.staacks.alpharemote.camera.FocusState
@@ -72,18 +67,11 @@ fun StatusHeader(
             }
         }
 
-        if (state?.countdownLabel == null) {
-            IconButton(onClick = onHelp) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Help,
-                    contentDescription = stringResource(R.string.help),
-                )
-            }
-        } else {
-            Column(horizontalAlignment = Alignment.End) {
-                Text(text = state.countdownLabel)
-                state.countdown?.let { CountdownLabel(countdownBase = it) }
-            }
+        IconButton(onClick = onHelp) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Help,
+                contentDescription = stringResource(R.string.help),
+            )
         }
     }
 }
@@ -100,18 +88,6 @@ private fun StatusIcon(@DrawableRes icon: Int, alpha: Float, @StringRes content:
             .height(ActivityStatusSize)
             .aspectRatio(1f),
     )
-}
-
-@Composable
-private fun CountdownLabel(countdownBase: Long) {
-    val now by produceState(initialValue = SystemClock.elapsedRealtime(), key1 = countdownBase) {
-        while (true) {
-            value = SystemClock.elapsedRealtime()
-            delay(200)
-        }
-    }
-    val seconds = ((countdownBase - now).coerceAtLeast(0L)) / 1000L
-    Text(text = DateUtils.formatElapsedTime(seconds), style = MaterialTheme.typography.titleLarge)
 }
 
 @Preview(showBackground = true)

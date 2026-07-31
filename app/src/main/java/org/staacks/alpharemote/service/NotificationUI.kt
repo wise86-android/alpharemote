@@ -46,8 +46,6 @@ class NotificationUI(private val context: Context) {
     private var buttonSize: Float = 1.0f
     private var cameraState: CameraState? = null
     private var connectionState: BleConnectionState? = null
-    private var countDownTime: Long? = null
-    private var countDownLabel: String? = null
 
     private var notifyTimer: Timer? = null //Used to limit the rate at which notify is called
     private var notifyTask: TimerTask? = null
@@ -117,14 +115,12 @@ class NotificationUI(private val context: Context) {
                     pressed = false
                 ))
 
-                if (countDownTime == null) {
-                    val intent = Intent(context, AlphaRemoteService::class.java).apply {
-                        action = AlphaRemoteService.BUTTON_INTENT_ACTION
-                        putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_EXTRA, cameraAction as Serializable)
-                    }
-                    val pendingIntent = PendingIntent.getService(context, index, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                    remoteViews.setOnClickPendingIntent(buttonID, pendingIntent)
+                val intent = Intent(context, AlphaRemoteService::class.java).apply {
+                    action = AlphaRemoteService.BUTTON_INTENT_ACTION
+                    putExtra(AlphaRemoteService.BUTTON_INTENT_CAMERA_ACTION_EXTRA, cameraAction as Serializable)
                 }
+                val pendingIntent = PendingIntent.getService(context, index, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                remoteViews.setOnClickPendingIntent(buttonID, pendingIntent)
 
                 remoteViews.setViewVisibility(buttonID, View.VISIBLE)
             } ?: run {
@@ -181,7 +177,7 @@ class NotificationUI(private val context: Context) {
                                 cameraAction.preset.template.referenceButton in state.pressedButtons || cameraAction.preset.template.referenceJog in state.pressedJogs
                             remoteViews.setImageViewBitmap(
                                 buttonID,
-                                getIconBmp(cameraAction, countDownTime == null, pressed)
+                                getIconBmp(cameraAction, available = true, pressed = pressed)
                             )
                         }
                     }
@@ -223,16 +219,6 @@ class NotificationUI(private val context: Context) {
                 }
                 else -> {}
             }
-        }
-
-        countDownTime?.let { time ->
-            remoteViews.setChronometer(R.id.status_countdown, time, null, true)
-            remoteViews.setViewVisibility(R.id.status_countdown, View.VISIBLE)
-        }
-
-        countDownLabel?.let { label ->
-            remoteViews.setTextViewText(R.id.status_action, label)
-            remoteViews.setViewVisibility(R.id.status_action, View.VISIBLE)
         }
 
         return remoteViews
@@ -293,18 +279,6 @@ class NotificationUI(private val context: Context) {
 
     fun onCameraConnectionUpdate(connectionState: BleConnectionState){
         this.connectionState = connectionState
-        updateNotification()
-    }
-
-    fun showCountdown(time: Long, label: String) {
-        countDownTime = time
-        countDownLabel = label
-        updateNotification()
-    }
-
-    fun hideCountdown() {
-        countDownTime = null
-        countDownLabel = null
         updateNotification()
     }
 }

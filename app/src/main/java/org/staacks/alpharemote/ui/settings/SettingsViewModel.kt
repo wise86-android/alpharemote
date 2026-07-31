@@ -149,9 +149,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val defaultCustomButtonList = listOf(
-        CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-        CameraAction(false, 3.0f, null, null, CameraActionPreset.TRIGGER_ONCE),
-        CameraAction(false, null, null, null, CameraActionPreset.RECORD),
+        CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+        CameraAction(false, null, CameraActionPreset.SHUTTER),
+        CameraAction(false, null, CameraActionPreset.RECORD),
     )
 
     val customButtonListFlow: StateFlow<List<CameraAction>> = appearanceSettings.customButtonSettings

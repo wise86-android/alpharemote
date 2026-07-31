@@ -36,60 +36,12 @@ class CameraViewModelTest {
     }
 
     @Test
-    fun initialStateIsDisconnectedWithDefaults() {
+    fun initialStateIsDisconnected() {
         val viewModel = CameraViewModel(application)
 
         val state = viewModel.uiState.value
         assertFalse(state.connected)
         assertNull(state.cameraState)
-        assertFalse(state.bulbToggle)
-        assertFalse(state.intervalToggle)
-        assertEquals("5.0", state.bulbDuration)
-        assertEquals("50", state.intervalCount)
-        assertEquals("3.0", state.intervalDuration)
-    }
-
-    @Test
-    fun bulbSettersUpdateOnlyTheBulbFields() {
-        val viewModel = CameraViewModel(application)
-
-        viewModel.setBulbToggle(true)
-        viewModel.setBulbDuration("12.5")
-
-        val state = viewModel.uiState.value
-        assertEquals(true, state.bulbToggle)
-        assertEquals("12.5", state.bulbDuration)
-        assertFalse(state.intervalToggle)
-        assertEquals("50", state.intervalCount)
-        assertEquals("3.0", state.intervalDuration)
-    }
-
-    @Test
-    fun intervalSettersUpdateOnlyTheIntervalFields() {
-        val viewModel = CameraViewModel(application)
-
-        viewModel.setIntervalToggle(true)
-        viewModel.setIntervalCount("10")
-        viewModel.setIntervalDuration("2.0")
-
-        val state = viewModel.uiState.value
-        assertEquals(true, state.intervalToggle)
-        assertEquals("10", state.intervalCount)
-        assertEquals("2.0", state.intervalDuration)
-        assertFalse(state.bulbToggle)
-        assertEquals("5.0", state.bulbDuration)
-    }
-
-    @Test
-    fun nonNumericInputIsKeptAsRawString() {
-        val viewModel = CameraViewModel(application)
-
-        viewModel.setBulbDuration("abc")
-        viewModel.setIntervalCount("")
-
-        val state = viewModel.uiState.value
-        assertEquals("abc", state.bulbDuration)
-        assertEquals("", state.intervalCount)
     }
 
     @Test
@@ -105,8 +57,8 @@ class CameraViewModelTest {
     fun customButtonsReflectTheStoredList() = runBlocking {
         val viewModel = CameraViewModel(application)
         val list = listOf(
-            CameraAction(false, null, null, null, CameraActionPreset.TRIGGER_ONCE),
-            CameraAction(true, null, 1.0f, 0.5f, CameraActionPreset.ZOOM_IN),
+            CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+            CameraAction(true, 0.5f, CameraActionPreset.ZOOM_IN),
         )
 
         appearanceSettings.saveCustomButtonList(list)

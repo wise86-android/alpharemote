@@ -11,5 +11,5 @@ val NotificationDefaultButtonSize = 44.dp
 val NotificationStatusNameSize = 12.sp
 val HelpPadding = 16.dp
 val CustomButtonHeightInActivity = 60.dp
-val AdvancedControlsDrawerPeek = 110.dp
+val CustomButtonsDrawerPeek = 110.dp
 val ActivityStatusSize = 32.dp

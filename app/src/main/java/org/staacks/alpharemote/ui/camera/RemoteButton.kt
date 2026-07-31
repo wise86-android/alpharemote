@@ -6,7 +6,7 @@ import org.staacks.alpharemote.camera.CameraActionPreset
 enum class RemoteButton {
     SHUTTER,
     SHUTTER_HALF,
-    SELFTIMER_3S,
+    TRIGGER_ONCE,
     RECORD,
     C1,
     AF_ON,
@@ -20,7 +20,7 @@ fun RemoteButton.toCameraAction(): CameraAction {
     val preset = when (this) {
         RemoteButton.SHUTTER -> CameraActionPreset.SHUTTER
         RemoteButton.SHUTTER_HALF -> CameraActionPreset.SHUTTER_HALF
-        RemoteButton.SELFTIMER_3S -> CameraActionPreset.TRIGGER_ONCE
+        RemoteButton.TRIGGER_ONCE -> CameraActionPreset.TRIGGER_ONCE
         RemoteButton.RECORD -> CameraActionPreset.RECORD
         RemoteButton.C1 -> CameraActionPreset.C1
         RemoteButton.AF_ON -> CameraActionPreset.AF_ON
@@ -29,11 +29,8 @@ fun RemoteButton.toCameraAction(): CameraAction {
         RemoteButton.FOCUS_FAR -> CameraActionPreset.FOCUS_FAR
         RemoteButton.FOCUS_NEAR -> CameraActionPreset.FOCUS_NEAR
     }
-    val selfTimer = if (this == RemoteButton.SELFTIMER_3S) 3.0f else null
     return CameraAction(
         toggle = this in setOf(RemoteButton.SHUTTER_HALF, RemoteButton.AF_ON),
-        selfTimer = selfTimer,
-        duration = null,
         step = null,
         preset = preset
     )

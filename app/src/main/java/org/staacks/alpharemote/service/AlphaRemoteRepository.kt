@@ -114,17 +114,6 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
         )
     }
 
-    fun startAdvancedSequence(bulbDuration: Float, intervalCount: Int, intervalDuration: Float) {
-        // We could also call this via binder if we expose a method in AlphaRemoteService
-        val intent = Intent(context, AlphaRemoteService::class.java).apply {
-            action = AlphaRemoteService.ADVANCED_SEQUENCE_INTENT_ACTION
-            putExtra(AlphaRemoteService.ADVANCED_SEQUENCE_INTENT_BULB_DURATION_EXTRA, bulbDuration)
-            putExtra(AlphaRemoteService.ADVANCED_SEQUENCE_INTENT_INTERVAL_COUNT_EXTRA, intervalCount)
-            putExtra(AlphaRemoteService.ADVANCED_SEQUENCE_INTENT_INTERVAL_DURATION_EXTRA, intervalDuration)
-        }
-        context.startService(intent)
-    }
-
     companion object {
         private const val TAG = "AlphaRemoteRepository"
         

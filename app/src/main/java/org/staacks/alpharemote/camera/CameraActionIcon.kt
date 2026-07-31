@@ -73,22 +73,6 @@ class CameraActionIcon(val context: Context, private val cameraAction: CameraAct
 
         val w = bounds.width()
 
-        cameraAction.selfTimer?.let {
-            val text = "T" + it.roundToInt().toString()
-            drawTextInBox(canvas, 0.0f, 0.0f, w*0.02f, 0.3f * w, text,
-                anchorRight = false,
-                anchorBottom = false
-            )
-        }
-
-        cameraAction.duration?.let {
-            val text = "D" + it.roundToInt().toString()
-            drawTextInBox(canvas, w.toFloat(), w.toFloat(), w*0.02f, 0.3f * w, text,
-                anchorRight = true,
-                anchorBottom = true
-            )
-        }
-
         if (cameraAction.toggle) {
             val text = "↹"
             drawTextInBox(canvas, 0.0f, w.toFloat(), w*0.02f, 0.5f * w, text,

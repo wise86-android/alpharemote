@@ -105,8 +105,6 @@ private fun NotificationButtonRowPreview() {
         NotificationButtonRow(
             action = CameraAction(
                 toggle = false,
-                selfTimer = 3.0f,
-                duration = null,
                 step = null,
                 preset = CameraActionPreset.TRIGGER_ONCE,
             ),
