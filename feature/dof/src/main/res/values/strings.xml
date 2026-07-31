@@ -1,0 +1,29 @@
+<resources>
+    <string name="dof_title">Depth of field</string>
+
+    <string name="dof_subject_distance">Subject distance</string>
+    <string name="dof_focal_length">Focal length</string>
+    <string name="dof_aperture">Aperture</string>
+    <string name="dof_sensor_size">Sensor size</string>
+
+    <string name="dof_near_limit">Near limit</string>
+    <string name="dof_far_limit">Far limit</string>
+    <string name="dof_total">Total depth of field</string>
+    <string name="dof_infinite">Infinite</string>
+
+    <!-- Kept short: these are the three segments of a segmented button and share one row. -->
+    <string name="dof_sensor_full_frame">Full frame</string>
+    <string name="dof_sensor_aps_c">APS-C</string>
+    <string name="dof_sensor_mft">MFT</string>
+
+    <!-- Value formats. %1$f is the numeric value. -->
+    <string name="dof_format_meters">%1$.2f m</string>
+    <string name="dof_format_centimeters">%1$.0f cm</string>
+    <string name="dof_format_focal_length">%1$.0f mm</string>
+    <string name="dof_format_aperture">f/%1$s</string>
+    <!-- Lens summary drawn next to the photographer, e.g. "50 mm · f/1.8". %1$s is the focal
+         length, %2$s the aperture. -->
+    <string name="dof_format_lens">%1$s · %2$s</string>
+
+    <string name="dof_graphic_description">Diagram of the photographer, the subject at the selected distance, the field of view and the zone in focus. Tap or drag to move the subject.</string>
+</resources>

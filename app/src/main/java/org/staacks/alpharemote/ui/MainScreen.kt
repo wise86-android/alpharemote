@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Settings
@@ -23,8 +24,10 @@ import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.ui.about.aboutEntries
+import org.staacks.alpharemote.feature.dof.DofViewModel
 import org.staacks.alpharemote.ui.camera.CameraViewModel
 import org.staacks.alpharemote.ui.camera.cameraEntries
+import org.staacks.alpharemote.ui.dof.depthOfFieldEntries
 import org.staacks.alpharemote.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.settings.settingsEntries
 
@@ -36,6 +39,7 @@ private data class TopLevelDestination(
 
 private val topLevelDestinations = listOf(
     TopLevelDestination(AlphaRemoteNavKey.Camera, Icons.Default.PhotoCamera, R.string.title_camera),
+    TopLevelDestination(AlphaRemoteNavKey.DepthOfField, Icons.Default.CenterFocusStrong, R.string.title_dof),
     TopLevelDestination(AlphaRemoteNavKey.Settings, Icons.Default.Settings, R.string.title_settings),
     TopLevelDestination(AlphaRemoteNavKey.About, Icons.Default.Info, R.string.title_about),
 )
@@ -51,9 +55,11 @@ fun MainScreen() {
 
     val cameraViewModel: CameraViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
+    val dofViewModel: DofViewModel = viewModel()
 
     val entryProvider = entryProvider {
         cameraEntries(cameraViewModel, navigator)
+        depthOfFieldEntries(dofViewModel)
         settingsEntries(settingsViewModel, navigator)
         aboutEntries()
         commonEntries(navigator)

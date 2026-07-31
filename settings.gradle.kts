@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Bluetooth Remote for Sony Cameras"
 include(":app")
+include(":feature:dof")
  

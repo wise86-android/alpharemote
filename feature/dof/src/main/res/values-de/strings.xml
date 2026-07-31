@@ -1,0 +1,25 @@
+<resources>
+    <string name="dof_title">Schärfentiefe</string>
+
+    <string name="dof_subject_distance">Motivabstand</string>
+    <string name="dof_focal_length">Brennweite</string>
+    <string name="dof_aperture">Blende</string>
+    <string name="dof_sensor_size">Sensorgröße</string>
+
+    <string name="dof_near_limit">Nahgrenze</string>
+    <string name="dof_far_limit">Ferngrenze</string>
+    <string name="dof_total">Gesamte Schärfentiefe</string>
+    <string name="dof_infinite">Unendlich</string>
+
+    <string name="dof_sensor_full_frame">Vollformat</string>
+    <string name="dof_sensor_aps_c">APS-C</string>
+    <string name="dof_sensor_mft">MFT</string>
+
+    <string name="dof_format_meters">%1$.2f m</string>
+    <string name="dof_format_centimeters">%1$.0f cm</string>
+    <string name="dof_format_focal_length">%1$.0f mm</string>
+    <string name="dof_format_aperture">f/%1$s</string>
+    <string name="dof_format_lens">%1$s · %2$s</string>
+
+    <string name="dof_graphic_description">Diagramm mit Fotograf, Motiv im gewählten Abstand, Bildwinkel und Schärfebereich. Zum Verschieben des Motivs tippen oder ziehen.</string>
+</resources>
