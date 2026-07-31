@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
@@ -24,7 +25,9 @@ fun LabeledSwitchRow(
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth(),
+        // Semantics group keeping label and switch together, so the switch stays identifiable
+        // by its label when several rows share the same parent.
+        modifier = modifier.fillMaxWidth().semantics {},
     ) {
         Text(text = label)
         Switch(
