@@ -69,7 +69,7 @@ fun SettingScreen(
 }
 
 @Composable
-private fun SettingScreenContent(
+internal fun SettingScreenContent(
     sectionSpacing: androidx.compose.ui.unit.Dp,
     uiState: SettingsViewModel.SettingsUIState,
     updateCameraLocation: Boolean,
