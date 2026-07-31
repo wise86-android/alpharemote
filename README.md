@@ -122,6 +122,12 @@ Please let me know if your camera works if it has not yet been confirmed here.
 
 
 
+# Development
+
+If you want to understand or extend how the app talks to the camera, see the
+[BLE protocol documentation](docs/ble-protocol.md). It describes the GATT services, the
+button/jog command encoding, the camera status notifications and the location/geotagging payloads.
+
 # License
 
 The code is open under the GNU General Public License v3.0 (see LICENSE file).
