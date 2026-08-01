@@ -37,6 +37,14 @@ interface WifiCameraRepository {
     suspend fun setSetting(id: CameraSettingId, option: CameraOption): Result<Unit>
 
     /**
+     * Releases the shutter.
+     *
+     * Returns once the camera reports the frame taken. The resulting postview URL is not returned
+     * here — it arrives through [camera], which also catches shots taken on the body itself.
+     */
+    suspend fun capture(): Result<Unit>
+
+    /**
      * Frames from the camera's live view, newest-only.
      *
      * Cold: the stream starts on the camera when collection starts and stops when it ends. The

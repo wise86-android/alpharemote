@@ -30,6 +30,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -40,7 +41,9 @@ import org.staacks.alpharemote.feature.wificamera.data.discovery.SsdpDiscovery
 import org.staacks.alpharemote.feature.wificamera.data.liveview.LiveViewStream
 import org.staacks.alpharemote.feature.wificamera.data.net.CameraNetwork
 import org.staacks.alpharemote.feature.wificamera.data.net.NetworkHttpClient
+import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraApiError
 import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraApiException
+import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraEventLog
 import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraEventParser
 import org.staacks.alpharemote.feature.wificamera.data.rpc.ScalarWebClient
 import org.staacks.alpharemote.feature.wificamera.domain.CameraIdentity
@@ -282,7 +285,7 @@ class DefaultWifiCameraRepository private constructor(
                     params = ScalarWebClient.paramsOf(JsonPrimitive(longPoll)),
                     readTimeoutMs = NetworkHttpClient.LONG_POLL_READ_TIMEOUT_MS
                 )
-                _camera.value = CameraEventParser.merge(_camera.value, result)
+                logEvent(result, longPoll)
                 longPoll = true
             } catch (error: CameraApiException) {
                 if (error.isLongPollTimeout) {
@@ -301,9 +304,44 @@ class DefaultWifiCameraRepository private constructor(
         }
     }
 
+    /**
+     * Applies an event and reports what it did.
+     *
+     * Exposure compensation is logged on every refresh rather than only on change, and with its
+     * raw entry alongside the parsed value — it is the one setting the camera reports as an index
+     * rather than a value, so a wrong reading on screen could come either from the camera or from
+     * our reconstruction of it, and the two are indistinguishable without both.
+     */
+    private fun logEvent(result: JsonArray, longPoll: Boolean) {
+        val previous = _camera.value
+        val current = CameraEventParser.merge(previous, result)
+        _camera.value = current
+
+        if (Log.isLoggable(EVENT_TAG, Log.VERBOSE)) {
+            Log.v(EVENT_TAG, "getEvent(longPoll=$longPoll) raw: $result")
+        }
+
+        val changes = CameraEventLog.describeChanges(previous, current)
+        if (changes.isNotEmpty()) {
+            Log.d(EVENT_TAG, "getEvent(longPoll=$longPoll) changed:")
+            changes.forEach { Log.d(EVENT_TAG, "  $it") }
+        }
+
+        val exposure = CameraSettingId.EXPOSURE_COMPENSATION
+        Log.d(
+            EVENT_TAG,
+            "  exposure: parsed=${CameraEventLog.describe(current[exposure])} " +
+                "raw=${CameraEventLog.rawEntry(result, exposure.eventType)}"
+        )
+    }
+
     override suspend fun setSetting(id: CameraSettingId, option: CameraOption): Result<Unit> {
         val client = session?.client
             ?: return Result.failure(IllegalStateException("Not connected to a camera"))
+
+        // Logged as sent, so a value that never comes back through getEvent can be told apart
+        // from one that was never requested.
+        Log.d(EVENT_TAG, "${id.setMethod}(${option.param}) for \"${option.label}\"")
 
         return runCatching {
             client.call(
@@ -313,6 +351,34 @@ class DefaultWifiCameraRepository private constructor(
             )
             // Deliberately not written into _camera here: the camera confirms the new value
             // through getEvent, and it is the authority on what actually took effect.
+            Unit
+        }.onFailure { error ->
+            Log.w(EVENT_TAG, "${id.setMethod} rejected: ${error.message}")
+        }
+    }
+
+    override suspend fun capture(): Result<Unit> {
+        val client = session?.client
+            ?: return Result.failure(IllegalStateException("Not connected to a camera"))
+
+        return runCatching<Unit> {
+            try {
+                client.call(
+                    service = DeviceDescription.CAMERA_SERVICE,
+                    method = "actTakePicture",
+                    versions = ScalarWebClient.VERSION_1_0
+                )
+            } catch (error: CameraApiException) {
+                if (error.code != CameraApiError.LONG_SHOOTING) throw error
+                // The exposure outlasted the response timeout. The camera is still working and
+                // reports the result when it finishes, so wait for it rather than failing.
+                client.call(
+                    service = DeviceDescription.CAMERA_SERVICE,
+                    method = "awaitTakePicture",
+                    versions = ScalarWebClient.VERSION_1_0,
+                    readTimeoutMs = NetworkHttpClient.LONG_POLL_READ_TIMEOUT_MS
+                )
+            }
         }
     }
 
@@ -320,22 +386,37 @@ class DefaultWifiCameraRepository private constructor(
         val current = session ?: throw IllegalStateException("Not connected to a camera")
 
         val url = startLiveView(current)
+        val stream = current.http.openStream(url)
+
+        // A thread blocked in a socket read cannot notice cancellation — it is not at a suspension
+        // point. Closing the socket is what unblocks it, so this does that the instant the
+        // collector goes away. Without it, leaving the screen would leave the stream running, and
+        // the camera streaming, until the read timeout expired.
+        val closeOnCancel = currentCoroutineContext()[Job]?.invokeOnCompletion {
+            runCatching { stream.close() }
+        }
+
         try {
-            current.http.openStream(url).use { stream ->
-                val reader = LiveViewStream(stream)
-                while (currentCoroutineContext().isActive) {
-                    val payload = reader.readPayload() ?: break
-                    // Frame-info payloads carry AF boxes, not pictures. Ignored for now.
-                    if (payload.isImage) emit(payload.toFrame())
-                }
+            val reader = LiveViewStream(stream)
+            while (currentCoroutineContext().isActive) {
+                val payload = reader.readPayload() ?: break
+                // Frame-info payloads carry AF boxes, not pictures. Ignored for now.
+                if (payload.isImage) emit(payload.toFrame())
             }
         } finally {
+            closeOnCancel?.dispose()
+            runCatching { stream.close() }
             withContext(NonCancellable) {
-                runCatching {
-                    current.client.call(
-                        service = DeviceDescription.CAMERA_SERVICE,
-                        method = "stopLiveview"
-                    )
+                // Told to stop even when we are being cancelled, or the camera keeps streaming.
+                // Bounded, because the usual reason for cancelling is that the network went away,
+                // and an unbounded call would then hang on its connect timeout instead.
+                withTimeoutOrNull(STOP_LIVE_VIEW_TIMEOUT_MS) {
+                    runCatching {
+                        current.client.call(
+                            service = DeviceDescription.CAMERA_SERVICE,
+                            method = "stopLiveview"
+                        )
+                    }
                 }
             }
         }
@@ -388,8 +469,17 @@ class DefaultWifiCameraRepository private constructor(
 
     companion object {
         private const val TAG = "WifiCameraRepository"
+
+        /**
+         * Its own tag so the event traffic can be watched on its own:
+         * `adb logcat -s WifiCameraEvent`. Raw event bodies are verbose-only — enable them with
+         * `adb shell setprop log.tag.WifiCameraEvent VERBOSE`.
+         */
+        private const val EVENT_TAG = "WifiCameraEvent"
+
         private const val DISCOVERY_TIMEOUT_MS = 20_000L
         private const val POLL_RETRY_DELAY_MS = 1_000L
+        private const val STOP_LIVE_VIEW_TIMEOUT_MS = 2_000L
 
         @Volatile
         private var INSTANCE: DefaultWifiCameraRepository? = null

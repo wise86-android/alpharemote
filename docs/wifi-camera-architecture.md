@@ -90,11 +90,72 @@ the same way, which is what stops the two views from drifting apart.
 
 ## Live view
 
-Already parseable, not yet drawn. `WifiCameraRepository.liveView()` is a cold `Flow<LiveViewFrame>`
-that starts the stream on collection and stops it on cancellation, and is `conflate()`d so a slow
-collector drops frames instead of building a queue — latency must not grow without bound. Drawing
-it needs a `BitmapFactory` decode on a background thread and an `Image` composable; the transport
-underneath will not change.
+`WifiCameraRepository.liveView()` is a cold `Flow<LiveViewFrame>`: collecting it calls
+`startLiveview`, and ending collection calls `stopLiveview`.
+
+Three things about it are deliberate.
+
+**Frames are dropped, never queued.** The flow is `conflate()`d at both the transport and the
+decode stage. A viewfinder that falls behind and catches up later is worse than one that skips —
+latency must not grow without bound.
+
+**Cancelling closes the socket.** A thread blocked in a socket read is not at a suspension point
+and cannot observe cancellation, so the read loop registers `invokeOnCompletion` to close the
+stream. Without it, leaving the screen would leave the camera streaming until the read timeout
+expired. `stopLiveview` then runs under `NonCancellable`, but time-bounded — the usual reason for
+cancelling is that the network went away, and an unbounded call would hang on its connect timeout.
+
+**Frames are their own flow, not part of `UiState`.** At ~30 fps, folding them into the state
+object would make every chip and readout a recomposition candidate at that rate for a value none
+of them read. `WifiCameraViewModel.liveView` is separate, and `WhileSubscribed` on it is what
+starts and stops the camera's stream as the screen comes and goes.
+
+**Decoding reuses its bitmaps.** `LiveViewBitmapPool` decodes through
+`BitmapFactory.Options.inBitmap` into a ring of three buffers, so a steady stream settles at zero
+allocations instead of ~30 full-size bitmaps a second.
+
+The hazard with reuse is overwriting a bitmap that is still being drawn. Compose's draw phase only
+records the bitmap into a display list; the GPU reads it later on the render thread, so "the
+composable returned" does not mean the pixels are finished with, and no callback means that either.
+Rather than trying to track it, the ring makes the reuse distance long enough not to matter: three
+buffers at 30 fps leaves a buffer untouched for ~100 ms against a render pipeline measured in
+single-digit milliseconds. `CAPACITY` is the dial if a frame ever tears.
+
+Two details that are easy to get wrong: the `ImageBitmap` wrapper is new every frame even though
+the bitmap is not — its identity is what tells `StateFlow` and Compose there is a new frame, and
+reusing it freezes the viewfinder on the first image. And `clear()` drops references rather than
+calling `recycle()`, because the last frame is very likely still on screen.
+
+Frame counts and allocation counts are logged every 300 frames on tag `WifiCameraLiveView`.
+
+Frame-info payloads (type `0x02`, AF boxes) are parsed and discarded — the α6600 cannot send them
+anyway, since it rejects `setLiveviewFrameInfo`.
+
+## UI
+
+`WifiCameraScreen` routes: connected shows `CameraControlScreen`, anything else shows the
+connection panel with the failure detail. The mockup assumes a live camera, so the states before
+that have to live somewhere.
+
+`CameraControlScreen` is the camera back — live view behind a HUD, values along the bottom. It has
+its own fixed dark palette (`ui/theme/CameraTheme.kt`) rather than the app's Material theme,
+because it sits over a picture and follows camera conventions: dark regardless of system setting,
+values in amber, labels quiet.
+
+Nothing in it comes from a preset list. Every value, and every option offered for it, is what the
+camera reported — which is the only correct source, since what is selectable changes with the body
+and the shooting mode. A setting the camera has not mentioned reads `--`; a setting with no setter
+in the current mode is shown dimmed and is not touchable.
+
+`liveView` is a slot parameter defaulting to a placeholder, so the video stream drops in without
+this file changing.
+
+**The drum picker commits on settle, never while moving.** Every commit is a `set<X>` request; one
+per scroll frame would flood the camera. The centred item is measured from `layoutInfo` rather than
+derived from scroll offsets, so content padding and item sizes cannot skew it.
+
+Two `@Preview`s cover the connected and nothing-reported-yet states, so the layout can be worked on
+without a camera.
 
 ## Cleartext HTTP
 
