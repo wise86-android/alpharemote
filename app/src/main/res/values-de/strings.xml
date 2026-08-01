@@ -3,6 +3,7 @@
     <string name="title_about">Über</string>
     <string name="title_camera">Kamera</string>
     <string name="title_dof">DOF</string>
+    <string name="title_wifi_camera">WLAN</string>
     <string name="title_settings">Einstellungen</string>
 
     <string name="camera_not_connected">Keine Kamera verbunden.\n\nBitte schalte die Kamera ein oder prüfe die Verbindung im Einstellungen-Tab.</string>

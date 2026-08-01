@@ -23,6 +23,7 @@ import org.staacks.alpharemote.camera.CameraAction
 @Serializable
 sealed interface AlphaRemoteNavKey : NavKey {
     @Serializable data object Camera : AlphaRemoteNavKey
+    @Serializable data object WifiCamera : AlphaRemoteNavKey
     @Serializable data object DepthOfField : AlphaRemoteNavKey
     @Serializable data object Settings : AlphaRemoteNavKey
     @Serializable data object About : AlphaRemoteNavKey

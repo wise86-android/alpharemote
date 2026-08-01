@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -28,8 +29,10 @@ import org.staacks.alpharemote.feature.dof.DofViewModel
 import org.staacks.alpharemote.ui.camera.CameraViewModel
 import org.staacks.alpharemote.ui.camera.cameraEntries
 import org.staacks.alpharemote.ui.dof.depthOfFieldEntries
+import org.staacks.alpharemote.feature.wificamera.ui.WifiCameraViewModel
 import org.staacks.alpharemote.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.settings.settingsEntries
+import org.staacks.alpharemote.ui.wificamera.wifiCameraEntries
 
 private data class TopLevelDestination(
     val route: AlphaRemoteNavKey,
@@ -39,6 +42,7 @@ private data class TopLevelDestination(
 
 private val topLevelDestinations = listOf(
     TopLevelDestination(AlphaRemoteNavKey.Camera, Icons.Default.PhotoCamera, R.string.title_camera),
+    TopLevelDestination(AlphaRemoteNavKey.WifiCamera, Icons.Default.Wifi, R.string.title_wifi_camera),
     TopLevelDestination(AlphaRemoteNavKey.DepthOfField, Icons.Default.CenterFocusStrong, R.string.title_dof),
     TopLevelDestination(AlphaRemoteNavKey.Settings, Icons.Default.Settings, R.string.title_settings),
     TopLevelDestination(AlphaRemoteNavKey.About, Icons.Default.Info, R.string.title_about),
@@ -56,9 +60,11 @@ fun MainScreen() {
     val cameraViewModel: CameraViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
     val dofViewModel: DofViewModel = viewModel()
+    val wifiCameraViewModel: WifiCameraViewModel = viewModel()
 
     val entryProvider = entryProvider {
         cameraEntries(cameraViewModel, navigator)
+        wifiCameraEntries(wifiCameraViewModel)
         depthOfFieldEntries(dofViewModel)
         settingsEntries(settingsViewModel, navigator)
         aboutEntries()

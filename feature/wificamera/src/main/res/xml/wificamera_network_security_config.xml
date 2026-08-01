@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The camera serves everything over plain HTTP: the device description, JSON-RPC, postview
+    JPEGs and the live view stream. Android blocks cleartext by default from API 28 onwards, so
+    without this the very first request fails with "Cleartext HTTP traffic not permitted".
+
+    Scoped to the camera's address rather than switching cleartext on for the whole app. The
+    camera is its own access point with no uplink, so this permits traffic that cannot leave the
+    link — and the rest of the app keeps the default refusal.
+
+    192.168.122.1 is the SoftAP gateway Sony bodies use in Wi-Fi Direct mode, which is the only
+    mode this module uses — it always joins the camera's own access point, so the camera is always
+    the gateway. A camera joined to a home router instead would get an unpredictable DHCP address,
+    but nothing here connects that way.
+
+    Entries are exact hostnames. Android's network security config supports neither wildcards nor
+    CIDR, so a range such as 192.168.* cannot be expressed and each address must be listed. If a
+    body ever turns up elsewhere, the app says so by name: the repository checks the cleartext
+    policy before connecting and reports CLEARTEXT_BLOCKED with the address to add here.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.122.1</domain>
+    </domain-config>
+</network-security-config>

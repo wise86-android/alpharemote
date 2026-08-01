@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The camera is an access point with no uplink. We join it with a WifiNetworkSpecifier and
+         bind every socket to the resulting Network, so we need to be able to request networks. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- Required to request a specific SSID from API 33 onwards. Declared with
+         neverForLocation so the app does not have to ask for location. -->
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <!-- SSDP discovery reads multicast NOTIFY announcements, which Android filters out in
+         hardware unless a multicast lock is held. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+    <!-- Merged into the app's application element. The camera is HTTP-only; see the config. -->
+    <application
+        android:networkSecurityConfig="@xml/wificamera_network_security_config" />
+
+</manifest>
