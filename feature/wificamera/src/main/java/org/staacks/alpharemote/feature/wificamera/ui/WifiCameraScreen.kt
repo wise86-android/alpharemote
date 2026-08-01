@@ -55,12 +55,16 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
     Box(Modifier.fillMaxSize().background(CameraColors.Background)) {
         val connection = state.connection
         if (connection is WifiCameraConnection.Connected) {
+            val shutter by viewModel.shutter.collectAsStateWithLifecycle()
             CameraControlScreen(
                 camera = state.camera,
                 cameraName = connection.camera.friendlyName
                     .ifBlank { connection.camera.modelName },
                 onSelect = viewModel::select,
-                onCapture = viewModel::capture,
+                onFocus = viewModel::focus,
+                onShoot = viewModel::shoot,
+                onCancelFocus = viewModel::cancelFocus,
+                shutter = shutter,
                 liveView = {
                     // Collected here rather than beside `uiState` so that a frame arriving at
                     // 30 fps only recomposes the viewfinder, not the readouts around it.

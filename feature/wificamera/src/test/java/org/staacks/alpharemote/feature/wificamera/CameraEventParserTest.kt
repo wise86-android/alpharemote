@@ -36,7 +36,6 @@ class CameraEventParserTest {
 
         assertEquals(CameraStatus.IDLE, snapshot.status)
         assertTrue(snapshot.liveViewActive)
-        assertTrue(snapshot.canShoot)
         assertEquals("5.6", snapshot[CameraSettingId.F_NUMBER]?.current?.label)
         assertEquals(
             listOf("4.0", "5.6", "8.0"),

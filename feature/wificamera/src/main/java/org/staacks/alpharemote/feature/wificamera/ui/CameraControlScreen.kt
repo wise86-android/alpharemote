@@ -1,5 +1,6 @@
 package org.staacks.alpharemote.feature.wificamera.ui
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -73,7 +74,10 @@ fun CameraControlScreen(
     camera: CameraSnapshot,
     cameraName: String,
     onSelect: (CameraSettingId, CameraOption) -> Unit,
-    onCapture: () -> Unit,
+    onFocus: () -> Unit,
+    onShoot: () -> Unit,
+    onCancelFocus: () -> Unit,
+    shutter: ShutterState = ShutterState.IDLE,
     modifier: Modifier = Modifier,
     liveView: @Composable BoxScope.() -> Unit = { LiveViewPlaceholder() }
 ) {
@@ -106,7 +110,10 @@ fun CameraControlScreen(
             BottomControlBar(
                 camera = camera,
                 onFieldTap = { editing = it },
-                onCapture = onCapture
+                onFocus = onFocus,
+                onShoot = onShoot,
+                onCancelFocus = onCancelFocus,
+                shutter = shutter
             )
         }
     }
@@ -336,7 +343,10 @@ private fun ExposureMeterStrip(
 private fun BottomControlBar(
     camera: CameraSnapshot,
     onFieldTap: (CameraSettingId) -> Unit,
-    onCapture: () -> Unit
+    onFocus: () -> Unit,
+    onShoot: () -> Unit,
+    onCancelFocus: () -> Unit,
+    shutter: ShutterState
 ) {
     Column(
         modifier = Modifier
@@ -403,7 +413,14 @@ private fun BottomControlBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             ThumbnailButton()
-            ShutterButton(enabled = camera.canShoot, onClick = onCapture)
+            ShutterButton(
+                enabled = camera.canShoot,
+                shutter = shutter,
+                focusStatus = camera.focusStatus,
+                onFocus = onFocus,
+                onShoot = onShoot,
+                onCancel = onCancelFocus
+            )
             ModeQuickButton(
                 setting = camera[CameraSettingId.EXPOSURE_MODE],
                 onClick = { onFieldTap(CameraSettingId.EXPOSURE_MODE) }
@@ -480,19 +497,65 @@ private fun ExposureChip(
     }
 }
 
-/** Gated on camera status: releasing the shutter mid-save is rejected by the body anyway. */
+/**
+ * Press and hold to focus, release to shoot — the camera's own half-press, because the body
+ * refuses to fire until autofocus has been engaged (PROTOCOL.md §2.4).
+ *
+ * The ring turns amber while focusing and green once the camera reports focus, and the inner disc
+ * shrinks and reddens during the exposure, so each stage of the sequence is visible.
+ */
 @Composable
-private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
+private fun ShutterButton(
+    enabled: Boolean,
+    shutter: ShutterState,
+    focusStatus: String?,
+    onFocus: () -> Unit,
+    onShoot: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val capturing = shutter == ShutterState.CAPTURING
+    val focusing = shutter == ShutterState.FOCUSING
+    val focusLocked = focusing && focusStatus?.equals("Focused", ignoreCase = true) == true
+
+    val innerSize by animateDpAsState(
+        targetValue = when {
+            capturing -> 30.dp
+            focusing -> 42.dp
+            else -> 48.dp
+        },
+        label = "shutterInner"
+    )
+    val ringColor = when {
+        focusLocked -> CameraColors.AccentGreen
+        focusing -> CameraColors.AccentAmber
+        else -> CameraColors.TextPrimary
+    }
+
     Box(
         modifier = Modifier
             .size(64.dp)
             .clip(CircleShape)
-            .border(3.dp, CameraColors.TextPrimary, CircleShape)
-            .clickable(enabled = enabled, onClick = onClick)
+            .border(3.dp, ringColor, CircleShape)
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectTapGestures(
+                    onPress = {
+                        onFocus()
+                        // Released inside the button means take the shot; anywhere else means
+                        // the gesture was abandoned and focus should simply be dropped.
+                        if (tryAwaitRelease()) onShoot() else onCancel()
+                    }
+                )
+            }
             .alpha(if (enabled) 1f else DISABLED_ALPHA),
         contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.size(48.dp).clip(CircleShape).background(Color.White))
+        Box(
+            Modifier
+                .size(innerSize)
+                .clip(CircleShape)
+                .background(if (capturing) CameraColors.AccentRed else Color.White)
+        )
     }
 }
 

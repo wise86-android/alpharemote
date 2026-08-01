@@ -157,6 +157,41 @@ derived from scroll offsets, so content padding and item sizes cannot skew it.
 Two `@Preview`s cover the connected and nothing-reported-yet states, so the layout can be worked on
 without a camera.
 
+## Shooting
+
+**The half-press is part of the capture sequence, not an extra.** The camera refuses
+`actTakePicture` with error 40400 until autofocus has been engaged, and it returns that code with
+an *empty message*, so the refusal looks like a mode problem or a busy camera. PROTOCOL.md §2.4
+confirms this on the α6600 and ranks it the most expensive pitfall in the document.
+
+The shutter button is therefore press-and-hold, mapping onto the protocol directly:
+
+| gesture | call |
+|---|---|
+| press | `actHalfPressShutter` |
+| release inside the button | `actTakePicture`, then `cancelHalfPressShutter` |
+| release outside / cancelled | `cancelHalfPressShutter` |
+
+`cancelHalfPressShutter` is sent whatever happens, including on failure, or the camera is left
+holding focus.
+
+A quick tap gives autofocus no time at all, so a 40400 straight after the half-press is treated as
+"not settled yet" rather than a refusal: it waits ~350 ms and tries again, a few times. 40403 is
+not a failure either — the shutter fired and the exposure is running, so it polls
+`awaitTakePicture` until that yields.
+
+### Focus feedback
+
+There is no dependable focus-locked signal on the α6600. `setLiveviewFrameInfo` returns error 12,
+so no AF boxes arrive on the live view stream (§3.3), and `getEvent` has no documented focus
+entry.
+
+Two things hedge against that. `CameraSnapshot.focusStatus` is parsed opportunistically from a
+`focusStatus` event entry if a body ever sends one — null means "this camera does not say", not
+"not focused" — and the shutter ring turns green when it reports `Focused`. And any event entry
+the parser does not handle is named in the log once, so an undocumented focus report would be
+discovered rather than silently ignored.
+
 ## Cleartext HTTP
 
 The camera serves everything over plain HTTP, which Android refuses by default from API 28. A

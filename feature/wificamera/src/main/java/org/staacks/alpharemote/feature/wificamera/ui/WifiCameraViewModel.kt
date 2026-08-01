@@ -9,10 +9,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
@@ -138,12 +140,64 @@ class WifiCameraViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun capture() {
+    private val _shutter = MutableStateFlow(ShutterState.IDLE)
+
+    /** What the shutter button is doing, so it can show focus and capture differently. */
+    val shutter: StateFlow<ShutterState> = _shutter.asStateFlow()
+
+    /**
+     * Finger down: engage autofocus.
+     *
+     * The camera refuses to fire until this has happened, so it is the first half of every
+     * capture rather than an extra (PROTOCOL.md §2.4).
+     */
+    fun focus() {
+        if (!_shutter.compareAndSet(expect = ShutterState.IDLE, update = ShutterState.FOCUSING)) {
+            return
+        }
         viewModelScope.launch {
-            repository.capture().onFailure { error ->
-                _messages.tryEmit(error.message ?: "The shot could not be taken")
+            repository.startFocus().onFailure { error ->
+                _shutter.value = ShutterState.IDLE
+                _messages.tryEmit(error.message ?: "The camera would not focus")
             }
         }
+    }
+
+    /**
+     * Finger up: take the shot, then let go of autofocus.
+     *
+     * Claiming the state before launching is what stops a second release reaching the camera —
+     * two taps in one frame would both pass a check made after the dispatch.
+     */
+    fun shoot() {
+        if (!_shutter.compareAndSet(
+                expect = ShutterState.FOCUSING,
+                update = ShutterState.CAPTURING
+            )
+        ) {
+            return
+        }
+        viewModelScope.launch {
+            try {
+                repository.shoot().onFailure { error ->
+                    _messages.tryEmit(error.message ?: "The shot could not be taken")
+                }
+            } finally {
+                _shutter.value = ShutterState.IDLE
+            }
+        }
+    }
+
+    /** Finger slid off the button: drop autofocus without shooting. */
+    fun cancelFocus() {
+        if (!_shutter.compareAndSet(
+                expect = ShutterState.FOCUSING,
+                update = ShutterState.IDLE
+            )
+        ) {
+            return
+        }
+        viewModelScope.launch { repository.cancelFocus() }
     }
 
     private companion object {

@@ -36,6 +36,9 @@ internal object CameraEventLog {
         if (previous.latestPostviewUrl != current.latestPostviewUrl) {
             lines += "postview ${current.latestPostviewUrl}"
         }
+        if (previous.focusStatus != current.focusStatus) {
+            lines += "focusStatus ${previous.focusStatus} -> ${current.focusStatus}"
+        }
 
         CameraSettingId.entries.forEach { id ->
             val before = previous[id]
@@ -66,17 +69,35 @@ internal object CameraEventLog {
      * Worth having next to the parsed value: it is the only way to tell a parsing mistake from a
      * camera that genuinely reported nothing.
      */
-    fun rawEntry(result: JsonArray, type: String): String {
-        val entry = result.asSequence()
-            .flatMap { element ->
-                when (element) {
-                    is JsonObject -> sequenceOf(element)
-                    is JsonArray -> element.asSequence().filterIsInstance<JsonObject>()
-                    else -> emptySequence()
-                }
-            }
-            .firstOrNull { (it["type"] as? JsonPrimitive)?.jsonPrimitive?.content == type }
+    fun rawEntry(result: JsonArray, type: String): String =
+        result.entryOfType(type)?.toString() ?: "no \"$type\" entry in this event"
 
-        return entry?.toString() ?: "no \"$type\" entry in this event"
-    }
+    /**
+     * Every `type` the camera mentioned in this event.
+     *
+     * Used to notice entries nothing in the parser handles. That is the only way to find out
+     * whether a body reports something undocumented — a focus status, say — since an unrecognised
+     * entry is otherwise silently ignored.
+     */
+    fun typesIn(result: JsonArray): Set<String> = result.asSequence()
+        .flatMap { element ->
+            when (element) {
+                is JsonObject -> sequenceOf(element)
+                is JsonArray -> element.asSequence().filterIsInstance<JsonObject>()
+                else -> emptySequence()
+            }
+        }
+        .mapNotNull { (it["type"] as? JsonPrimitive)?.jsonPrimitive?.content }
+        .toSet()
 }
+
+/** The entry of a given `type` in a `getEvent` result, or null when it did not report one. */
+internal fun JsonArray.entryOfType(type: String): JsonObject? = asSequence()
+    .flatMap { element ->
+        when (element) {
+            is JsonObject -> sequenceOf(element)
+            is JsonArray -> element.asSequence().filterIsInstance<JsonObject>()
+            else -> emptySequence()
+        }
+    }
+    .firstOrNull { (it["type"] as? JsonPrimitive)?.jsonPrimitive?.content == type }

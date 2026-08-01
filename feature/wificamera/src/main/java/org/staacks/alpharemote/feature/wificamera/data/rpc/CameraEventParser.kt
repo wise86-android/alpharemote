@@ -28,6 +28,23 @@ import org.staacks.alpharemote.feature.wificamera.domain.StorageInfo
  */
 object CameraEventParser {
 
+    /**
+     * Entry types this parser does something with.
+     *
+     * Exposed so callers can notice the ones it does not — the only way to find out what an
+     * undocumented body actually reports, since anything unrecognised is silently ignored.
+     */
+    val handledTypes: Set<String> = setOf(
+        "availableApiList",
+        "cameraStatus",
+        "liveviewStatus",
+        "cameraFunction",
+        "focusStatus",
+        "takePicture",
+        "storageInformation",
+        "batteryInfo"
+    ) + CameraSettingId.entries.map { it.eventType }
+
     fun merge(previous: CameraSnapshot, result: JsonArray): CameraSnapshot {
         var snapshot = previous
         // Some entries are objects, some are arrays of objects (storage, takePicture), and
@@ -73,6 +90,12 @@ object CameraEventParser {
 
             "cameraFunction" ->
                 copy(cameraFunction = entry.string("currentCameraFunction") ?: cameraFunction)
+
+            // Undocumented for the bodies we target, and absent on the α6600. Read
+            // opportunistically: if a camera does report focus, we show it; if not, nothing
+            // depends on it.
+            "focusStatus" ->
+                copy(focusStatus = entry.string("focusStatus") ?: focusStatus)
 
             "takePicture" ->
                 copy(latestPostviewUrl = entry.stringList("takePictureUrl").lastOrNull()

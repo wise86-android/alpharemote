@@ -68,7 +68,9 @@ private fun CameraControlScreenPreview() {
         camera = connectedCamera,
         cameraName = "ILCE-6600",
         onSelect = { _, _ -> },
-        onCapture = {}
+        onFocus = {},
+        onShoot = {},
+        onCancelFocus = {}
     )
 }
 
@@ -83,6 +85,8 @@ private fun CameraControlScreenEmptyPreview() {
         camera = CameraSnapshot(),
         cameraName = "ILCE-6600",
         onSelect = { _, _ -> },
-        onCapture = {}
+        onFocus = {},
+        onShoot = {},
+        onCancelFocus = {}
     )
 }

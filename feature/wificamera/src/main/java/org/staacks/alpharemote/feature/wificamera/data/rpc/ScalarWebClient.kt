@@ -121,6 +121,29 @@ class ScalarWebClient(
     }
 }
 
+/**
+ * Turns a capture failure into something worth showing a photographer.
+ *
+ * The camera reports a bare code, and "[1] actTakePicture:" tells nobody anything. In practice
+ * the common causes are that autofocus did not lock and that the body is not in a state where a
+ * remote release is accepted, so those get named rather than numbered.
+ */
+fun captureFailureMessage(code: Int): String = when (code) {
+    // Per PROTOCOL.md §2.4 this is the camera saying autofocus was never engaged. Since every
+    // capture now half-presses first, seeing it here means AF had not settled yet.
+    CameraApiError.NOT_AVAILABLE_NOW ->
+        "Autofocus had not settled. Hold the shutter button a moment longer."
+    CameraApiError.ANY -> "Autofocus could not lock. Try again, or switch the lens to manual."
+    CameraApiError.CAMERA_NOT_READY ->
+        "The camera is busy — it may be in a menu or playing back."
+    CameraApiError.API_NOT_PREPARED -> "The camera is not ready to take commands yet."
+    CameraApiError.TIMEOUT -> "The camera stopped responding while taking the shot."
+    CameraApiError.ILLEGAL_STATE -> "The camera will not shoot in its current state."
+    CameraApiError.NO_SUCH_METHOD, CameraApiError.UNSUPPORTED_OPERATION ->
+        "This camera does not support releasing the shutter remotely."
+    else -> "The camera refused the shot (error $code)."
+}
+
 /** Error codes from PROTOCOL.md §2.1. */
 object CameraApiError {
     const val ANY = 1
@@ -134,7 +157,10 @@ object CameraApiError {
     const val LONG_POLLING_TIMEOUT = 40402
     const val NOT_AVAILABLE_NOW = 40400
     const val CAMERA_NOT_READY = 40401
+
+    /** `StillCaturingNotFinished` — the shutter fired and the exposure is still running. */
     const val LONG_SHOOTING = 40403
+    const val API_NOT_PREPARED = 40404
 }
 
 class CameraApiException(val code: Int, message: String) : Exception("[$code] $message") {

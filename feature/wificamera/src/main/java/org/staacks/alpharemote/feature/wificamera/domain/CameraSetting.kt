@@ -36,7 +36,11 @@ enum class CameraSettingId(
 
     WHITE_BALANCE("whiteBalance", "currentWhiteBalanceMode", "whiteBalanceCandidates", "WhiteBalance", "WB"),
     FOCUS_MODE("focusMode", "currentFocusMode", "focusModeCandidates", "FocusMode", "Focus"),
-    SHOOT_MODE("shootMode", "currentShootMode", "shootModeCandidates", "ShootMode", "Drive"),
+    /**
+     * What the camera is set up to capture — `still`, `movie`, `audio`, `intervalstill`. Not the
+     * drive mode, which is `ContShootingMode`. `actTakePicture` only exists for `still`.
+     */
+    SHOOT_MODE("shootMode", "currentShootMode", "shootModeCandidates", "ShootMode", "Shoot mode"),
     SELF_TIMER("selfTimer", "currentSelfTimer", "selfTimerCandidates", "SelfTimer", "Self timer"),
     FLASH_MODE("flashMode", "currentFlashMode", "flashModeCandidates", "FlashMode", "Flash"),
     STILL_SIZE("stillSize", "currentStillSize", "stillSizeCandidates", "StillSize", "Image size"),

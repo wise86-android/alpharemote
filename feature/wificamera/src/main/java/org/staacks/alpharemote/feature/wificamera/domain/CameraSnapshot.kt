@@ -19,13 +19,38 @@ data class CameraSnapshot(
     val cameraFunction: String? = null,
     val storage: StorageInfo? = null,
     val battery: BatteryInfo? = null,
+    /**
+     * Whatever the camera reports about autofocus, verbatim — typically `Focused`, `Focusing` or
+     * `Not Focused`.
+     *
+     * Null on bodies that never mention it, which includes the α6600: it rejects
+     * `setLiveviewFrameInfo`, so no AF boxes arrive on the live view stream either
+     * (PROTOCOL.md §3.3). Treat a null as "this camera does not say", not as "not focused".
+     */
+    val focusStatus: String? = null,
     /** Postview JPEG of the most recent shot, including shots taken on the body itself. */
     val latestPostviewUrl: String? = null
 ) {
     operator fun get(id: CameraSettingId): CameraSetting? = settings[id]
 
-    /** True when the camera is idle enough to accept a shutter release. */
-    val canShoot: Boolean get() = status == CameraStatus.IDLE
+    /**
+     * Whether to offer the shutter.
+     *
+     * Driven by the camera's own list of callable methods, not by [status]. `cameraStatus` is not
+     * dependably `IDLE` on every body at every moment — several report other states while live
+     * view runs — and gating on it leaves a dead button for reasons unrelated to whether a shot is
+     * possible. The API list is the camera's actual statement of what it will accept.
+     *
+     * Deliberately permissive: an empty API list means the camera has not said, so the shutter
+     * stays live and the camera gets to refuse. A refusal with a reason beats a button that does
+     * nothing and explains nothing.
+     */
+    val canShoot: Boolean
+        get() = (availableApis.isEmpty() || CAPTURE_METHOD in availableApis) && !status.isBusy
+
+    companion object {
+        const val CAPTURE_METHOD = "actTakePicture"
+    }
 }
 
 /** `cameraStatus` from `getEvent`, per `EnumCameraStatus`. */
@@ -47,6 +72,23 @@ enum class CameraStatus(val wireName: String) {
     DELETING("Deleting"),
     EDITING("Editing"),
     ERROR("Error");
+
+    /**
+     * States in which the camera is working on something and a second shutter release would be
+     * rejected. [UNKNOWN] is not among them: never having been told is not a reason to refuse.
+     */
+    val isBusy: Boolean
+        get() = this in setOf(
+            NOT_READY,
+            STILL_CAPTURING,
+            STILL_POST_PROCESSING,
+            STILL_SAVING,
+            MOVIE_SAVING,
+            CONTENTS_TRANSFER,
+            DELETING,
+            EDITING,
+            ERROR
+        )
 
     companion object {
         private val byWireName = entries.associateBy { it.wireName }

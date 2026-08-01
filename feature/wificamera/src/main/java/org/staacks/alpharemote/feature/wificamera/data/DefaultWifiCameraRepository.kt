@@ -46,6 +46,8 @@ import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraApiException
 import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraEventLog
 import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraEventParser
 import org.staacks.alpharemote.feature.wificamera.data.rpc.ScalarWebClient
+import org.staacks.alpharemote.feature.wificamera.data.rpc.captureFailureMessage
+import org.staacks.alpharemote.feature.wificamera.data.rpc.entryOfType
 import org.staacks.alpharemote.feature.wificamera.domain.CameraIdentity
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
@@ -92,6 +94,9 @@ class DefaultWifiCameraRepository private constructor(
     private var session: Session? = null
 
     private var sessionJob: Job? = null
+
+    /** Event types already named in the log, so each is mentioned once rather than every poll. */
+    private val unreportedEventTypes = mutableSetOf<String>()
 
     private class Session(
         val http: NetworkHttpClient,
@@ -327,12 +332,22 @@ class DefaultWifiCameraRepository private constructor(
             changes.forEach { Log.d(EVENT_TAG, "  $it") }
         }
 
+        // Name anything the parser ignores, once each. This is how to find out whether a body
+        // reports something undocumented — a focus status, say — rather than guessing from specs.
+        (CameraEventLog.typesIn(result) - CameraEventParser.handledTypes)
+            .filter { unreportedEventTypes.add(it) }
+            .forEach { Log.i(EVENT_TAG, "camera reports \"$it\", which nothing here reads") }
+
+        // Only when the camera actually mentioned it. Logging on every poll drowned the lines
+        // that matter in repetitions of a value that had not changed.
         val exposure = CameraSettingId.EXPOSURE_COMPENSATION
-        Log.d(
-            EVENT_TAG,
-            "  exposure: parsed=${CameraEventLog.describe(current[exposure])} " +
-                "raw=${CameraEventLog.rawEntry(result, exposure.eventType)}"
-        )
+        val rawExposure = result.entryOfType(exposure.eventType)
+        if (rawExposure != null) {
+            Log.d(
+                EVENT_TAG,
+                "  exposure: parsed=${CameraEventLog.describe(current[exposure])} raw=$rawExposure"
+            )
+        }
     }
 
     override suspend fun setSetting(id: CameraSettingId, option: CameraOption): Result<Unit> {
@@ -357,29 +372,154 @@ class DefaultWifiCameraRepository private constructor(
         }
     }
 
-    override suspend fun capture(): Result<Unit> {
+    override suspend fun shoot(): Result<Unit> {
         val client = session?.client
             ?: return Result.failure(IllegalStateException("Not connected to a camera"))
 
+        val snapshot = _camera.value
+        Log.d(
+            EVENT_TAG,
+            "actTakePicture (status=${snapshot.status}" +
+                ", shootMode=${snapshot[CameraSettingId.SHOOT_MODE]?.current?.label}" +
+                ", focusMode=${snapshot[CameraSettingId.FOCUS_MODE]?.current?.label}" +
+                ", focusStatus=${snapshot.focusStatus})"
+        )
+
         return runCatching<Unit> {
+            try {
+                takePictureWaitingForFocus(client)
+            } catch (error: CameraApiException) {
+                if (error.code == CameraApiError.LONG_SHOOTING) {
+                    // The exposure outlasted the response timeout. The camera is still working.
+                    awaitCapture(client)
+                } else {
+                    throw IllegalStateException(explainRefusal(client, error, snapshot), error)
+                }
+            }
+        }.also {
+            // Always let go of the half-press, successful or not, or the camera keeps holding
+            // autofocus (PROTOCOL.md §2.4).
+            cancelFocus()
+        }
+    }
+
+    /**
+     * Fires the shutter, giving autofocus time to settle.
+     *
+     * 40400 immediately after a half-press means AF has not finished yet rather than that the
+     * camera will not shoot, so it is worth a short wait and another go. A quick tap gives AF no
+     * time at all, and this is what makes one work.
+     */
+    private suspend fun takePictureWaitingForFocus(client: ScalarWebClient) {
+        var lastRefusal: CameraApiException? = null
+        repeat(FOCUS_SETTLE_ATTEMPTS) { attempt ->
             try {
                 client.call(
                     service = DeviceDescription.CAMERA_SERVICE,
                     method = "actTakePicture",
                     versions = ScalarWebClient.VERSION_1_0
                 )
+                return
             } catch (error: CameraApiException) {
-                if (error.code != CameraApiError.LONG_SHOOTING) throw error
-                // The exposure outlasted the response timeout. The camera is still working and
-                // reports the result when it finishes, so wait for it rather than failing.
+                if (error.code != CameraApiError.NOT_AVAILABLE_NOW) throw error
+                lastRefusal = error
+                Log.d(EVENT_TAG, "waiting for autofocus (attempt ${attempt + 1})")
+                delay(FOCUS_SETTLE_DELAY_MS)
+            }
+        }
+        throw lastRefusal ?: CameraApiException(
+            CameraApiError.NOT_AVAILABLE_NOW, "actTakePicture: autofocus never settled"
+        )
+    }
+
+    override suspend fun startFocus(): Result<Unit> {
+        val client = session?.client
+            ?: return Result.failure(IllegalStateException("Not connected to a camera"))
+
+        Log.d(EVENT_TAG, "actHalfPressShutter")
+        return runCatching<Unit> {
+            client.call(
+                service = DeviceDescription.CAMERA_SERVICE,
+                method = "actHalfPressShutter",
+                versions = ScalarWebClient.VERSION_1_0
+            )
+        }.onFailure { Log.w(EVENT_TAG, "actHalfPressShutter failed: ${it.message}") }
+    }
+
+    override suspend fun cancelFocus(): Result<Unit> {
+        val client = session?.client
+            ?: return Result.failure(IllegalStateException("Not connected to a camera"))
+
+        return runCatching<Unit> {
+            client.call(
+                service = DeviceDescription.CAMERA_SERVICE,
+                method = "cancelHalfPressShutter",
+                versions = ScalarWebClient.VERSION_1_0
+            )
+        }.onFailure { Log.w(EVENT_TAG, "cancelHalfPressShutter failed: ${it.message}") }
+    }
+
+    /**
+     * Works out why the camera said no, and says so.
+     *
+     * The bare code is rarely enough — 40400 in particular means only "not now". Two better
+     * sources are consulted: the camera's own list of methods it is currently refusing, and the
+     * shoot mode, because `actTakePicture` exists only for stills and a body left on the movie
+     * setting rejects every release with no other clue.
+     */
+    private suspend fun explainRefusal(
+        client: ScalarWebClient,
+        error: CameraApiException,
+        snapshot: CameraSnapshot
+    ): String {
+        Log.w(EVENT_TAG, "actTakePicture rejected: code=${error.code} ${error.message}")
+
+        // The camera's own answer to "what will you not do right now". Absent on some bodies.
+        val unavailable = runCatching {
+            client.call(
+                service = DeviceDescription.CAMERA_SERVICE,
+                method = "getTemporarilyUnavailableApiList",
+                versions = ScalarWebClient.VERSION_1_0
+            ).toString()
+        }.getOrElse { "not reported (${it.message})" }
+        Log.w(EVENT_TAG, "temporarily unavailable: $unavailable")
+
+        val shootMode = snapshot[CameraSettingId.SHOOT_MODE]?.current?.label
+        if (shootMode != null && !shootMode.equals(STILL_SHOOT_MODE, ignoreCase = true)) {
+            return "The camera is set to \"$shootMode\". Stills can only be taken in " +
+                "\"$STILL_SHOOT_MODE\" mode."
+        }
+
+        return "${captureFailureMessage(error.code)} (error ${error.code})"
+    }
+
+    /**
+     * Waits out an exposure that is still running.
+     *
+     * `awaitTakePicture` answers 40403 again if the camera is *still* busy when it returns, so one
+     * call is not enough — a thirty second exposure needs several. Bounded so a camera that never
+     * finishes cannot hang the caller forever.
+     */
+    private suspend fun awaitCapture(client: ScalarWebClient) {
+        repeat(AWAIT_CAPTURE_ATTEMPTS) {
+            try {
                 client.call(
                     service = DeviceDescription.CAMERA_SERVICE,
                     method = "awaitTakePicture",
                     versions = ScalarWebClient.VERSION_1_0,
                     readTimeoutMs = NetworkHttpClient.LONG_POLL_READ_TIMEOUT_MS
                 )
+                return
+            } catch (error: CameraApiException) {
+                if (error.code != CameraApiError.LONG_SHOOTING) {
+                    throw IllegalStateException(captureFailureMessage(error.code), error)
+                }
+                Log.d(EVENT_TAG, "still exposing, waiting again")
             }
         }
+        // The shot may still land — the postview URL would arrive through getEvent — but we have
+        // stopped waiting for it.
+        throw IllegalStateException("The camera is still exposing.")
     }
 
     override fun liveView(): Flow<LiveViewFrame> = flow {
@@ -480,6 +620,16 @@ class DefaultWifiCameraRepository private constructor(
         private const val DISCOVERY_TIMEOUT_MS = 20_000L
         private const val POLL_RETRY_DELAY_MS = 1_000L
         private const val STOP_LIVE_VIEW_TIMEOUT_MS = 2_000L
+
+        /** Long-poll rounds to wait out an exposure before giving up on it. */
+        private const val AWAIT_CAPTURE_ATTEMPTS = 5
+
+        /** The only shoot mode in which `actTakePicture` exists. */
+        private const val STILL_SHOOT_MODE = "still"
+
+        /** Tries at firing while autofocus is still settling after the half-press. */
+        private const val FOCUS_SETTLE_ATTEMPTS = 4
+        private const val FOCUS_SETTLE_DELAY_MS = 350L
 
         @Volatile
         private var INSTANCE: DefaultWifiCameraRepository? = null

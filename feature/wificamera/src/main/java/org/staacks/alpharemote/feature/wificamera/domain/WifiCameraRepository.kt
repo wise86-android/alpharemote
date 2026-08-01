@@ -37,12 +37,27 @@ interface WifiCameraRepository {
     suspend fun setSetting(id: CameraSettingId, option: CameraOption): Result<Unit>
 
     /**
-     * Releases the shutter.
+     * Engages autofocus — the camera's half-press.
      *
-     * Returns once the camera reports the frame taken. The resulting postview URL is not returned
-     * here — it arrives through [camera], which also catches shots taken on the body itself.
+     * Not optional. The camera refuses [shoot] with error 40400 until autofocus has been engaged,
+     * and the message it returns is empty, so the refusal looks like anything but a missing
+     * half-press (PROTOCOL.md §2.4). Every capture goes through here first.
      */
-    suspend fun capture(): Result<Unit>
+    suspend fun startFocus(): Result<Unit>
+
+    /**
+     * Releases the shutter and lets go of autofocus.
+     *
+     * Call after [startFocus]. Releases the half-press even when the shot fails, or the camera is
+     * left holding focus indefinitely.
+     *
+     * The postview URL is not returned here — it arrives through [camera], which also catches
+     * shots taken on the body itself.
+     */
+    suspend fun shoot(): Result<Unit>
+
+    /** Lets go of autofocus without taking a picture — the finger that slid off the button. */
+    suspend fun cancelFocus(): Result<Unit>
 
     /**
      * Frames from the camera's live view, newest-only.

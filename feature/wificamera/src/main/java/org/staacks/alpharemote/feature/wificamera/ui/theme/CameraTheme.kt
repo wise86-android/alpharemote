@@ -31,6 +31,9 @@ object CameraColors {
     val AccentTeal = Color(0xFF4FD1C5)
     val AccentRed = Color(0xFFE5484D)
 
+    /** Focus confirmation, matching the green box on a camera back. */
+    val AccentGreen = Color(0xFF46C46B)
+
     val TextPrimary = Color(0xFFF5F3EF)
     val TextSecondary = Color(0xFF8A8A8E)
     val TextTertiary = Color(0xFF57575B)
