@@ -3,7 +3,7 @@ package org.staacks.alpharemote.feature.wificamera
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
-import org.staacks.alpharemote.feature.wificamera.ui.CameraValueFormat
+import org.staacks.alpharemote.feature.wificamera.ui.cameracontrol.CameraValueFormat
 
 class CameraValueFormatTest {
 

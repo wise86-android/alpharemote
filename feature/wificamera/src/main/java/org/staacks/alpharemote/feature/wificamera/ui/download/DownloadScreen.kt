@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.feature.wificamera.ui
+package org.staacks.alpharemote.feature.wificamera.ui.download
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
@@ -137,4 +138,61 @@ private fun DownloadUiState.detail(): String? = when (this) {
         if (skipped > 0) "$skipped skipped — the camera offered only previews for those." else null
 
     is DownloadUiState.Failed -> message
+}
+
+@Preview(name = "Idle", showBackground = true, widthDp = 390, heightDp = 500)
+@Composable
+private fun DownloadScreenIdlePreview() {
+    DownloadScreen(state = DownloadUiState.Idle, onStart = {}, onCancel = {})
+}
+
+@Preview(name = "Listing", showBackground = true, widthDp = 390, heightDp = 500)
+@Composable
+private fun DownloadScreenListingPreview() {
+    DownloadScreen(
+        state = DownloadUiState.Running(
+            stage = "Listing photos (12)…",
+            fileName = null,
+            overallFraction = null
+        ),
+        onStart = {},
+        onCancel = {}
+    )
+}
+
+@Preview(name = "Downloading", showBackground = true, widthDp = 390, heightDp = 500)
+@Composable
+private fun DownloadScreenDownloadingPreview() {
+    DownloadScreen(
+        state = DownloadUiState.Running(
+            stage = "Downloading 2 of 5",
+            fileName = "DSC00042.JPG",
+            overallFraction = 0.4f
+        ),
+        onStart = {},
+        onCancel = {}
+    )
+}
+
+@Preview(name = "Finished", showBackground = true, widthDp = 390, heightDp = 500)
+@Composable
+private fun DownloadScreenFinishedPreview() {
+    DownloadScreen(state = DownloadUiState.Finished(saved = 5, skipped = 0), onStart = {}, onCancel = {})
+}
+
+/** Some items offered only a preview, not full quality — reported, not silently dropped. */
+@Preview(name = "Finished with skips", showBackground = true, widthDp = 390, heightDp = 500)
+@Composable
+private fun DownloadScreenFinishedWithSkipsPreview() {
+    DownloadScreen(state = DownloadUiState.Finished(saved = 3, skipped = 2), onStart = {}, onCancel = {})
+}
+
+@Preview(name = "Failed", showBackground = true, widthDp = 390, heightDp = 500)
+@Composable
+private fun DownloadScreenFailedPreview() {
+    DownloadScreen(
+        state = DownloadUiState.Failed("The camera reported it was busy (503)."),
+        onStart = {},
+        onCancel = {}
+    )
 }

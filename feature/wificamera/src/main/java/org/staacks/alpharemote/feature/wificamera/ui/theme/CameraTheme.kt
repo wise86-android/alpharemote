@@ -72,3 +72,6 @@ object CameraType {
         color = CameraColors.AccentAmber
     )
 }
+
+/** Opacity for a control the camera currently offers no setter for — visible, but inert. */
+internal const val DISABLED_ALPHA = 0.4f

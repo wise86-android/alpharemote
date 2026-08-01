@@ -1,13 +1,11 @@
-package org.staacks.alpharemote.feature.wificamera.ui
+package org.staacks.alpharemote.feature.wificamera.ui.cameracontrol
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,11 +16,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -33,60 +27,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
-import org.staacks.alpharemote.feature.wificamera.domain.CameraSetting
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
 import kotlin.math.abs
-
-/**
- * One sheet for any setting — the only difference between ISO and white balance is the list of
- * values, which comes from the camera.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CameraSettingSheet(
-    setting: CameraSetting,
-    onSelect: (CameraOption) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val selectedIndex = setting.available.indexOfFirst { it.label == setting.current?.label }
-        .coerceAtLeast(0)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = CameraColors.SurfaceElevated,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = CameraColors.Divider) }
-    ) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 28.dp)) {
-            Text(
-                text = setting.id.label.uppercase(),
-                style = CameraType.label,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = CameraValueFormat.sheetValue(setting.id, setting.current?.label),
-                style = CameraType.hudLarge,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-            Spacer(Modifier.height(20.dp))
-
-            DrumPicker(
-                options = setting.available,
-                selectedIndex = selectedIndex,
-                onSettled = { index -> setting.available.getOrNull(index)?.let(onSelect) }
-            )
-        }
-    }
-}
 
 /**
  * A horizontally snapping strip with a fixed centre mark — turning it feels like spinning a
@@ -96,7 +46,7 @@ fun CameraSettingSheet(
  * a request to the camera, and firing one per scroll frame would flood it.
  */
 @Composable
-private fun DrumPicker(
+internal fun DrumPicker(
     options: List<CameraOption>,
     selectedIndex: Int,
     onSettled: (Int) -> Unit
@@ -184,5 +134,18 @@ private fun DrumPicker(
         if (!listState.isScrollInProgress && centeredIndex != selectedIndex) {
             listState.animateScrollToItem(selectedIndex)
         }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF18181B)
+@Composable
+private fun DrumPickerPreview() {
+    Box(Modifier.background(CameraColors.SurfaceElevated)) {
+        DrumPicker(
+            options = listOf("1.4", "1.8", "2.0", "2.8", "4.0", "5.6", "8.0")
+                .map { CameraOption.of(it) },
+            selectedIndex = 2,
+            onSettled = {}
+        )
     }
 }

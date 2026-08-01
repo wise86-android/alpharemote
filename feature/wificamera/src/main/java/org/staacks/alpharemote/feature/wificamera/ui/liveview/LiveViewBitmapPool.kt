@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.feature.wificamera.ui
+package org.staacks.alpharemote.feature.wificamera.ui.liveview
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

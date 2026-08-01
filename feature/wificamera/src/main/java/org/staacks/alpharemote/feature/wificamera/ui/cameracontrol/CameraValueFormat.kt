@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.feature.wificamera.ui
+package org.staacks.alpharemote.feature.wificamera.ui.cameracontrol
 
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
 

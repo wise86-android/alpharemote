@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.feature.wificamera.ui
+package org.staacks.alpharemote.feature.wificamera.ui.liveview
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,12 +16,16 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
@@ -93,4 +97,38 @@ fun LiveViewSurface(state: LiveViewState, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/** A flat-coloured bitmap standing in for a decoded frame — previews need no real camera stream. */
+private fun syntheticPreviewFrame(): ImageBitmap {
+    val bitmap = android.graphics.Bitmap.createBitmap(64, 48, android.graphics.Bitmap.Config.ARGB_8888)
+    android.graphics.Canvas(bitmap).drawColor(android.graphics.Color.rgb(46, 64, 92))
+    return bitmap.asImageBitmap()
+}
+
+@Preview(name = "Streaming", showBackground = true, widthDp = 300, heightDp = 300)
+@Composable
+private fun LiveViewSurfaceStreamingPreview() {
+    val frame = remember { syntheticPreviewFrame() }
+    LiveViewSurface(LiveViewState.Streaming(frame))
+}
+
+@Preview(name = "Starting", showBackground = true, widthDp = 300, heightDp = 300)
+@Composable
+private fun LiveViewSurfaceStartingPreview() {
+    LiveViewSurface(LiveViewState.Starting)
+}
+
+@Preview(name = "Idle", showBackground = true, widthDp = 300, heightDp = 300)
+@Composable
+private fun LiveViewSurfaceIdlePreview() {
+    LiveViewSurface(LiveViewState.Idle)
+}
+
+@Preview(name = "Unavailable", showBackground = true, widthDp = 300, heightDp = 300)
+@Composable
+private fun LiveViewSurfaceUnavailablePreview() {
+    LiveViewSurface(
+        LiveViewState.Unavailable("This camera does not offer live view over Wi-Fi.")
+    )
 }

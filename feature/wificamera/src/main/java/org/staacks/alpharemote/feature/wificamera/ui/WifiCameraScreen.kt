@@ -1,54 +1,49 @@
 package org.staacks.alpharemote.feature.wificamera.ui
 
-import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.staacks.alpharemote.feature.wificamera.domain.CameraIdentity
 import org.staacks.alpharemote.feature.wificamera.domain.CameraMode
-import org.staacks.alpharemote.feature.wificamera.domain.FailureReason
+import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
+import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
+import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
+import org.staacks.alpharemote.feature.wificamera.ui.cameracontrol.CameraControlScreen
+import org.staacks.alpharemote.feature.wificamera.ui.cameracontrol.ShutterState
+import org.staacks.alpharemote.feature.wificamera.ui.connection.ConnectionPanel
+import org.staacks.alpharemote.feature.wificamera.ui.download.DownloadScreen
+import org.staacks.alpharemote.feature.wificamera.ui.download.DownloadUiState
+import org.staacks.alpharemote.feature.wificamera.ui.liveview.LiveViewState
+import org.staacks.alpharemote.feature.wificamera.ui.liveview.LiveViewSurface
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
 
 /**
  * Entry point for the Wi-Fi camera tab.
  *
- * Shows the camera back once there is a camera to show, and otherwise explains what is missing.
- * The mockup assumes a live connection, so everything before that has to live somewhere — this
- * is that somewhere.
+ * A thin shell: it collects the view model's flows and a one-shot message stream, and delegates
+ * everything about *what* to show to [WifiCameraScreenContent]. That split exists so the content
+ * can be previewed — an `AndroidViewModel` cannot be constructed in a `@Preview` without touching
+ * real system services (DataStore, connectivity), so this composable itself has none.
  */
 @Composable
 fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val shutter by viewModel.shutter.collectAsStateWithLifecycle()
+    val download by viewModel.download.collectAsStateWithLifecycle()
+    val knownCamera by viewModel.knownCamera.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel) {
@@ -56,156 +51,156 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
     }
 
     Box(Modifier.fillMaxSize().background(CameraColors.Background)) {
-        val connection = state.connection
-        if (connection is WifiCameraConnection.Connected &&
-            connection.mode == CameraMode.CONTENTS_TRANSFER
-        ) {
-            // In this mode the camera offers no live view, settings or shutter — only the images
-            // the user picked on the body.
-            val download by viewModel.download.collectAsStateWithLifecycle()
-            DownloadScreen(
-                state = download,
-                onStart = viewModel::startDownload,
-                onCancel = viewModel::cancelDownload
-            )
-        } else if (connection is WifiCameraConnection.Connected) {
-            val shutter by viewModel.shutter.collectAsStateWithLifecycle()
-            CameraControlScreen(
-                camera = state.camera,
-                cameraName = connection.camera.friendlyName
-                    .ifBlank { connection.camera.modelName },
-                onSelect = viewModel::select,
-                onFocus = viewModel::focus,
-                onShoot = viewModel::shoot,
-                onCancelFocus = viewModel::cancelFocus,
-                shutter = shutter,
-                liveView = {
-                    // Collected here rather than beside `uiState` so that a frame arriving at
-                    // 30 fps only recomposes the viewfinder, not the readouts around it.
-                    val liveView by viewModel.liveView.collectAsStateWithLifecycle()
-                    LiveViewSurface(liveView)
-                }
-            )
-        } else {
-            val knownCamera by viewModel.knownCamera.collectAsStateWithLifecycle()
-            ConnectionPanel(
-                connection = connection,
-                knownCamera = knownCamera,
-                onConnect = viewModel::connect,
-                onForget = viewModel::forgetCamera,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
+        WifiCameraScreenContent(
+            connection = state.connection,
+            camera = state.camera,
+            knownCamera = knownCamera,
+            shutter = shutter,
+            download = download,
+            onSelect = viewModel::select,
+            onFocus = viewModel::focus,
+            onShoot = viewModel::shoot,
+            onCancelFocus = viewModel::cancelFocus,
+            onStartDownload = viewModel::startDownload,
+            onCancelDownload = viewModel::cancelDownload,
+            onConnect = viewModel::connect,
+            onForget = viewModel::forgetCamera,
+            liveView = {
+                // Collected here, inside the slot, rather than up in WifiCameraScreen: a frame
+                // arriving at ~30 fps then only recomposes the viewfinder, not the whole screen.
+                val liveView by viewModel.liveView.collectAsStateWithLifecycle()
+                LiveViewSurface(liveView)
+            }
+        )
 
         SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 
+/**
+ * Routes to the camera back, the download screen, or the connection panel, purely from state.
+ *
+ * [liveView] stays a composable slot rather than a plain frame value for the same reason
+ * [CameraControlScreen] takes one: whatever drives it can update on its own schedule without
+ * forcing this composable to recompose too.
+ */
 @Composable
-private fun ConnectionPanel(
+internal fun WifiCameraScreenContent(
     connection: WifiCameraConnection,
+    camera: CameraSnapshot,
     knownCamera: WifiCredentials?,
+    shutter: ShutterState,
+    download: DownloadUiState,
+    onSelect: (CameraSettingId, CameraOption) -> Unit,
+    onFocus: () -> Unit,
+    onShoot: () -> Unit,
+    onCancelFocus: () -> Unit,
+    onStartDownload: () -> Unit,
+    onCancelDownload: () -> Unit,
     onConnect: () -> Unit,
     onForget: () -> Unit,
-    modifier: Modifier = Modifier
+    liveView: @Composable BoxScope.() -> Unit = { LiveViewSurface(LiveViewState.Idle) }
 ) {
-    // Asking each time is harmless once granted, and keeps permission and connect in one gesture.
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) onConnect() }
-
-    val busy = connection is WifiCameraConnection.JoiningWifi ||
-        connection is WifiCameraConnection.Discovering ||
-        connection is WifiCameraConnection.Handshaking
-
-    Column(
-        modifier = modifier.padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        when {
-            busy -> CircularProgressIndicator(
-                color = CameraColors.AccentAmber,
-                modifier = Modifier.size(32.dp)
+    Box(Modifier.fillMaxSize()) {
+        if (connection is WifiCameraConnection.Connected &&
+            connection.mode == CameraMode.CONTENTS_TRANSFER
+        ) {
+            // In this mode the camera offers no live view, settings or shutter — only the images
+            // the user picked on the body.
+            DownloadScreen(
+                state = download,
+                onStart = onStartDownload,
+                onCancel = onCancelDownload
             )
-
-            // Nothing has been tapped yet, so the prompt is to tap rather than to connect.
-            knownCamera == null -> Icon(
-                imageVector = Icons.Filled.Nfc,
-                contentDescription = null,
-                tint = CameraColors.AccentTeal,
-                modifier = Modifier.size(48.dp)
+        } else if (connection is WifiCameraConnection.Connected) {
+            CameraControlScreen(
+                camera = camera,
+                cameraName = connection.camera.friendlyName.ifBlank { connection.camera.modelName },
+                onSelect = onSelect,
+                onFocus = onFocus,
+                onShoot = onShoot,
+                onCancelFocus = onCancelFocus,
+                shutter = shutter,
+                liveView = liveView
             )
-
-            else -> Icon(
-                imageVector = Icons.Filled.WifiOff,
-                contentDescription = null,
-                tint = CameraColors.TextTertiary,
-                modifier = Modifier.size(40.dp)
+        } else {
+            ConnectionPanel(
+                connection = connection,
+                knownCamera = knownCamera,
+                onConnect = onConnect,
+                onForget = onForget,
+                modifier = Modifier.align(Alignment.Center)
             )
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = if (knownCamera == null && !busy) {
-                "Touch your camera to the phone"
-            } else {
-                connection.headline()
-            },
-            style = CameraType.hudMedium,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(8.dp))
-        val detail = (connection as? WifiCameraConnection.Failed)?.detail
-            ?: if (knownCamera == null) {
-                "Enable NFC, then hold the phone against the N-Mark on the camera. It will " +
-                    "hand over its Wi-Fi details and switch its own Wi-Fi on."
-            } else {
-                knownCamera.ssid
-            }
-        Text(text = detail, style = CameraType.hudSmallDim, textAlign = TextAlign.Center)
-
-        Spacer(Modifier.height(24.dp))
-        when {
-            busy -> TextButton(onClick = onConnect, enabled = false) { Text("Connecting…") }
-
-            knownCamera == null -> Unit
-
-            else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Button(
-                    onClick = {
-                        permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CameraColors.AccentAmber,
-                        contentColor = CameraColors.Background
-                    )
-                ) {
-                    Text(if (connection is WifiCameraConnection.Failed) "Try again" else "Connect")
-                }
-                TextButton(onClick = onForget) {
-                    Text("Forget this camera", style = CameraType.hudSmallDim)
-                }
-            }
         }
     }
 }
 
-private fun WifiCameraConnection.headline(): String = when (this) {
-    WifiCameraConnection.Idle -> "Not connected"
-    WifiCameraConnection.JoiningWifi -> "Joining the camera's Wi-Fi…"
-    WifiCameraConnection.Discovering -> "Looking for the camera…"
-    WifiCameraConnection.Handshaking -> "Connecting…"
-    is WifiCameraConnection.Connected -> camera.friendlyName
-    is WifiCameraConnection.Failed -> when (reason) {
-        FailureReason.MISSING_PERMISSION -> "Nearby-devices permission is required"
-        FailureReason.WIFI_JOIN_FAILED -> "Could not join the camera's Wi-Fi"
-        FailureReason.CAMERA_NOT_FOUND -> "No camera answered"
-        FailureReason.CLEARTEXT_BLOCKED -> "The camera's address is blocked by app policy"
-        FailureReason.WRONG_CAMERA_MODE -> "Camera is not in remote shooting mode"
-        FailureReason.UNSUPPORTED_PROTOCOL -> "This camera speaks PTP/IP, which is not supported"
-        // Covers both "could not read the camera" and "lost it mid-session"; the detail says which.
-        FailureReason.NETWORK_ERROR -> "Could not talk to the camera"
-    }
+private val previewIdentity = CameraIdentity(
+    friendlyName = "ILCE-6600",
+    modelName = "ILCE-6600",
+    udn = null
+)
+
+@Preview(name = "Connected — remote shooting", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun WifiCameraScreenContentShootingPreview() {
+    WifiCameraScreenContent(
+        connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.REMOTE_SHOOTING),
+        camera = CameraSnapshot(),
+        knownCamera = null,
+        shutter = ShutterState.IDLE,
+        download = DownloadUiState.Idle,
+        onSelect = { _, _ -> },
+        onFocus = {},
+        onShoot = {},
+        onCancelFocus = {},
+        onStartDownload = {},
+        onCancelDownload = {},
+        onConnect = {},
+        onForget = {}
+    )
+}
+
+@Preview(name = "Connected — download mode", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun WifiCameraScreenContentDownloadPreview() {
+    WifiCameraScreenContent(
+        connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.CONTENTS_TRANSFER),
+        camera = CameraSnapshot(),
+        knownCamera = null,
+        shutter = ShutterState.IDLE,
+        download = DownloadUiState.Running(
+            stage = "Downloading 2 of 5",
+            fileName = "DSC00042.JPG",
+            overallFraction = 0.4f
+        ),
+        onSelect = { _, _ -> },
+        onFocus = {},
+        onShoot = {},
+        onCancelFocus = {},
+        onStartDownload = {},
+        onCancelDownload = {},
+        onConnect = {},
+        onForget = {}
+    )
+}
+
+@Preview(name = "Disconnected", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun WifiCameraScreenContentDisconnectedPreview() {
+    WifiCameraScreenContent(
+        connection = WifiCameraConnection.Idle,
+        camera = CameraSnapshot(),
+        knownCamera = null,
+        shutter = ShutterState.IDLE,
+        download = DownloadUiState.Idle,
+        onSelect = { _, _ -> },
+        onFocus = {},
+        onShoot = {},
+        onCancelFocus = {},
+        onStartDownload = {},
+        onCancelDownload = {},
+        onConnect = {},
+        onForget = {}
+    )
 }

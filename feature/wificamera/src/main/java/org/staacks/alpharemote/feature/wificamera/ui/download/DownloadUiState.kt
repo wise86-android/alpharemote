@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.feature.wificamera.ui
+package org.staacks.alpharemote.feature.wificamera.ui.download
 
 import androidx.work.WorkInfo
 import org.staacks.alpharemote.feature.wificamera.work.PhotoDownloadWorker
