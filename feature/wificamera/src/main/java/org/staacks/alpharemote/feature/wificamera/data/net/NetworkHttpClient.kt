@@ -30,7 +30,7 @@ class NetworkHttpClient(private val network: Network) {
      */
     suspend fun postJson(
         url: String,
-        body: String,
+        body: String, // CHEK can we accept an JsonObject and return a json object?
         readTimeoutMs: Int = DEFAULT_READ_TIMEOUT_MS
     ): String = withContext(Dispatchers.IO) {
         val connection = open(url, readTimeoutMs).apply {
@@ -162,8 +162,8 @@ class NetworkHttpClient(private val network: Network) {
     /** Ties the stream's lifetime to its connection so closing one releases the other. */
     private class ClosingInputStream(
         private val connection: HttpURLConnection
-    ) : InputStream() {
-        private val delegate = connection.inputStream
+    ) : InputStream()   { // check can we use kotlin syntax for delegation? (by?)
+        private val delegate = connection.inputStream //
 
         override fun read(): Int = delegate.read()
         override fun read(b: ByteArray, off: Int, len: Int): Int = delegate.read(b, off, len)

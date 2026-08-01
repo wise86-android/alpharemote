@@ -31,13 +31,14 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Emits each distinct `LOCATION` URL once. Cold, and stops when collection stops.
  */
+// CHECK: WHAT SSDP IS? can we use a better name?
 class SsdpDiscovery(
     private val network: Network,
     private val connectivityManager: ConnectivityManager
 ) {
 
     fun discover(): Flow<String> = channelFlow {
-        val seen = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+        val seen = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>()) // CHECK: why not a Collections.synchronizedSet ?
 
         val emit: suspend (String) -> Unit = { location ->
             if (seen.add(location)) {
@@ -50,76 +51,92 @@ class SsdpDiscovery(
         launch(Dispatchers.IO) { listenForAnnouncements(emit) }
     }
 
-    /** Repeats M-SEARCH and collects the unicast replies. */
-    private suspend fun searchLoop(emit: suspend (String) -> Unit) {
-        DatagramSocket().use { socket ->
-            network.bindSocket(socket)
-            socket.soTimeout = RECEIVE_TIMEOUT_MS
-            socket.broadcast = true
+    /**
+     * Repeats M-SEARCH and collects the unicast replies.
+     *
+     * `socket.send`/`socket.receive` block the calling thread outright — they never suspend, so
+     * the coroutine machinery has no way to hand that thread back to anyone else while they wait.
+     * Wrapping the body in [withContext] is what makes that safe: it pins the blocking work to
+     * [Dispatchers.IO], which exists to absorb blocked threads, regardless of what dispatcher the
+     * caller happens to invoke this suspend function from. Without it the function's safety would
+     * depend entirely on every future call site remembering to launch on IO themselves — exactly
+     * the assumption the lint warning is flagging as fragile.
+     */
+    private suspend fun searchLoop(emit: suspend (String) -> Unit): Unit =
+        withContext(Dispatchers.IO) {
+            DatagramSocket().use { socket ->
+                network.bindSocket(socket)
+                socket.soTimeout = RECEIVE_TIMEOUT_MS
+                socket.broadcast = true
 
-            val payload = M_SEARCH.toByteArray(Charsets.US_ASCII)
-            val target = InetSocketAddress(InetAddress.getByName(SSDP_GROUP), SSDP_PORT)
-            val buffer = ByteArray(BUFFER_SIZE)
-
-            while (currentCoroutineContext().isActive) {
-                runCatching {
-                    socket.send(DatagramPacket(payload, payload.size, target))
-                }.onFailure { Log.w(TAG, "M-SEARCH send failed", it) }
-
-                // Collect replies for one search interval, then search again.
-                val deadline = System.currentTimeMillis() + SEARCH_INTERVAL_MS
-                while (currentCoroutineContext().isActive &&
-                    System.currentTimeMillis() < deadline
-                ) {
-                    val packet = DatagramPacket(buffer, buffer.size)
-                    try {
-                        socket.receive(packet)
-                    } catch (_: SocketTimeoutException) {
-                        continue
-                    }
-                    packet.locationHeader()?.let { emit(it) }
-                }
-            }
-        }
-    }
-
-    /** Listens on the multicast group for cameras announcing themselves. */
-    private suspend fun listenForAnnouncements(emit: suspend (String) -> Unit) {
-        val group = InetSocketAddress(InetAddress.getByName(SSDP_GROUP), SSDP_PORT)
-        val interfaceName = connectivityManager.getLinkProperties(network)?.interfaceName
-        val networkInterface = withContext(Dispatchers.IO) {
-            interfaceName?.let { NetworkInterface.getByName(it) }
-        }
-        if (networkInterface == null) {
-            // Without the camera's interface the join would land on the wrong one and receive
-            // nothing. The M-SEARCH loop still covers the common case, so this is not fatal.
-            Log.w(TAG, "No interface for the camera network, skipping NOTIFY listener")
-            return
-        }
-
-        MulticastSocket(SSDP_PORT).use { socket ->
-            network.bindSocket(socket)
-            socket.soTimeout = RECEIVE_TIMEOUT_MS
-            socket.joinGroup(group, networkInterface)
-            try {
+                val payload = M_SEARCH.toByteArray(Charsets.US_ASCII)
+                val target = InetSocketAddress(InetAddress.getByName(SSDP_GROUP), SSDP_PORT)
                 val buffer = ByteArray(BUFFER_SIZE)
+
                 while (currentCoroutineContext().isActive) {
-                    val packet = DatagramPacket(buffer, buffer.size)
-                    try {
-                        socket.receive(packet)
-                    } catch (_: SocketTimeoutException) {
-                        continue
+                    runCatching {
+                        socket.send(DatagramPacket(payload, payload.size, target))
+                    }.onFailure { Log.w(TAG, "M-SEARCH send failed", it) }
+
+                    // Collect replies for one search interval, then search again.
+                    val deadline = System.currentTimeMillis() + SEARCH_INTERVAL_MS
+                    while (currentCoroutineContext().isActive &&  // CHECK: CAN WE AVOID THIS LOOP AND USE CORUTINE UTILITY?
+                        System.currentTimeMillis() < deadline
+                    ) {
+                        val packet = DatagramPacket(buffer, buffer.size)
+                        try {
+                            socket.receive(packet)
+                        } catch (_: SocketTimeoutException) {
+                            continue
+                        }
+                        packet.locationHeader()?.let { emit(it) }
                     }
-                    val message = packet.text()
-                    // byebye means the camera is going away; its LOCATION is not usable.
-                    if (message.contains(BYEBYE, ignoreCase = true)) continue
-                    message.locationHeader()?.let { emit(it) }
                 }
-            } finally {
-                runCatching { socket.leaveGroup(group, networkInterface) }
             }
         }
-    }
+
+    /**
+     * Listens on the multicast group for cameras announcing themselves.
+     *
+     * As with [searchLoop], the blocking socket work is confined to [Dispatchers.IO] via
+     * [withContext] rather than trusted to the caller's dispatcher.
+     */
+    private suspend fun listenForAnnouncements(emit: suspend (String) -> Unit): Unit =
+        withContext(Dispatchers.IO) {
+            val group = InetSocketAddress(InetAddress.getByName(SSDP_GROUP), SSDP_PORT)
+            val interfaceName = connectivityManager.getLinkProperties(network)?.interfaceName
+            val networkInterface = interfaceName?.let { NetworkInterface.getByName(it) }
+            if (networkInterface == null) {
+                // Without the camera's interface the join would land on the wrong one and
+                // receive nothing. The M-SEARCH loop still covers the common case, so this is
+                // not fatal.
+                Log.w(TAG, "No interface for the camera network, skipping NOTIFY listener")
+                return@withContext
+            }
+
+            MulticastSocket(SSDP_PORT).use { socket ->
+                network.bindSocket(socket)
+                socket.soTimeout = RECEIVE_TIMEOUT_MS
+                socket.joinGroup(group, networkInterface)
+                try {
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    while (currentCoroutineContext().isActive) {
+                        val packet = DatagramPacket(buffer, buffer.size)
+                        try {
+                            socket.receive(packet)
+                        } catch (_: SocketTimeoutException) {
+                            continue
+                        }
+                        val message = packet.text()
+                        // byebye means the camera is going away; its LOCATION is not usable.
+                        if (message.contains(BYEBYE, ignoreCase = true)) continue
+                        message.locationHeader()?.let { emit(it) }
+                    }
+                } finally {
+                    runCatching { socket.leaveGroup(group, networkInterface) }
+                }
+            }
+        }
 
     private fun DatagramPacket.text() = String(data, 0, length, Charsets.US_ASCII)
 

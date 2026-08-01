@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -104,6 +105,8 @@ class DefaultWifiCameraRepository private constructor(
 
     /** Event types already named in the log, so each is mentioned once rather than every poll. */
     private val unreportedEventTypes = mutableSetOf<String>()
+
+    private val credentialsStore = CameraCredentialsStore(appContext)
 
     /**
      * @param client null in transfer mode — the camera offers no camera service there.
@@ -270,6 +273,18 @@ class DefaultWifiCameraRepository private constructor(
      */
     private suspend fun discover(network: Network, http: NetworkHttpClient): Candidate? {
         _connection.value = WifiCameraConnection.Discovering
+
+        // A tapped camera hands over its description URL, which points straight at dd.xml and
+        // saves a discovery round. It goes stale whenever the camera restarts its Wi-Fi, so it is
+        // tried once and never relied on — SSDP still runs if it does not answer.
+        credentialsStore.deviceDescriptionUrl.first()?.let { hinted ->
+            val candidate = runCatching { inspect(http, hinted) }.getOrNull()
+            if (candidate is Candidate.Usable) {
+                Log.i(TAG, "Reached the camera directly at $hinted, skipping SSDP")
+                return candidate
+            }
+            Log.d(TAG, "Hinted description URL did not answer, falling back to SSDP")
+        }
 
         var rejection: Candidate.Unusable? = null
         val usable = withTimeoutOrNull(DISCOVERY_TIMEOUT_MS) {

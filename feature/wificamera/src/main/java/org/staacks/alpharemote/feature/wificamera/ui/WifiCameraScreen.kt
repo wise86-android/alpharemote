@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -34,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.staacks.alpharemote.feature.wificamera.domain.CameraMode
 import org.staacks.alpharemote.feature.wificamera.domain.FailureReason
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
+import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
 
@@ -85,9 +87,12 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
                 }
             )
         } else {
+            val knownCamera by viewModel.knownCamera.collectAsStateWithLifecycle()
             ConnectionPanel(
                 connection = connection,
+                knownCamera = knownCamera,
                 onConnect = viewModel::connect,
+                onForget = viewModel::forgetCamera,
                 modifier = Modifier.align(Alignment.Center)
             )
         }
@@ -99,7 +104,9 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
 @Composable
 private fun ConnectionPanel(
     connection: WifiCameraConnection,
+    knownCamera: WifiCredentials?,
     onConnect: () -> Unit,
+    onForget: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Asking each time is harmless once granted, and keeps permission and connect in one gesture.
@@ -116,13 +123,21 @@ private fun ConnectionPanel(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (busy) {
-            CircularProgressIndicator(
+        when {
+            busy -> CircularProgressIndicator(
                 color = CameraColors.AccentAmber,
                 modifier = Modifier.size(32.dp)
             )
-        } else {
-            Icon(
+
+            // Nothing has been tapped yet, so the prompt is to tap rather than to connect.
+            knownCamera == null -> Icon(
+                imageVector = Icons.Filled.Nfc,
+                contentDescription = null,
+                tint = CameraColors.AccentTeal,
+                modifier = Modifier.size(48.dp)
+            )
+
+            else -> Icon(
                 imageVector = Icons.Filled.WifiOff,
                 contentDescription = null,
                 tint = CameraColors.TextTertiary,
@@ -132,32 +147,46 @@ private fun ConnectionPanel(
 
         Spacer(Modifier.height(16.dp))
         Text(
-            text = connection.headline(),
+            text = if (knownCamera == null && !busy) {
+                "Touch your camera to the phone"
+            } else {
+                connection.headline()
+            },
             style = CameraType.hudMedium,
             textAlign = TextAlign.Center
         )
 
-        (connection as? WifiCameraConnection.Failed)?.detail?.let { detail ->
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = detail,
-                style = CameraType.hudSmallDim,
-                textAlign = TextAlign.Center
-            )
-        }
+        Spacer(Modifier.height(8.dp))
+        val detail = (connection as? WifiCameraConnection.Failed)?.detail
+            ?: if (knownCamera == null) {
+                "Enable NFC, then hold the phone against the N-Mark on the camera. It will " +
+                    "hand over its Wi-Fi details and switch its own Wi-Fi on."
+            } else {
+                knownCamera.ssid
+            }
+        Text(text = detail, style = CameraType.hudSmallDim, textAlign = TextAlign.Center)
 
         Spacer(Modifier.height(24.dp))
-        if (busy) {
-            TextButton(onClick = onConnect, enabled = false) { Text("Connecting…") }
-        } else {
-            Button(
-                onClick = { permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CameraColors.AccentAmber,
-                    contentColor = CameraColors.Background
-                )
-            ) {
-                Text(if (connection is WifiCameraConnection.Failed) "Try again" else "Connect")
+        when {
+            busy -> TextButton(onClick = onConnect, enabled = false) { Text("Connecting…") }
+
+            knownCamera == null -> Unit
+
+            else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Button(
+                    onClick = {
+                        permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = CameraColors.AccentAmber,
+                        contentColor = CameraColors.Background
+                    )
+                ) {
+                    Text(if (connection is WifiCameraConnection.Failed) "Try again" else "Connect")
+                }
+                TextButton(onClick = onForget) {
+                    Text("Forget this camera", style = CameraType.hudSmallDim)
+                }
             }
         }
     }

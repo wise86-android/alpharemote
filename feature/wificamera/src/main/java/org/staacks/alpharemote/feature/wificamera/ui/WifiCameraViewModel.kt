@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -30,7 +31,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.staacks.alpharemote.feature.wificamera.WifiCameraDefaults
+import org.staacks.alpharemote.feature.wificamera.data.CameraCredentialsStore
 import org.staacks.alpharemote.feature.wificamera.data.DefaultWifiCameraRepository
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSetting
@@ -39,6 +40,7 @@ import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
 import org.staacks.alpharemote.feature.wificamera.domain.LiveViewFrame
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraRepository
+import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 import org.staacks.alpharemote.feature.wificamera.work.PhotoDownloadWorker
 
 /**
@@ -126,8 +128,41 @@ class WifiCameraViewModel(application: Application) : AndroidViewModel(applicati
     /** One-off failures — a rejected write, not a state the screen should keep showing. */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
+    private val credentialsStore = CameraCredentialsStore(application)
+
+    /**
+     * The camera we know how to reach, from the last NFC tap.
+     *
+     * Null until a camera has been touched. The screen offers instructions rather than a connect
+     * button in that case: without an SSID and password there is nothing to connect to.
+     */
+    val knownCamera: StateFlow<WifiCredentials?> = credentialsStore.credentials
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     fun connect() {
-        repository.connect(WifiCameraDefaults.CREDENTIALS)
+        viewModelScope.launch {
+            val credentials = credentialsStore.credentials.first()
+            if (credentials == null) {
+                _messages.tryEmit("Touch your camera to the phone to set up the connection.")
+                return@launch
+            }
+            repository.connect(credentials)
+        }
+    }
+
+    /**
+     * Connects to a camera just tapped, without waiting for the stored value to propagate.
+     *
+     * The tap has already written it, but reading it back through the store would race the write
+     * on the very interaction where responsiveness matters most.
+     */
+    fun connectTo(credentials: WifiCredentials) {
+        repository.connect(credentials)
+    }
+
+    fun forgetCamera() {
+        repository.disconnect()
+        viewModelScope.launch { credentialsStore.clear() }
     }
 
     fun disconnect() {

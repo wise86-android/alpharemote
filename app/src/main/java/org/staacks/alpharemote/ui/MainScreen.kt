@@ -15,6 +15,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,6 +30,7 @@ import org.staacks.alpharemote.feature.dof.DofViewModel
 import org.staacks.alpharemote.ui.camera.CameraViewModel
 import org.staacks.alpharemote.ui.camera.cameraEntries
 import org.staacks.alpharemote.ui.dof.depthOfFieldEntries
+import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 import org.staacks.alpharemote.feature.wificamera.ui.WifiCameraViewModel
 import org.staacks.alpharemote.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.settings.settingsEntries
@@ -48,8 +50,15 @@ private val topLevelDestinations = listOf(
     TopLevelDestination(AlphaRemoteNavKey.About, Icons.Default.Info, R.string.title_about),
 )
 
+/**
+ * @param tappedCamera set when a camera has just been touched to the phone. Arriving here opens
+ *   the Wi-Fi screen and connects, so a tap is the whole interaction.
+ */
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    tappedCamera: WifiCredentials? = null,
+    onTappedCameraHandled: () -> Unit = {}
+) {
     val navigationState = rememberNavigationState(
         startRoute = AlphaRemoteNavKey.Camera,
         topLevelRoutes = topLevelDestinations.map { it.route }.toSet()
@@ -61,6 +70,15 @@ fun MainScreen() {
     val settingsViewModel: SettingsViewModel = viewModel()
     val dofViewModel: DofViewModel = viewModel()
     val wifiCameraViewModel: WifiCameraViewModel = viewModel()
+
+    LaunchedEffect(tappedCamera) {
+        val credentials = tappedCamera ?: return@LaunchedEffect
+        navigator.navigate(AlphaRemoteNavKey.WifiCamera)
+        // Connecting from the tapped value rather than re-reading the store, which the tap has
+        // only just written.
+        wifiCameraViewModel.connectTo(credentials)
+        onTappedCameraHandled()
+    }
 
     val entryProvider = entryProvider {
         cameraEntries(cameraViewModel, navigator)
