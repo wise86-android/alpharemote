@@ -20,7 +20,10 @@ sealed interface WifiCameraConnection {
     /** Found a device description URL, reading it and negotiating API versions. */
     data object Handshaking : WifiCameraConnection
 
-    data class Connected(val camera: CameraIdentity) : WifiCameraConnection
+    data class Connected(
+        val camera: CameraIdentity,
+        val mode: CameraMode
+    ) : WifiCameraConnection
 
     data class Failed(val reason: FailureReason, val detail: String? = null) : WifiCameraConnection
 
@@ -57,6 +60,21 @@ enum class FailureReason {
     UNSUPPORTED_PROTOCOL,
 
     NETWORK_ERROR
+}
+
+/**
+ * Which of the camera's two worlds we have connected to.
+ *
+ * Set on the body, not over the API — the α6600 has no `setCameraFunction`. Switching restarts
+ * the camera's access point and re-advertises a completely different service set, so this is
+ * discovered afresh on every connection rather than remembered (PROTOCOL.md §1.1).
+ */
+enum class CameraMode {
+    /** "Ctrl w/ Smartphone": live view, settings, shutter. */
+    REMOTE_SHOOTING,
+
+    /** "Send to Smartphone": the images the user picked on the body are waiting to be pulled. */
+    CONTENTS_TRANSFER
 }
 
 /**

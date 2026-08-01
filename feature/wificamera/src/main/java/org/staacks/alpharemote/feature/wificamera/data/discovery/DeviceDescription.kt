@@ -45,6 +45,17 @@ data class DeviceDescription(
     val supportsRemoteShooting: Boolean
         get() = scalarWebServiceTypes.any { it.equals(CAMERA_SERVICE, ignoreCase = true) }
 
+    /**
+     * True when the camera is offering images to pull — "Send to Smartphone".
+     *
+     * Both services are required, and for different jobs: `XPushList` carries the session
+     * actions and `ContentDirectory` the browsing. A camera advertising only one of them cannot
+     * complete a transfer.
+     */
+    val supportsPushTransfer: Boolean
+        get() = services.any { it.serviceType.contains(X_PUSH_LIST, ignoreCase = true) } &&
+            services.any { it.serviceType.contains(CONTENT_DIRECTORY, ignoreCase = true) }
+
     companion object {
         const val CAMERA_SERVICE = "camera"
         const val DIGITAL_IMAGING_SERVICE_TYPE = "urn:schemas-sony-com:service:DigitalImaging:1"

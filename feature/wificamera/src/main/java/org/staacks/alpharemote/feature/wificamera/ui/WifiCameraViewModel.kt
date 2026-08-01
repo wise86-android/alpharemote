@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -38,6 +39,7 @@ import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
 import org.staacks.alpharemote.feature.wificamera.domain.LiveViewFrame
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraRepository
+import org.staacks.alpharemote.feature.wificamera.work.PhotoDownloadWorker
 
 /**
  * Screen state for the Wi-Fi camera.
@@ -138,6 +140,26 @@ class WifiCameraViewModel(application: Application) : AndroidViewModel(applicati
                 _messages.tryEmit("${id.label}: ${error.message ?: "could not be changed"}")
             }
         }
+    }
+
+    /**
+     * The transfer, read back from WorkManager.
+     *
+     * Observing the worker rather than holding the progress here is what lets the user leave the
+     * screen — or the app — without the download stopping or the progress being lost.
+     */
+    val download: StateFlow<DownloadUiState> = WorkManager
+        .getInstance(application)
+        .getWorkInfosForUniqueWorkFlow(PhotoDownloadWorker.WORK_NAME)
+        .map { infos -> infos.lastOrNull().toDownloadUiState() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DownloadUiState.Idle)
+
+    fun startDownload() {
+        PhotoDownloadWorker.enqueue(getApplication())
+    }
+
+    fun cancelDownload() {
+        PhotoDownloadWorker.cancel(getApplication())
     }
 
     private val _shutter = MutableStateFlow(ShutterState.IDLE)

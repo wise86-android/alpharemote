@@ -192,6 +192,59 @@ Two things hedge against that. `CameraSnapshot.focusStatus` is parsed opportunis
 the parser does not handle is named in the log once, so an undocumented focus report would be
 discovered rather than silently ignored.
 
+## Downloading photos (push transfer)
+
+The camera has two modes and they are not interchangeable. `WifiCameraConnection.Connected`
+carries a `CameraMode`, discovered from the advertised services on every connection, and the UI
+routes on it: `CameraControlScreen` for remote shooting, `DownloadScreen` for transfer. In
+transfer mode there is no live view, no settings and no shutter, so there is nothing of the camera
+back left to show.
+
+Switching mode on the body **restarts the camera's access point**, so the session loop re-issues
+its network request after a drop rather than giving up — a lost `WifiNetworkSpecifier` request is
+not re-satisfied on its own.
+
+### The session is a contract
+
+`X_TransferStart` → `X_GetPushRoot` → per-file `X_TransferProgress` → `X_TransferEnd`. The last is
+sent from a `finally` under `NonCancellable`, on every path including failure and cancellation
+(`ErrCode` 0/1/2). Skip it and the camera sits on "Connecting…" indefinitely.
+
+Two control URLs come from the same description and are not interchangeable: `XPushList` takes the
+session actions, `ContentDirectory` takes `Browse`. Swapping them returns HTTP 500.
+
+Several strings are byte-exact on purpose — the space in `encoding= "UTF-8"`, Sony's misspelled
+`NumTransferd`, the `X-AV-Client-Info` header. The camera's parser was written against Sony's own
+client, not against the spec.
+
+### Listing
+
+Single selections carry their URLs in the Digital Imaging document and need no browsing at all.
+Everything else is browsed, **paging** on `TotalMatches` (a page is capped at 50, so a 91-image
+selection silently loses 41 without the loop) and **descending into containers** (`PushRoot` may
+hold date folders rather than items). Both are required; either alone loses photos.
+
+### Picking the rendition
+
+Quality is read from `sony.com_PN`, falling back to `DLNA.ORG_PN`. **A missing profile means the
+original**, which is the opposite of the intuitive reading and the documented way to end up
+downloading thumbnails — the full-size file usually carries no profile at all.
+
+Only `LARGE` and above are saved; an item offering nothing better than a thumbnail is skipped and
+counted, not silently downgraded. RAW is not retrievable over this protocol at all, so an `.ARW`
+selection yields the camera's JPEG rendition.
+
+Files land in `Pictures/AlphaRemote` via MediaStore, written `IS_PENDING` and published on
+completion so an interrupted transfer leaves no truncated image in the gallery.
+
+### Why a Worker
+
+`PhotoDownloadWorker` is a foreground `CoroutineWorker`. A full card is minutes of work that must
+outlive the screen, and the foreground promise also keeps the process alive — which matters more
+than usual, because the camera's network is held by a request owned by this process. The UI reads
+progress back from `WorkManager` rather than owning it, so closing and reopening the screen shows
+the transfer still running.
+
 ## Cleartext HTTP
 
 The camera serves everything over plain HTTP, which Android refuses by default from API 28. A

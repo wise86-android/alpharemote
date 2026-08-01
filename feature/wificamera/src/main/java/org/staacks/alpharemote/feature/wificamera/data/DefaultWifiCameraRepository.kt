@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -48,12 +51,16 @@ import org.staacks.alpharemote.feature.wificamera.data.rpc.CameraEventParser
 import org.staacks.alpharemote.feature.wificamera.data.rpc.ScalarWebClient
 import org.staacks.alpharemote.feature.wificamera.data.rpc.captureFailureMessage
 import org.staacks.alpharemote.feature.wificamera.data.rpc.entryOfType
+import org.staacks.alpharemote.feature.wificamera.data.transfer.PhotoDownloader
+import org.staacks.alpharemote.feature.wificamera.data.transfer.SoapClient
 import org.staacks.alpharemote.feature.wificamera.domain.CameraIdentity
+import org.staacks.alpharemote.feature.wificamera.domain.CameraMode
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
 import org.staacks.alpharemote.feature.wificamera.domain.FailureReason
 import org.staacks.alpharemote.feature.wificamera.domain.LiveViewFrame
+import org.staacks.alpharemote.feature.wificamera.domain.TransferProgress
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraRepository
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
@@ -72,13 +79,13 @@ import java.net.URL
  * there is no state to unwind by hand.
  */
 class DefaultWifiCameraRepository private constructor(
-    context: Context
+    private val appContext: Context
 ) : WifiCameraRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val cameraNetwork = CameraNetwork(context)
+    private val cameraNetwork = CameraNetwork(appContext)
     private val connectivityManager =
-        ContextCompat.getSystemService(context, ConnectivityManager::class.java)!!
+        ContextCompat.getSystemService(appContext, ConnectivityManager::class.java)!!
 
     private val _connection = MutableStateFlow<WifiCameraConnection>(WifiCameraConnection.Idle)
     override val connection: StateFlow<WifiCameraConnection> = _connection.asStateFlow()
@@ -98,11 +105,21 @@ class DefaultWifiCameraRepository private constructor(
     /** Event types already named in the log, so each is mentioned once rather than every poll. */
     private val unreportedEventTypes = mutableSetOf<String>()
 
+    /**
+     * @param client null in transfer mode — the camera offers no camera service there.
+     */
     private class Session(
         val http: NetworkHttpClient,
-        val client: ScalarWebClient,
-        val description: DeviceDescription
-    )
+        val client: ScalarWebClient?,
+        val description: DeviceDescription,
+        val candidate: Candidate.Usable
+    ) {
+        /** Absolute control URL of a service, resolved the way the camera expects. */
+        fun controlUrl(serviceType: String): String? = description
+            .serviceOfType(serviceType)
+            ?.controlUrl
+            ?.let { DeviceDescriptionParser.resolve(candidate.descriptionUrl, it) }
+    }
 
     override fun connect(credentials: WifiCredentials) {
         if (sessionJob?.isActive == true) return
@@ -125,17 +142,16 @@ class DefaultWifiCameraRepository private constructor(
 
         _connection.value = WifiCameraConnection.JoiningWifi
         try {
-            // collectLatest so that losing the network cancels everything running on it.
-            cameraNetwork.connect(credentials).collectLatest { network ->
-                session = null
-                _camera.value = CameraSnapshot()
-
-                if (network == null) {
-                    _connection.value =
-                        WifiCameraConnection.Failed(FailureReason.WIFI_JOIN_FAILED)
-                    return@collectLatest
+            // Rejoin after a drop rather than giving up. Changing the function on the camera —
+            // remote shooting to Send to Smartphone and back — restarts its access point, and
+            // that is the moment the user most expects the app to follow (PROTOCOL.md §4.2).
+            while (currentCoroutineContext().isActive) {
+                if (attemptSession(credentials)) {
+                    delay(RECONNECT_DELAY_MS)
+                    _connection.value = WifiCameraConnection.JoiningWifi
+                } else {
+                    return
                 }
-                runOnNetwork(network)
             }
         } catch (cancellation: CancellationException) {
             throw cancellation
@@ -148,6 +164,36 @@ class DefaultWifiCameraRepository private constructor(
         } finally {
             session = null
         }
+    }
+
+    /**
+     * Holds one network request open until the camera's access point goes away.
+     *
+     * @return true if the access point was joined and then lost — worth re-issuing the request.
+     *   False means it never appeared, and retrying the same request would not help.
+     */
+    private suspend fun attemptSession(credentials: WifiCredentials): Boolean {
+        var everJoined = false
+
+        cameraNetwork.connect(credentials)
+            // Ends the collection on the first loss after a successful join, which releases the
+            // request so the next attempt can register a fresh one — a lost WifiNetworkSpecifier
+            // request is not re-satisfied on its own.
+            .takeWhile { network -> network != null || !everJoined }
+            .collectLatest { network ->
+                session = null
+                _camera.value = CameraSnapshot()
+
+                if (network == null) {
+                    _connection.value =
+                        WifiCameraConnection.Failed(FailureReason.WIFI_JOIN_FAILED)
+                    return@collectLatest
+                }
+                everJoined = true
+                runOnNetwork(network)
+            }
+
+        return everJoined
     }
 
     private suspend fun runOnNetwork(network: Network) {
@@ -165,13 +211,29 @@ class DefaultWifiCameraRepository private constructor(
         _connection.value = WifiCameraConnection.Handshaking
 
         val description = candidate.description
-        val actionListUrl = description.actionListUrl ?: run {
-            _connection.value = WifiCameraConnection.Failed(FailureReason.WRONG_CAMERA_MODE)
-            return
-        }
-        val client = ScalarWebClient(http, actionListUrl)
+        val identity = CameraIdentity(
+            friendlyName = description.friendlyName,
+            modelName = description.modelName,
+            udn = description.udn
+        )
 
         try {
+            if (candidate.mode == CameraMode.CONTENTS_TRANSFER) {
+                // Nothing to poll: in this mode the camera offers no camera service, only the
+                // images the user picked on the body. It waits until they are pulled.
+                session = Session(http, null, description, candidate)
+                _camera.value = CameraSnapshot()
+                _connection.value =
+                    WifiCameraConnection.Connected(identity, CameraMode.CONTENTS_TRANSFER)
+                awaitCancellation()
+            }
+
+            val actionListUrl = description.actionListUrl ?: run {
+                _connection.value = WifiCameraConnection.Failed(FailureReason.WRONG_CAMERA_MODE)
+                return
+            }
+            val client = ScalarWebClient(http, actionListUrl)
+
             // Never assume a method exists — build behaviour from what this body reports.
             val apis = client.call(
                 service = DeviceDescription.CAMERA_SERVICE,
@@ -180,14 +242,9 @@ class DefaultWifiCameraRepository private constructor(
             ).firstArrayOfStrings()
 
             _camera.value = CameraSnapshot(availableApis = apis.toSet())
-            session = Session(http, client, description)
-            _connection.value = WifiCameraConnection.Connected(
-                CameraIdentity(
-                    friendlyName = description.friendlyName,
-                    modelName = description.modelName,
-                    udn = description.udn
-                )
-            )
+            session = Session(http, client, description, candidate)
+            _connection.value =
+                WifiCameraConnection.Connected(identity, CameraMode.REMOTE_SHOOTING)
 
             pollEvents(client)
         } catch (cancellation: CancellationException) {
@@ -236,14 +293,14 @@ class DefaultWifiCameraRepository private constructor(
         cleartextRefusal(location)?.let { return it }
 
         val description = DeviceDescriptionParser.parse(http.getText(location))
-        val digitalImaging = description
+        val digitalImagingXml = description
             .serviceOfType(DeviceDescription.DIGITAL_IMAGING_SERVICE_TYPE)
             ?.scpdUrl
             ?.let { DeviceDescriptionParser.resolve(location, it) }
-            ?.let { url ->
-                runCatching { DeviceDescriptionParser.parseDigitalImaging(http.getText(url)) }
-                    .getOrNull()
-            }
+            ?.let { url -> runCatching { http.getText(url) }.getOrNull() }
+        val digitalImaging = digitalImagingXml?.let {
+            runCatching { DeviceDescriptionParser.parseDigitalImaging(it) }.getOrNull()
+        }
 
         when {
             description.protocol != CameraProtocol.LEGACY && digitalImaging?.isPtp == true ->
@@ -254,14 +311,30 @@ class DefaultWifiCameraRepository private constructor(
 
             description.protocol != CameraProtocol.LEGACY -> null
 
-            !description.supportsRemoteShooting -> Candidate.Unusable(
-                FailureReason.WRONG_CAMERA_MODE,
-                // The camera cannot be switched over the API; the user has to do it on the body.
-                "${description.modelName} is in \"${digitalImaging?.serverType ?: "transfer"}\" " +
-                    "mode. Select \"Ctrl w/ Smartphone\" on the camera."
+            description.supportsRemoteShooting -> Candidate.Usable(
+                description = description,
+                descriptionUrl = location,
+                mode = CameraMode.REMOTE_SHOOTING,
+                digitalImagingXml = null
             )
 
-            else -> Candidate.Usable(description)
+            // "Send to Smartphone": no camera service, but the transfer services are there and
+            // the user has already chosen what to send.
+            description.supportsPushTransfer -> Candidate.Usable(
+                description = description,
+                descriptionUrl = location,
+                mode = CameraMode.CONTENTS_TRANSFER,
+                // Kept raw: a single-image selection carries its URLs in this document, and then
+                // there is nothing to browse at all.
+                digitalImagingXml = digitalImagingXml
+            )
+
+            else -> Candidate.Unusable(
+                FailureReason.WRONG_CAMERA_MODE,
+                // The camera cannot be switched over the API; the user has to do it on the body.
+                "${description.modelName} is in \"${digitalImaging?.serverType ?: "an unusable"}\" " +
+                    "mode. Select \"Ctrl w/ Smartphone\" on the camera."
+            )
         }
     } catch (cancellation: CancellationException) {
         throw cancellation
@@ -522,8 +595,35 @@ class DefaultWifiCameraRepository private constructor(
         throw IllegalStateException("The camera is still exposing.")
     }
 
+    override fun downloadSelectedPhotos(): Flow<TransferProgress> = flow {
+        val current = session
+            ?: throw IllegalStateException("Not connected to a camera")
+
+        val pushList = current.controlUrl(SoapClient.X_PUSH_LIST_SERVICE_TYPE)
+        val contentDirectory = current.controlUrl(SoapClient.CONTENT_DIRECTORY_SERVICE_TYPE)
+
+        if (pushList == null || contentDirectory == null) {
+            throw IllegalStateException(
+                "This camera is not offering images. Select the photos on the camera and " +
+                    "choose Send to Smartphone."
+            )
+        }
+
+        emitAll(
+            PhotoDownloader(
+                context = appContext,
+                http = current.http,
+                pushListControlUrl = pushList,
+                contentDirectoryControlUrl = contentDirectory,
+                digitalImagingXml = current.candidate.digitalImagingXml
+            ).download()
+        )
+    }
+
     override fun liveView(): Flow<LiveViewFrame> = flow {
         val current = session ?: throw IllegalStateException("Not connected to a camera")
+        val client = current.client
+            ?: throw IllegalStateException("This camera is not in remote shooting mode")
 
         val url = startLiveView(current)
         val stream = current.http.openStream(url)
@@ -567,10 +667,10 @@ class DefaultWifiCameraRepository private constructor(
 
     private suspend fun startLiveView(session: Session): String {
         val fromMethod = runCatching {
-            session.client.call(
+            session.client?.call(
                 service = DeviceDescription.CAMERA_SERVICE,
                 method = "startLiveview"
-            ).firstOrNull()?.jsonPrimitive?.contentOrNull
+            )?.firstOrNull()?.jsonPrimitive?.contentOrNull
         }.getOrNull()
 
         // Bodies without startLiveview still publish the URL in the device description.
@@ -603,7 +703,13 @@ class DefaultWifiCameraRepository private constructor(
     }
 
     private sealed interface Candidate {
-        data class Usable(val description: DeviceDescription) : Candidate
+        data class Usable(
+            val description: DeviceDescription,
+            val descriptionUrl: String,
+            val mode: CameraMode,
+            val digitalImagingXml: String?
+        ) : Candidate
+
         data class Unusable(val reason: FailureReason, val detail: String? = null) : Candidate
     }
 
@@ -620,6 +726,9 @@ class DefaultWifiCameraRepository private constructor(
         private const val DISCOVERY_TIMEOUT_MS = 20_000L
         private const val POLL_RETRY_DELAY_MS = 1_000L
         private const val STOP_LIVE_VIEW_TIMEOUT_MS = 2_000L
+
+        /** Pause before re-issuing the network request after the camera's access point drops. */
+        private const val RECONNECT_DELAY_MS = 2_000L
 
         /** Long-poll rounds to wait out an exposure before giving up on it. */
         private const val AWAIT_CAPTURE_ATTEMPTS = 5

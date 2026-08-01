@@ -47,6 +47,68 @@ class NetworkHttpClient(private val network: Network) {
         }
     }
 
+    /**
+     * POSTs a SOAP envelope.
+     *
+     * `X-AV-Client-Info` is Sony-specific and some bodies check it, so it is sent verbatim rather
+     * than adapted (PROTOCOL.md §4.2).
+     */
+    suspend fun postSoap(
+        url: String,
+        soapAction: String,
+        envelope: String
+    ): String = withContext(Dispatchers.IO) {
+        val connection = open(url, SOAP_READ_TIMEOUT_MS).apply {
+            requestMethod = "POST"
+            doOutput = true
+            setRequestProperty("Connection", "close")
+            setRequestProperty("Content-Type", "text/xml; charset=\"utf-8\"")
+            setRequestProperty("SOAPACTION", "\"$soapAction\"")
+            setRequestProperty("User-Agent", "UPnP/1.0 DLNADOC/1.50")
+            setRequestProperty(
+                "X-AV-Client-Info",
+                "av=5.0; hn=\"\"; cn=\"Sony Corp.\"; mn=\"PMlib\"; mv=\"2.8.1\";"
+            )
+        }
+        try {
+            connection.outputStream.use { it.write(envelope.toByteArray(Charsets.UTF_8)) }
+            connection.readTextOrThrow()
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    /**
+     * Opens a file download.
+     *
+     * `503` means the camera is busy rather than that the file is gone, so it is reported
+     * separately — a retry is worth making.
+     */
+    suspend fun openDownload(url: String): Download = withContext(Dispatchers.IO) {
+        val connection = open(url, DOWNLOAD_READ_TIMEOUT_MS).apply {
+            requestMethod = "GET"
+            setRequestProperty("Connection", "close")
+        }
+        when (val status = connection.responseCode) {
+            HttpURLConnection.HTTP_OK -> Download(
+                stream = ClosingInputStream(connection),
+                contentLength = connection.contentLengthLong.takeIf { it > 0 }
+            )
+
+            HttpURLConnection.HTTP_UNAVAILABLE -> {
+                connection.disconnect()
+                throw CameraBusyException(url)
+            }
+
+            else -> {
+                connection.disconnect()
+                throw IOException("HTTP $status downloading $url")
+            }
+        }
+    }
+
+    class Download(val stream: InputStream, val contentLength: Long?)
+
     suspend fun getText(url: String): String = withContext(Dispatchers.IO) {
         val connection = open(url, DEFAULT_READ_TIMEOUT_MS).apply {
             requestMethod = "GET"
@@ -121,6 +183,11 @@ class NetworkHttpClient(private val network: Network) {
         const val LONG_POLL_READ_TIMEOUT_MS = 40_000
         private const val CONNECT_TIMEOUT_MS = 5_000
         private const val STREAM_READ_TIMEOUT_MS = 15_000
+        private const val SOAP_READ_TIMEOUT_MS = 30_000
+        private const val DOWNLOAD_READ_TIMEOUT_MS = 30_000
         private const val ERROR_BODY_LIMIT = 200
     }
 }
+
+/** The camera answered 503: busy, not broken. Worth retrying. */
+class CameraBusyException(url: String) : IOException("Camera busy (503) for $url")

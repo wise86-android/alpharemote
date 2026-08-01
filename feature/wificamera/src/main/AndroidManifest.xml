@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- The camera is an access point with no uplink. We join it with a WifiNetworkSpecifier and
          bind every socket to the resulting Network, so we need to be able to request networks. -->
@@ -18,8 +19,23 @@
          hardware unless a multicast lock is held. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <!-- The photo transfer runs as a foreground worker: it takes minutes and must outlive the
+         screen, and keeping the process alive is what keeps the camera's network available. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Merged into the app's application element. The camera is HTTP-only; see the config. -->
     <application
-        android:networkSecurityConfig="@xml/wificamera_network_security_config" />
+        android:networkSecurityConfig="@xml/wificamera_network_security_config">
+
+        <!-- WorkManager runs foreground workers through its own service, and from API 34 the
+             service has to declare the type the worker asks for. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
+    </application>
 
 </manifest>

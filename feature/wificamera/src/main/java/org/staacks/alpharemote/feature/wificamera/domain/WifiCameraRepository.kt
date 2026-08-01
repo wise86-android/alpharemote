@@ -60,6 +60,17 @@ interface WifiCameraRepository {
     suspend fun cancelFocus(): Result<Unit>
 
     /**
+     * Pulls the photos the user selected on the camera in "Send to Smartphone" mode.
+     *
+     * Cold, and the session is bound to collection: starting it tells the camera a transfer has
+     * begun, and ending it — including by cancellation — tells the camera it is over. Skipping
+     * that leaves the camera showing "Connecting…" indefinitely, so nothing else may drive it.
+     *
+     * Only full-quality renditions are saved; see [ImageQuality].
+     */
+    fun downloadSelectedPhotos(): Flow<TransferProgress>
+
+    /**
      * Frames from the camera's live view, newest-only.
      *
      * Cold: the stream starts on the camera when collection starts and stops when it ends. The

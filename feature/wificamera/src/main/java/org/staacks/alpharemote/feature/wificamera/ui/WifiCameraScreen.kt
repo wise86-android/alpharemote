@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.staacks.alpharemote.feature.wificamera.domain.CameraMode
 import org.staacks.alpharemote.feature.wificamera.domain.FailureReason
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
 import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
@@ -54,7 +55,18 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
 
     Box(Modifier.fillMaxSize().background(CameraColors.Background)) {
         val connection = state.connection
-        if (connection is WifiCameraConnection.Connected) {
+        if (connection is WifiCameraConnection.Connected &&
+            connection.mode == CameraMode.CONTENTS_TRANSFER
+        ) {
+            // In this mode the camera offers no live view, settings or shutter — only the images
+            // the user picked on the body.
+            val download by viewModel.download.collectAsStateWithLifecycle()
+            DownloadScreen(
+                state = download,
+                onStart = viewModel::startDownload,
+                onCancel = viewModel::cancelDownload
+            )
+        } else if (connection is WifiCameraConnection.Connected) {
             val shutter by viewModel.shutter.collectAsStateWithLifecycle()
             CameraControlScreen(
                 camera = state.camera,
