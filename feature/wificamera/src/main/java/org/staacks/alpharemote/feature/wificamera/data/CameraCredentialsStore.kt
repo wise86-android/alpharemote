@@ -27,6 +27,13 @@ internal val Context.wifiCameraCredentialsStore: DataStore<Preferences> by prefe
  * The camera regenerates its password whenever the owner resets the network settings, so what is
  * stored here is a cache of the most recent tap and not a permanent pairing — tapping again simply
  * overwrites it.
+ *
+ * Stored unencrypted. DataStore's files sit in the app's private directory, unreadable by other
+ * apps without root or a backup exploit, and the password is only as sensitive as the camera's own
+ * Wi-Fi AP — not worth the added dependency and complexity of encrypting at rest. This whole store
+ * is also expected to shrink in scope once BLE handover (see docs/ble-module-extraction-plan.md)
+ * can supply fresh credentials on demand: a camera reachable that way will not need caching here at
+ * all, and this becomes purely the NFC-only fallback path.
  */
 class CameraCredentialsStore(context: Context) {
 

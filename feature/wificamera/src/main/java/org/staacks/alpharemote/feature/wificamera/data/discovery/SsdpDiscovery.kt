@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -19,9 +20,12 @@ import java.net.NetworkInterface
 import java.net.SocketTimeoutException
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Finds the camera's UPnP device description URL.
+ * Finds the camera's UPnP device description URL over SSDP (Simple Service Discovery Protocol —
+ * the discovery half of UPnP, and the term PROTOCOL.md §1.4 uses throughout; keeping the name
+ * means this class and the protocol doc stay searchable against each other).
  *
  * Two mechanisms run at once and feed the same flow, because either alone loses cameras:
  * an M-SEARCH that repeats (a camera whose Wi-Fi is still coming up does not answer the first
@@ -31,14 +35,13 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Emits each distinct `LOCATION` URL once. Cold, and stops when collection stops.
  */
-// CHECK: WHAT SSDP IS? can we use a better name?
 class SsdpDiscovery(
     private val network: Network,
     private val connectivityManager: ConnectivityManager
 ) {
 
     fun discover(): Flow<String> = channelFlow {
-        val seen = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>()) // CHECK: why not a Collections.synchronizedSet ?
+        val seen = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
         val emit: suspend (String) -> Unit = { location ->
             if (seen.add(location)) {
@@ -78,18 +81,23 @@ class SsdpDiscovery(
                         socket.send(DatagramPacket(payload, payload.size, target))
                     }.onFailure { Log.w(TAG, "M-SEARCH send failed", it) }
 
-                    // Collect replies for one search interval, then search again.
-                    val deadline = System.currentTimeMillis() + SEARCH_INTERVAL_MS
-                    while (currentCoroutineContext().isActive &&  // CHECK: CAN WE AVOID THIS LOOP AND USE CORUTINE UTILITY?
-                        System.currentTimeMillis() < deadline
-                    ) {
-                        val packet = DatagramPacket(buffer, buffer.size)
-                        try {
-                            socket.receive(packet)
-                        } catch (_: SocketTimeoutException) {
-                            continue
+                    // Collect replies for one search interval, then search again. withTimeoutOrNull
+                    // rather than a hand-rolled deadline: it is the standard tool for "run this for
+                    // at most N ms", and it composes correctly here specifically because
+                    // socket.receive() has its own soTimeout shorter than the search interval —
+                    // every blocking call returns (via SocketTimeoutException) well within that
+                    // window, so cancellation is never left waiting on a call that cannot be
+                    // interrupted mid-block.
+                    withTimeoutOrNull(SEARCH_INTERVAL_MS.milliseconds) {
+                        while (isActive) {
+                            val packet = DatagramPacket(buffer, buffer.size)
+                            try {
+                                socket.receive(packet)
+                            } catch (_: SocketTimeoutException) {
+                                continue
+                            }
+                            packet.locationHeader()?.let { emit(it) }
                         }
-                        packet.locationHeader()?.let { emit(it) }
                     }
                 }
             }

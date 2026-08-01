@@ -7,6 +7,36 @@ blind button presses, this reads and writes actual values and will carry live vi
 Protocol reference: `/Users/wise/Android/SonyOriginal/PROTOCOL.md`. Section numbers below point
 into it.
 
+## Getting the credentials: NFC
+
+Touching the camera is the whole setup. The tag carries the SSID and password, and the camera's
+own NFC controller switches its Wi-Fi on in response — **nothing is sent to the camera**. The app
+reads the tag, then waits for that access point to appear, which the existing
+`WifiNetworkSpecifier` request does naturally (PROTOCOL.md §1.2).
+
+An `NDEF_DISCOVERED` filter on MIME type `application/x-sony-pmm` in the app manifest launches the
+app straight into the Wi-Fi screen on a tap. `MainActivity` is `singleTop` and also enables
+foreground dispatch while resumed, so a tap during a live session arrives at `onNewIntent` rather
+than being handed to another app or relaunching this one.
+
+Credentials are cached in the module's own DataStore so reconnecting needs no second tap; the
+screen offers "Forget this camera" to clear it. There are no hardcoded credentials anywhere.
+
+### The TLV length is not certain
+
+`SonyNfcTagParser` walks a `tag(2) length(2) value` list. The decompiled app computes the length
+as `high * 10 + low` — decimal, not a big-endian shift — which the protocol flags as looking wrong
+above 99 and asks to be verified against real hardware.
+
+The two readings agree for every length below 100, and an SSID caps at 32 bytes with a password at
+63, so a real tag almost certainly never distinguishes them. Rather than gamble, the parser walks
+with the standard big-endian reading and retries with the decompiled one if that produces a
+structure that does not fit the buffer. A tag that fits neither is rejected rather than
+half-read.
+
+Tag `10 03`, when a body writes it, carries the device description URL. It is tried once before
+SSDP as a fast path and never relied on — it goes stale as soon as the camera restarts its Wi-Fi.
+
 ## Layering
 
 ```
