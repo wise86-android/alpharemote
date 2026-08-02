@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
@@ -47,7 +46,6 @@ private val topLevelDestinations = listOf(
     TopLevelDestination(AlphaRemoteNavKey.WifiCamera, Icons.Default.Wifi, R.string.title_wifi_camera),
     TopLevelDestination(AlphaRemoteNavKey.DepthOfField, Icons.Default.CenterFocusStrong, R.string.title_dof),
     TopLevelDestination(AlphaRemoteNavKey.Settings, Icons.Default.Settings, R.string.title_settings),
-    TopLevelDestination(AlphaRemoteNavKey.About, Icons.Default.Info, R.string.title_about),
 )
 
 /**
@@ -85,7 +83,7 @@ fun MainScreen(
         wifiCameraEntries(wifiCameraViewModel)
         depthOfFieldEntries(dofViewModel)
         settingsEntries(settingsViewModel, navigator)
-        aboutEntries()
+        aboutEntries(navigator)
         commonEntries(navigator)
     }
 

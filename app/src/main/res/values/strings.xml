@@ -2,6 +2,7 @@
     <string name="app_name">α-Remote</string>
 
     <string name="title_about">About</string>
+    <string name="content_description_back">Back</string>
     <string name="title_camera">Camera</string>
     <string name="title_dof">DOF</string>
     <string name="title_wifi_camera">Wi-Fi</string>

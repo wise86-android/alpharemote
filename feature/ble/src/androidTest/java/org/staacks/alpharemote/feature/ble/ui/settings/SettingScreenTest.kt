@@ -85,6 +85,7 @@ class SettingScreenTest {
                 onButtonScaleIndexChange = callbacks.buttonScaleChanges::add,
                 onBroadcastControlCheckedChange = callbacks.broadcastControlChanges::add,
                 onBroadcastMoreClick = {},
+                onAboutClick = {},
             )
         }
     }

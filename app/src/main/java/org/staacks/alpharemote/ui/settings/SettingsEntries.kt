@@ -156,7 +156,8 @@ fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(
             onEditCustomButton = { index, action ->
                 navigator.navigate(AlphaRemoteNavKey.CameraActionPicker(index, action, true))
             },
-            onOpenUrl = { url -> context.openUrl(url) }
+            onOpenUrl = { url -> context.openUrl(url) },
+            onAboutClick = { navigator.navigate(AlphaRemoteNavKey.About) }
         )
     }
 

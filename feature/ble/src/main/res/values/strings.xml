@@ -40,6 +40,7 @@
     <string name="settings_broadcast_control_more_label">Documentation</string>
     <string name="settings_broadcast_control_more_url">https://there.oughta.be/a/bluetooth-remote#intents</string>
     <string name="settings_broadcast_control_toggle">Allow broadcast control</string>
+    <string name="settings_about_link">About</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>

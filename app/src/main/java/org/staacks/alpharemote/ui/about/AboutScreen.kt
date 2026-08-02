@@ -2,23 +2,29 @@ package org.staacks.alpharemote.ui.about
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -30,7 +36,7 @@ import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.core.ui.theme.FragmentMargin
 
 @Composable
-fun AboutScreen(onOpenUrl: (String) -> Unit) {
+fun AboutScreen(onOpenUrl: (String) -> Unit, onBack: () -> Unit) {
     Surface {
         Column(
             modifier = Modifier
@@ -39,10 +45,19 @@ fun AboutScreen(onOpenUrl: (String) -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(FragmentMargin)
         ) {
-            Text(
-                text = stringResource(id = R.string.title_about),
-                style = MaterialTheme.typography.displaySmall
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(id = R.string.content_description_back)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(id = R.string.title_about),
+                    style = MaterialTheme.typography.displaySmall
+                )
+            }
 
             AboutSection(
                 title = stringResource(id = R.string.about_author_title),
@@ -123,7 +138,7 @@ fun AboutScreen(onOpenUrl: (String) -> Unit) {
 @Composable
 private fun AboutScreenPreviewLight() {
     BluetoothRemoteForSonyCamerasTheme {
-        AboutScreen(onOpenUrl = {})
+        AboutScreen(onOpenUrl = {}, onBack = {})
     }
 }
 
@@ -131,6 +146,6 @@ private fun AboutScreenPreviewLight() {
 @Composable
 private fun AboutScreenPreviewDark() {
     BluetoothRemoteForSonyCamerasTheme {
-        AboutScreen(onOpenUrl = {})
+        AboutScreen(onOpenUrl = {}, onBack = {})
     }
 }

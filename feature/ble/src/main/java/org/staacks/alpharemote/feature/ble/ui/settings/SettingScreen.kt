@@ -1,20 +1,27 @@
 package org.staacks.alpharemote.feature.ble.ui.settings
 import org.staacks.alpharemote.feature.ble.R
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -32,6 +39,7 @@ fun SettingScreen(
     settingsViewModel: SettingsViewModel,
     onEditCustomButton: (Int, CameraAction) -> Unit,
     onOpenUrl: (String) -> Unit,
+    onAboutClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sectionSpacing = dimensionResource(R.dimen.headline_margin_top)
@@ -64,6 +72,7 @@ fun SettingScreen(
         onButtonScaleIndexChange = settingsViewModel::setButtonScaleIndex,
         onBroadcastControlCheckedChange = settingsViewModel::setBroadcastControl,
         onBroadcastMoreClick = { onOpenUrl(broadcastDocumentationUrl) },
+        onAboutClick = onAboutClick,
         modifier = modifier,
     )
 }
@@ -89,6 +98,7 @@ internal fun SettingScreenContent(
     onButtonScaleIndexChange: (Int) -> Unit,
     onBroadcastControlCheckedChange: (Boolean) -> Unit,
     onBroadcastMoreClick: () -> Unit,
+    onAboutClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -152,6 +162,24 @@ internal fun SettingScreenContent(
                 onCheckedChange = onBroadcastControlCheckedChange,
                 onMoreClick = onBroadcastMoreClick,
             )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onAboutClick)
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_about_link),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                )
+            }
         }
     }
 }
@@ -191,6 +219,7 @@ private fun SettingScreenPreview() {
             onButtonScaleIndexChange = {},
             onBroadcastControlCheckedChange = {},
             onBroadcastMoreClick = {},
+            onAboutClick = {},
         )
     }
 }
