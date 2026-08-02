@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,12 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.feature.wificamera.data.ble.WifiHandoverAvailability
 import org.staacks.alpharemote.feature.wificamera.domain.FailureReason
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
 
 /**
  * What [WifiCameraScreenContent] shows in place of the camera back while there is no camera.
@@ -68,14 +68,14 @@ internal fun ConnectionPanel(
     ) {
         when {
             busy -> CircularProgressIndicator(
-                color = CameraColors.AccentAmber,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(32.dp)
             )
 
             bleReady -> Icon(
                 imageVector = Icons.Filled.Bluetooth,
                 contentDescription = null,
-                tint = CameraColors.AccentTeal,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(48.dp)
             )
 
@@ -83,14 +83,14 @@ internal fun ConnectionPanel(
             knownCamera == null -> Icon(
                 imageVector = Icons.Filled.Nfc,
                 contentDescription = null,
-                tint = CameraColors.AccentTeal,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(48.dp)
             )
 
             else -> Icon(
                 imageVector = Icons.Filled.WifiOff,
                 contentDescription = null,
-                tint = CameraColors.TextTertiary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -103,7 +103,8 @@ internal fun ConnectionPanel(
                 knownCamera == null -> "Touch your camera to the phone"
                 else -> connection.headline()
             },
-            style = CameraType.hudMedium,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
 
@@ -117,7 +118,12 @@ internal fun ConnectionPanel(
                         "will hand over its Wi-Fi details and switch its own Wi-Fi on."
                 else -> knownCamera.ssid
             }
-        Text(text = detail, style = CameraType.hudSmallDim, textAlign = TextAlign.Center)
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
 
         Spacer(Modifier.height(24.dp))
         when {
@@ -131,8 +137,8 @@ internal fun ConnectionPanel(
                         permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CameraColors.AccentAmber,
-                        contentColor = CameraColors.Background
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 ) {
                     Text(
@@ -145,7 +151,11 @@ internal fun ConnectionPanel(
                 }
                 if (knownCamera != null) {
                     TextButton(onClick = onForget) {
-                        Text("Forget this camera", style = CameraType.hudSmallDim)
+                        Text(
+                            "Forget this camera",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -173,66 +183,76 @@ private fun WifiCameraConnection.headline(): String = when (this) {
 
 private val previewCredentials = WifiCredentials(ssid = "DIRECT-abcd:ILCE-6600", password = "password")
 
-@Preview(name = "Nothing tapped yet", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Nothing tapped yet", showBackground = true)
 @Composable
 private fun ConnectionPanelUnknownPreview() {
-    ConnectionPanel(
-        connection = WifiCameraConnection.Idle,
-        knownCamera = null,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ConnectionPanel(
+            connection = WifiCameraConnection.Idle,
+            knownCamera = null,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }
 
 /** A paired camera is BLE-connected — takes priority over any stored credentials. */
-@Preview(name = "Camera detected over BLE", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Camera detected over BLE", showBackground = true)
 @Composable
 private fun ConnectionPanelBleReadyPreview() {
-    ConnectionPanel(
-        connection = WifiCameraConnection.Idle,
-        knownCamera = null,
-        bleAvailability = WifiHandoverAvailability.READY,
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ConnectionPanel(
+            connection = WifiCameraConnection.Idle,
+            knownCamera = null,
+            bleAvailability = WifiHandoverAvailability.READY,
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }
 
-@Preview(name = "Joining", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Joining", showBackground = true)
 @Composable
 private fun ConnectionPanelBusyPreview() {
-    ConnectionPanel(
-        connection = WifiCameraConnection.JoiningWifi,
-        knownCamera = previewCredentials,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ConnectionPanel(
+            connection = WifiCameraConnection.JoiningWifi,
+            knownCamera = previewCredentials,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }
 
-@Preview(name = "Known camera, disconnected", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Known camera, disconnected", showBackground = true)
 @Composable
 private fun ConnectionPanelKnownPreview() {
-    ConnectionPanel(
-        connection = WifiCameraConnection.Idle,
-        knownCamera = previewCredentials,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ConnectionPanel(
+            connection = WifiCameraConnection.Idle,
+            knownCamera = previewCredentials,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }
 
-@Preview(name = "Failed", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Failed", showBackground = true)
 @Composable
 private fun ConnectionPanelFailedPreview() {
-    ConnectionPanel(
-        connection = WifiCameraConnection.Failed(
-            FailureReason.CAMERA_NOT_FOUND,
-            "No camera answered after 20 seconds."
-        ),
-        knownCamera = previewCredentials,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ConnectionPanel(
+            connection = WifiCameraConnection.Failed(
+                FailureReason.CAMERA_NOT_FOUND,
+                "No camera answered after 20 seconds."
+            ),
+            knownCamera = previewCredentials,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,12 +29,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonPrimitive
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSetting
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
-import org.staacks.alpharemote.feature.wificamera.ui.theme.DISABLED_ALPHA
 import kotlin.math.roundToInt
 
 /**
@@ -88,8 +87,17 @@ internal fun ExposureMeterStrip(
         return ((x / width) * (options.size - 1)).roundToInt().coerceIn(options.indices)
     }
 
+    val accentColor = MaterialTheme.colorScheme.secondary
+    val accentDimColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Text("EV", style = CameraType.label, modifier = Modifier.padding(end = 10.dp))
+        Text(
+            "EV",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(end = 10.dp)
+        )
 
         Box(
             Modifier
@@ -130,7 +138,7 @@ internal fun ExposureMeterStrip(
                         }
                     }
                 }
-                .alpha(if (editable) 1f else DISABLED_ALPHA)
+                .alpha(if (editable) 1f else 0.38f)
         ) {
             Canvas(Modifier.fillMaxSize()) {
                 val scaleTop = size.height * 0.35f
@@ -142,7 +150,7 @@ internal fun ExposureMeterStrip(
                     val isCentre = tick == tickCount / 2
                     val tickHeight = if (isCentre) scaleHeight else scaleHeight * 0.45f
                     drawLine(
-                        color = if (isCentre) CameraColors.AccentAmberDim else CameraColors.Divider,
+                        color = if (isCentre) accentDimColor else dividerColor,
                         start = Offset(tick * spacing, size.height - tickHeight),
                         end = Offset(tick * spacing, size.height),
                         strokeWidth = (if (isCentre) 2f else 1f).dp.toPx()
@@ -151,14 +159,14 @@ internal fun ExposureMeterStrip(
 
                 val needleX = progress.coerceIn(0f, 1f) * size.width
                 drawLine(
-                    color = CameraColors.AccentAmber,
+                    color = accentColor,
                     start = Offset(needleX, scaleTop),
                     end = Offset(needleX, size.height),
                     strokeWidth = 2.dp.toPx()
                 )
                 // A grip at the top of the needle, so it reads as draggable.
                 drawCircle(
-                    color = CameraColors.AccentAmber,
+                    color = accentColor,
                     radius = 5.dp.toPx(),
                     center = Offset(needleX, scaleTop * 0.6f)
                 )
@@ -170,10 +178,12 @@ internal fun ExposureMeterStrip(
             text = shownIndex?.let { options.getOrNull(it)?.label }
                 ?: setting?.current?.label
                 ?: "--",
-            style = CameraType.hudSmallDim.copy(
-                color = if (dragIndex != null) CameraColors.AccentAmber
-                else CameraColors.TextSecondary
-            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (dragIndex != null) {
+                MaterialTheme.colorScheme.secondary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
             modifier = Modifier.widthIn(min = 34.dp)
         )
     }
@@ -182,19 +192,21 @@ internal fun ExposureMeterStrip(
 /** How long the needle keeps showing a requested value before falling back to the camera's. */
 private const val PENDING_TIMEOUT_MS = 3_000L
 
-@Preview(showBackground = true, backgroundColor = 0xFF18181B)
+@Preview(showBackground = true)
 @Composable
 private fun ExposureMeterStripPreview() {
-    ExposureMeterStrip(
-        setting = CameraSetting(
-            id = CameraSettingId.EXPOSURE_COMPENSATION,
-            current = CameraOption("-0.7", JsonPrimitive(-2)),
-            available = (-9..9).map { index ->
-                CameraOption("%+.1f".format(index / 3.0), JsonPrimitive(index))
-            },
-            writable = true
-        ),
-        onSelect = {},
-        modifier = Modifier.fillMaxWidth().padding(16.dp)
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ExposureMeterStrip(
+            setting = CameraSetting(
+                id = CameraSettingId.EXPOSURE_COMPENSATION,
+                current = CameraOption("-0.7", JsonPrimitive(-2)),
+                available = (-9..9).map { index ->
+                    CameraOption("%+.1f".format(index / 3.0), JsonPrimitive(index))
+                },
+                writable = true
+            ),
+            onSelect = {},
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        )
+    }
 }

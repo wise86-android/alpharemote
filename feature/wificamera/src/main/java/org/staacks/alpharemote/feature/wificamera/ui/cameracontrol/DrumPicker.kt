@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,9 +34,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
 import kotlin.math.abs
 
 /**
@@ -54,7 +54,8 @@ internal fun DrumPicker(
     if (options.isEmpty()) {
         Text(
             text = "The camera reported no options for this setting.",
-            style = CameraType.hudSmallDim,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         return
@@ -87,7 +88,7 @@ internal fun DrumPicker(
                 .width(itemWidth)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(10.dp))
-                .background(CameraColors.ChipActive)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
         )
 
         LazyRow(
@@ -108,9 +109,14 @@ internal fun DrumPicker(
                     Text(
                         text = option.label,
                         style = if (selected) {
-                            CameraType.hudMedium.copy(fontSize = 19.sp, color = CameraColors.AccentAmber)
+                            MaterialTheme.typography.bodyMedium.copy(fontSize = 19.sp)
                         } else {
-                            CameraType.hudSmallDim.copy(color = CameraColors.TextTertiary)
+                            MaterialTheme.typography.bodySmall
+                        },
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         }
                     )
                 }
@@ -137,15 +143,17 @@ internal fun DrumPicker(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF18181B)
+@Preview(showBackground = true)
 @Composable
 private fun DrumPickerPreview() {
-    Box(Modifier.background(CameraColors.SurfaceElevated)) {
-        DrumPicker(
-            options = listOf("1.4", "1.8", "2.0", "2.8", "4.0", "5.6", "8.0")
-                .map { CameraOption.of(it) },
-            selectedIndex = 2,
-            onSettled = {}
-        )
+    BluetoothRemoteForSonyCamerasTheme {
+        Box(Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+            DrumPicker(
+                options = listOf("1.4", "1.8", "2.0", "2.8", "4.0", "5.6", "8.0")
+                    .map { CameraOption.of(it) },
+                selectedIndex = 2,
+                onSettled = {}
+            )
+        }
     }
 }

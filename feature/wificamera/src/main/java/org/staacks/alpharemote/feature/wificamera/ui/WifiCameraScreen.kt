@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -29,7 +30,7 @@ import org.staacks.alpharemote.feature.wificamera.ui.download.DownloadScreen
 import org.staacks.alpharemote.feature.wificamera.ui.download.DownloadUiState
 import org.staacks.alpharemote.feature.wificamera.ui.liveview.LiveViewState
 import org.staacks.alpharemote.feature.wificamera.ui.liveview.LiveViewSurface
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 /**
  * Entry point for the Wi-Fi camera tab.
@@ -52,7 +53,7 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
         viewModel.messages.collect { snackbarHostState.showSnackbar(it) }
     }
 
-    Box(Modifier.fillMaxSize().background(CameraColors.Background)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         WifiCameraScreenContent(
             connection = state.connection,
             camera = state.camera,
@@ -149,66 +150,72 @@ private val previewIdentity = CameraIdentity(
 @Preview(name = "Connected — remote shooting", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun WifiCameraScreenContentShootingPreview() {
-    WifiCameraScreenContent(
-        connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.REMOTE_SHOOTING),
-        camera = CameraSnapshot(),
-        knownCamera = null,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        shutter = ShutterState.IDLE,
-        download = DownloadUiState.Idle,
-        onSelect = { _, _ -> },
-        onFocus = {},
-        onShoot = {},
-        onCancelFocus = {},
-        onStartDownload = {},
-        onCancelDownload = {},
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        WifiCameraScreenContent(
+            connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.REMOTE_SHOOTING),
+            camera = CameraSnapshot(),
+            knownCamera = null,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            shutter = ShutterState.IDLE,
+            download = DownloadUiState.Idle,
+            onSelect = { _, _ -> },
+            onFocus = {},
+            onShoot = {},
+            onCancelFocus = {},
+            onStartDownload = {},
+            onCancelDownload = {},
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }
 
 @Preview(name = "Connected — download mode", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun WifiCameraScreenContentDownloadPreview() {
-    WifiCameraScreenContent(
-        connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.CONTENTS_TRANSFER),
-        camera = CameraSnapshot(),
-        knownCamera = null,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        shutter = ShutterState.IDLE,
-        download = DownloadUiState.Running(
-            stage = "Downloading 2 of 5",
-            fileName = "DSC00042.JPG",
-            overallFraction = 0.4f
-        ),
-        onSelect = { _, _ -> },
-        onFocus = {},
-        onShoot = {},
-        onCancelFocus = {},
-        onStartDownload = {},
-        onCancelDownload = {},
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        WifiCameraScreenContent(
+            connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.CONTENTS_TRANSFER),
+            camera = CameraSnapshot(),
+            knownCamera = null,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            shutter = ShutterState.IDLE,
+            download = DownloadUiState.Running(
+                stage = "Downloading 2 of 5",
+                fileName = "DSC00042.JPG",
+                overallFraction = 0.4f
+            ),
+            onSelect = { _, _ -> },
+            onFocus = {},
+            onShoot = {},
+            onCancelFocus = {},
+            onStartDownload = {},
+            onCancelDownload = {},
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }
 
 @Preview(name = "Disconnected", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun WifiCameraScreenContentDisconnectedPreview() {
-    WifiCameraScreenContent(
-        connection = WifiCameraConnection.Idle,
-        camera = CameraSnapshot(),
-        knownCamera = null,
-        bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-        shutter = ShutterState.IDLE,
-        download = DownloadUiState.Idle,
-        onSelect = { _, _ -> },
-        onFocus = {},
-        onShoot = {},
-        onCancelFocus = {},
-        onStartDownload = {},
-        onCancelDownload = {},
-        onConnect = {},
-        onForget = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        WifiCameraScreenContent(
+            connection = WifiCameraConnection.Idle,
+            camera = CameraSnapshot(),
+            knownCamera = null,
+            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
+            shutter = ShutterState.IDLE,
+            download = DownloadUiState.Idle,
+            onSelect = { _, _ -> },
+            onFocus = {},
+            onShoot = {},
+            onCancelFocus = {},
+            onStartDownload = {},
+            onCancelDownload = {},
+            onConnect = {},
+            onForget = {}
+        )
+    }
 }

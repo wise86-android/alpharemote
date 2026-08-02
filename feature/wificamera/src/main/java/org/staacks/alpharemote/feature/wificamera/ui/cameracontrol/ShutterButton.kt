@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -17,8 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.DISABLED_ALPHA
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import org.staacks.alpharemote.core.ui.theme.textConnected
 
 /**
  * Press and hold to focus, release to shoot — the camera's own half-press, because the body
@@ -49,9 +50,9 @@ internal fun ShutterButton(
         label = "shutterInner"
     )
     val ringColor = when {
-        focusLocked -> CameraColors.AccentGreen
-        focusing -> CameraColors.AccentAmber
-        else -> CameraColors.TextPrimary
+        focusLocked -> MaterialTheme.colorScheme.textConnected
+        focusing -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.onBackground
     }
 
     Box(
@@ -70,67 +71,75 @@ internal fun ShutterButton(
                     }
                 )
             }
-            .alpha(if (enabled) 1f else DISABLED_ALPHA),
+            .alpha(if (enabled) 1f else 0.38f),
         contentAlignment = Alignment.Center
     ) {
         Box(
             Modifier
                 .size(innerSize)
                 .clip(CircleShape)
-                .background(if (capturing) CameraColors.AccentRed else Color.White)
+                .background(if (capturing) MaterialTheme.colorScheme.error else Color.White)
         )
     }
 }
 
-@Preview(name = "Idle", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Idle", showBackground = true)
 @Composable
 private fun ShutterButtonIdlePreview() {
-    ShutterButton(
-        enabled = true,
-        shutter = ShutterState.IDLE,
-        focusStatus = null,
-        onFocus = {},
-        onShoot = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ShutterButton(
+            enabled = true,
+            shutter = ShutterState.IDLE,
+            focusStatus = null,
+            onFocus = {},
+            onShoot = {},
+            onCancel = {}
+        )
+    }
 }
 
-@Preview(name = "Focus locked", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Focus locked", showBackground = true)
 @Composable
 private fun ShutterButtonFocusedPreview() {
-    ShutterButton(
-        enabled = true,
-        shutter = ShutterState.FOCUSING,
-        focusStatus = "Focused",
-        onFocus = {},
-        onShoot = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ShutterButton(
+            enabled = true,
+            shutter = ShutterState.FOCUSING,
+            focusStatus = "Focused",
+            onFocus = {},
+            onShoot = {},
+            onCancel = {}
+        )
+    }
 }
 
-@Preview(name = "Capturing", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Capturing", showBackground = true)
 @Composable
 private fun ShutterButtonCapturingPreview() {
-    ShutterButton(
-        enabled = true,
-        shutter = ShutterState.CAPTURING,
-        focusStatus = null,
-        onFocus = {},
-        onShoot = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ShutterButton(
+            enabled = true,
+            shutter = ShutterState.CAPTURING,
+            focusStatus = null,
+            onFocus = {},
+            onShoot = {},
+            onCancel = {}
+        )
+    }
 }
 
 /** The camera has no setter for `actTakePicture` right now — dimmed and untappable. */
-@Preview(name = "Disabled", showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(name = "Disabled", showBackground = true)
 @Composable
 private fun ShutterButtonDisabledPreview() {
-    ShutterButton(
-        enabled = false,
-        shutter = ShutterState.IDLE,
-        focusStatus = null,
-        onFocus = {},
-        onShoot = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        ShutterButton(
+            enabled = false,
+            shutter = ShutterState.IDLE,
+            focusStatus = null,
+            onFocus = {},
+            onShoot = {},
+            onCancel = {}
+        )
+    }
 }

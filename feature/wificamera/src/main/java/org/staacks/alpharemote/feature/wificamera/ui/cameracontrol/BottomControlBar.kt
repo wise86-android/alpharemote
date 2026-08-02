@@ -12,16 +12,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSetting
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
 
 /** The chip stack and shutter row anchored to the bottom of [CameraControlScreen]. */
 @Composable
@@ -37,7 +38,7 @@ internal fun BottomControlBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                CameraColors.SurfaceElevated,
+                MaterialTheme.colorScheme.surfaceContainerHigh,
                 RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             )
             .padding(top = 14.dp, bottom = 12.dp)
@@ -114,7 +115,7 @@ internal fun BottomControlBar(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0D0D0F)
+@Preview(showBackground = true)
 @Composable
 private fun BottomControlBarPreview() {
     fun setting(id: CameraSettingId, current: String, values: List<String>) = id to CameraSetting(
@@ -124,23 +125,25 @@ private fun BottomControlBarPreview() {
         writable = true
     )
 
-    BottomControlBar(
-        camera = CameraSnapshot(
-            availableApis = setOf(
-                "setFNumber", "setIsoSpeedRate", "setShutterSpeed", "setWhiteBalance", "actTakePicture"
+    BluetoothRemoteForSonyCamerasTheme {
+        BottomControlBar(
+            camera = CameraSnapshot(
+                availableApis = setOf(
+                    "setFNumber", "setIsoSpeedRate", "setShutterSpeed", "setWhiteBalance", "actTakePicture"
+                ),
+                settings = mapOf(
+                    setting(CameraSettingId.FOCUS_MODE, "AF-C", listOf("AF-S", "AF-C", "DMF", "MF")),
+                    setting(CameraSettingId.WHITE_BALANCE, "Daylight", listOf("Auto WB", "Daylight")),
+                    setting(CameraSettingId.ISO_SPEED_RATE, "400", listOf("100", "400", "800")),
+                    setting(CameraSettingId.F_NUMBER, "2.0", listOf("1.8", "2.0", "2.8")),
+                    setting(CameraSettingId.SHUTTER_SPEED, "1/250", listOf("1/125", "1/250", "1/500"))
+                )
             ),
-            settings = mapOf(
-                setting(CameraSettingId.FOCUS_MODE, "AF-C", listOf("AF-S", "AF-C", "DMF", "MF")),
-                setting(CameraSettingId.WHITE_BALANCE, "Daylight", listOf("Auto WB", "Daylight")),
-                setting(CameraSettingId.ISO_SPEED_RATE, "400", listOf("100", "400", "800")),
-                setting(CameraSettingId.F_NUMBER, "2.0", listOf("1.8", "2.0", "2.8")),
-                setting(CameraSettingId.SHUTTER_SPEED, "1/250", listOf("1/125", "1/250", "1/500"))
-            )
-        ),
-        onFieldTap = {},
-        onFocus = {},
-        onShoot = {},
-        onCancelFocus = {},
-        shutter = ShutterState.IDLE
-    )
+            onFieldTap = {},
+            onFocus = {},
+            onShoot = {},
+            onCancelFocus = {},
+            shutter = ShutterState.IDLE
+        )
+    }
 }

@@ -14,12 +14,12 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -27,8 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 /**
  * The viewfinder.
@@ -42,11 +41,7 @@ fun LiveViewSurface(state: LiveViewState, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(CameraColors.LiveViewTop, CameraColors.LiveViewBottom)
-                )
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         when (state) {
@@ -61,14 +56,14 @@ fun LiveViewSurface(state: LiveViewState, modifier: Modifier = Modifier) {
             )
 
             LiveViewState.Starting -> CircularProgressIndicator(
-                color = CameraColors.AccentAmber,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(28.dp)
             )
 
             LiveViewState.Idle -> Icon(
                 imageVector = Icons.Filled.PhotoCamera,
                 contentDescription = null,
-                tint = CameraColors.TextTertiary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.size(48.dp)
             )
 
@@ -79,19 +74,21 @@ fun LiveViewSurface(state: LiveViewState, modifier: Modifier = Modifier) {
                 Icon(
                     imageVector = Icons.Filled.VideocamOff,
                     contentDescription = null,
-                    tint = CameraColors.TextTertiary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = "No live view",
-                    style = CameraType.hudMedium,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = state.message,
-                    style = CameraType.hudSmallDim,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
@@ -110,25 +107,33 @@ private fun syntheticPreviewFrame(): ImageBitmap {
 @Composable
 private fun LiveViewSurfaceStreamingPreview() {
     val frame = remember { syntheticPreviewFrame() }
-    LiveViewSurface(LiveViewState.Streaming(frame))
+    BluetoothRemoteForSonyCamerasTheme {
+        LiveViewSurface(LiveViewState.Streaming(frame))
+    }
 }
 
 @Preview(name = "Starting", showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun LiveViewSurfaceStartingPreview() {
-    LiveViewSurface(LiveViewState.Starting)
+    BluetoothRemoteForSonyCamerasTheme {
+        LiveViewSurface(LiveViewState.Starting)
+    }
 }
 
 @Preview(name = "Idle", showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun LiveViewSurfaceIdlePreview() {
-    LiveViewSurface(LiveViewState.Idle)
+    BluetoothRemoteForSonyCamerasTheme {
+        LiveViewSurface(LiveViewState.Idle)
+    }
 }
 
 @Preview(name = "Unavailable", showBackground = true, widthDp = 300, heightDp = 300)
 @Composable
 private fun LiveViewSurfaceUnavailablePreview() {
-    LiveViewSurface(
-        LiveViewState.Unavailable("This camera does not offer live view over Wi-Fi.")
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        LiveViewSurface(
+            LiveViewState.Unavailable("This camera does not offer live view over Wi-Fi.")
+        )
+    }
 }

@@ -8,13 +8,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 /** Default [CameraControlScreen.liveView] slot, before a video stream is attached. */
 @Composable
@@ -22,17 +22,13 @@ internal fun BoxScope.LiveViewPlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(CameraColors.LiveViewTop, CameraColors.LiveViewBottom)
-                )
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Filled.PhotoCamera,
             contentDescription = null,
-            tint = CameraColors.TextTertiary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.size(48.dp)
         )
     }
@@ -41,7 +37,9 @@ internal fun BoxScope.LiveViewPlaceholder() {
 @Preview(showBackground = true, widthDp = 200, heightDp = 200)
 @Composable
 private fun LiveViewPlaceholderPreview() {
-    Box(Modifier.size(200.dp)) {
-        LiveViewPlaceholder()
+    BluetoothRemoteForSonyCamerasTheme {
+        Box(Modifier.size(200.dp)) {
+            LiveViewPlaceholder()
+        }
     }
 }

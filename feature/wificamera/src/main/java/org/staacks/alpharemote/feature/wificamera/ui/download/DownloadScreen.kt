@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,8 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraType
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import org.staacks.alpharemote.core.ui.theme.textConnected
 
 /**
  * Shown when the camera is in "Send to Smartphone".
@@ -46,7 +47,7 @@ fun DownloadScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(CameraColors.Background)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -59,21 +60,27 @@ fun DownloadScreen(
             },
             contentDescription = null,
             tint = when (state) {
-                is DownloadUiState.Finished -> CameraColors.AccentGreen
-                is DownloadUiState.Failed -> CameraColors.AccentRed
-                else -> CameraColors.AccentAmber
+                is DownloadUiState.Finished -> MaterialTheme.colorScheme.textConnected
+                is DownloadUiState.Failed -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.secondary
             },
             modifier = Modifier.size(48.dp)
         )
 
         Spacer(Modifier.height(16.dp))
-        Text(state.headline(), style = CameraType.hudMedium, textAlign = TextAlign.Center)
+        Text(
+            state.headline(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
 
         state.detail()?.let { detail ->
             Spacer(Modifier.height(6.dp))
             Text(
                 text = detail,
-                style = CameraType.hudSmallDim,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -86,15 +93,15 @@ fun DownloadScreen(
             // walked, and a bar pinned at zero until then looks like a stall.
             if (state.overallFraction == null) {
                 LinearProgressIndicator(
-                    color = CameraColors.AccentAmber,
-                    trackColor = CameraColors.Divider,
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.outlineVariant,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
                 LinearProgressIndicator(
                     progress = { state.overallFraction },
-                    color = CameraColors.AccentAmber,
-                    trackColor = CameraColors.Divider,
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.outlineVariant,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -109,8 +116,8 @@ fun DownloadScreen(
                 Button(
                     onClick = onStart,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CameraColors.AccentAmber,
-                        contentColor = CameraColors.Background
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 ) {
                     Text(if (state is DownloadUiState.Idle) "Download photos" else "Try again")
@@ -143,56 +150,68 @@ private fun DownloadUiState.detail(): String? = when (this) {
 @Preview(name = "Idle", showBackground = true, widthDp = 390, heightDp = 500)
 @Composable
 private fun DownloadScreenIdlePreview() {
-    DownloadScreen(state = DownloadUiState.Idle, onStart = {}, onCancel = {})
+    BluetoothRemoteForSonyCamerasTheme {
+        DownloadScreen(state = DownloadUiState.Idle, onStart = {}, onCancel = {})
+    }
 }
 
 @Preview(name = "Listing", showBackground = true, widthDp = 390, heightDp = 500)
 @Composable
 private fun DownloadScreenListingPreview() {
-    DownloadScreen(
-        state = DownloadUiState.Running(
-            stage = "Listing photos (12)…",
-            fileName = null,
-            overallFraction = null
-        ),
-        onStart = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        DownloadScreen(
+            state = DownloadUiState.Running(
+                stage = "Listing photos (12)…",
+                fileName = null,
+                overallFraction = null
+            ),
+            onStart = {},
+            onCancel = {}
+        )
+    }
 }
 
 @Preview(name = "Downloading", showBackground = true, widthDp = 390, heightDp = 500)
 @Composable
 private fun DownloadScreenDownloadingPreview() {
-    DownloadScreen(
-        state = DownloadUiState.Running(
-            stage = "Downloading 2 of 5",
-            fileName = "DSC00042.JPG",
-            overallFraction = 0.4f
-        ),
-        onStart = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        DownloadScreen(
+            state = DownloadUiState.Running(
+                stage = "Downloading 2 of 5",
+                fileName = "DSC00042.JPG",
+                overallFraction = 0.4f
+            ),
+            onStart = {},
+            onCancel = {}
+        )
+    }
 }
 
 @Preview(name = "Finished", showBackground = true, widthDp = 390, heightDp = 500)
 @Composable
 private fun DownloadScreenFinishedPreview() {
-    DownloadScreen(state = DownloadUiState.Finished(saved = 5, skipped = 0), onStart = {}, onCancel = {})
+    BluetoothRemoteForSonyCamerasTheme {
+        DownloadScreen(state = DownloadUiState.Finished(saved = 5, skipped = 0), onStart = {}, onCancel = {})
+    }
 }
 
 /** Some items offered only a preview, not full quality — reported, not silently dropped. */
 @Preview(name = "Finished with skips", showBackground = true, widthDp = 390, heightDp = 500)
 @Composable
 private fun DownloadScreenFinishedWithSkipsPreview() {
-    DownloadScreen(state = DownloadUiState.Finished(saved = 3, skipped = 2), onStart = {}, onCancel = {})
+    BluetoothRemoteForSonyCamerasTheme {
+        DownloadScreen(state = DownloadUiState.Finished(saved = 3, skipped = 2), onStart = {}, onCancel = {})
+    }
 }
 
 @Preview(name = "Failed", showBackground = true, widthDp = 390, heightDp = 500)
 @Composable
 private fun DownloadScreenFailedPreview() {
-    DownloadScreen(
-        state = DownloadUiState.Failed("The camera reported it was busy (503)."),
-        onStart = {},
-        onCancel = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        DownloadScreen(
+            state = DownloadUiState.Failed("The camera reported it was busy (503)."),
+            onStart = {},
+            onCancel = {}
+        )
+    }
 }

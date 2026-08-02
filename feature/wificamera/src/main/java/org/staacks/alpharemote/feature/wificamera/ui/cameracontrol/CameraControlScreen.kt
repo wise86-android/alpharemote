@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.JsonPrimitive
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.feature.wificamera.domain.BatteryInfo
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSetting
@@ -27,7 +29,6 @@ import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
 import org.staacks.alpharemote.feature.wificamera.domain.CameraStatus
 import org.staacks.alpharemote.feature.wificamera.domain.StorageInfo
 import org.staacks.alpharemote.feature.wificamera.ui.liveview.LiveViewPlaceholder
-import org.staacks.alpharemote.feature.wificamera.ui.theme.CameraColors
 
 /**
  * The camera back: live view behind a HUD, values along the bottom.
@@ -57,7 +58,7 @@ fun CameraControlScreen(
 ) {
     var editing by remember { mutableStateOf<CameraSettingId?>(null) }
 
-    Box(modifier.fillMaxSize().background(CameraColors.Background)) {
+    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Box(Modifier.fillMaxSize()) { liveView() }
 
         StatusBar(
@@ -76,7 +77,7 @@ fun CameraControlScreen(
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, CameraColors.SurfaceElevated)
+                            listOf(Color.Transparent, MaterialTheme.colorScheme.surfaceContainerHigh)
                         )
                     )
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -156,14 +157,16 @@ private val previewConnectedCamera = CameraSnapshot(
 @Preview(name = "Connected", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun CameraControlScreenPreview() {
-    CameraControlScreen(
-        camera = previewConnectedCamera,
-        cameraName = "ILCE-6600",
-        onSelect = { _, _ -> },
-        onFocus = {},
-        onShoot = {},
-        onCancelFocus = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        CameraControlScreen(
+            camera = previewConnectedCamera,
+            cameraName = "ILCE-6600",
+            onSelect = { _, _ -> },
+            onFocus = {},
+            onShoot = {},
+            onCancelFocus = {}
+        )
+    }
 }
 
 /**
@@ -173,12 +176,14 @@ private fun CameraControlScreenPreview() {
 @Preview(name = "Nothing reported yet", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun CameraControlScreenEmptyPreview() {
-    CameraControlScreen(
-        camera = CameraSnapshot(),
-        cameraName = "ILCE-6600",
-        onSelect = { _, _ -> },
-        onFocus = {},
-        onShoot = {},
-        onCancelFocus = {}
-    )
+    BluetoothRemoteForSonyCamerasTheme {
+        CameraControlScreen(
+            camera = CameraSnapshot(),
+            cameraName = "ILCE-6600",
+            onSelect = { _, _ -> },
+            onFocus = {},
+            onShoot = {},
+            onCancelFocus = {}
+        )
+    }
 }
