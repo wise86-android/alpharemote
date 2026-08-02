@@ -43,6 +43,8 @@ fun CameraScreen(
     if (!uiState.connected) {
         DisconnectedCameraView(
             remoteDisabled = uiState.remoteDisabled,
+            connectedAt = uiState.remoteDisabledConnectedAt,
+            lastLocationSync = uiState.remoteDisabledLastLocationSync,
             onGotoSettings = onGotoSettings,
             onGotoWifiCamera = onGotoWifiCamera,
         )

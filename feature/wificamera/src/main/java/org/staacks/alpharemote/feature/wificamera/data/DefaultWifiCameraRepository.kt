@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -142,15 +141,46 @@ class DefaultWifiCameraRepository private constructor(
 
         _connection.value = WifiCameraConnection.JoiningWifi
         try {
-            // Rejoin after a drop rather than giving up. Changing the function on the camera —
-            // remote shooting to Send to Smartphone and back — restarts its access point, and
-            // that is the moment the user most expects the app to follow (PROTOCOL.md §4.2).
+            var rejoinAttempts = 0
             while (currentCoroutineContext().isActive) {
-                if (attemptSession(credentials)) {
-                    delay(RECONNECT_DELAY_MS)
-                    _connection.value = WifiCameraConnection.JoiningWifi
-                } else {
-                    return
+                // Bounded by REJOIN_TIMEOUT_MS: a request that never gets satisfied (camera
+                // truly off, not mid-restart) otherwise waits forever, since
+                // ConnectivityManager.requestNetwork without an explicit timeout never calls
+                // onUnavailable on its own.
+                val everJoined = withTimeoutOrNull(REJOIN_TIMEOUT_MS) { attemptSession(credentials) }
+
+                when (everJoined) {
+                    // Never joined at all this attempt; attemptSession already reported why.
+                    false -> return
+
+                    true -> {
+                        // Rejoin after a drop rather than giving up immediately — changing the
+                        // camera's function (remote shooting to Send to Smartphone and back)
+                        // restarts its access point, and that is the moment the user most expects
+                        // the app to follow (PROTOCOL.md §4.2). Bounded, though: the exact same
+                        // "access point gone" signal is also what a camera simply being switched
+                        // off looks like, and that should not retry forever in the background —
+                        // it should give up and go back to the idle screen.
+                        rejoinAttempts++
+                        if (rejoinAttempts >= MAX_REJOIN_ATTEMPTS) {
+                            Log.i(
+                                TAG,
+                                "Camera's Wi-Fi did not come back after $rejoinAttempts attempts, giving up"
+                            )
+                            _connection.value = WifiCameraConnection.Idle
+                            return
+                        }
+                        delay(RECONNECT_DELAY_MS)
+                        _connection.value = WifiCameraConnection.JoiningWifi
+                    }
+
+                    // Timed out mid-rejoin without even hearing back that the access point could
+                    // not be found — most likely the camera is off, not mid-restart.
+                    null -> {
+                        Log.i(TAG, "Timed out waiting for the camera's Wi-Fi to come back")
+                        _connection.value = WifiCameraConnection.Idle
+                        return
+                    }
                 }
             }
         } catch (cancellation: CancellationException) {
@@ -175,26 +205,39 @@ class DefaultWifiCameraRepository private constructor(
     private suspend fun attemptSession(credentials: WifiCredentials): Boolean {
         var everJoined = false
 
-        cameraNetwork.connect(credentials)
-            // Ends the collection on the first loss after a successful join, which releases the
-            // request so the next attempt can register a fresh one — a lost WifiNetworkSpecifier
-            // request is not re-satisfied on its own.
-            .takeWhile { network -> network != null || !everJoined }
-            .collectLatest { network ->
+        try {
+            cameraNetwork.connect(credentials).collectLatest { network ->
                 session = null
                 _camera.value = CameraSnapshot()
 
                 if (network == null) {
-                    _connection.value =
-                        WifiCameraConnection.Failed(FailureReason.WIFI_JOIN_FAILED)
-                    return@collectLatest
+                    if (!everJoined) {
+                        _connection.value =
+                            WifiCameraConnection.Failed(FailureReason.WIFI_JOIN_FAILED)
+                        return@collectLatest
+                    }
+                    // The access point was joined and is now gone. Ending the attempt here, by
+                    // throwing, is what actually stops runOnNetwork/pollEvents: collectLatest
+                    // only cancels the *previous* action when a *new* value arrives. A `takeWhile`
+                    // used to filter this exact value out instead, so the flow simply completed
+                    // on its own — which collectLatest does not treat as a reason to cancel
+                    // anything, so the in-flight action (pollEvents) just kept retrying `getEvent`
+                    // against a network the OS had already torn down, flooding the log with
+                    // "Binding socket to network ... failed: EPERM" until the process died.
+                    throw AccessPointLostException()
                 }
                 everJoined = true
                 runOnNetwork(network)
             }
+        } catch (_: AccessPointLostException) {
+            // Expected control flow, see above.
+        }
 
         return everJoined
     }
+
+    /** Thrown from inside [attemptSession]'s collector solely to unwind out of it promptly. */
+    private class AccessPointLostException : CancellationException("Camera access point lost")
 
     private suspend fun runOnNetwork(network: Network) {
         val http = NetworkHttpClient(network)
@@ -729,6 +772,18 @@ class DefaultWifiCameraRepository private constructor(
 
         /** Pause before re-issuing the network request after the camera's access point drops. */
         private const val RECONNECT_DELAY_MS = 2_000L
+
+        /**
+         * How long to wait for a dropped access point to come back before giving up on that
+         * attempt. A restart for a mode switch (PROTOCOL.md §4.2) resolves in a few seconds; a
+         * camera that was simply switched off never resolves at all, since
+         * ConnectivityManager.requestNetwork without an explicit timeout never calls
+         * onUnavailable on its own.
+         */
+        private const val REJOIN_TIMEOUT_MS = 20_000L
+
+        /** Consecutive drop-and-rejoin cycles tolerated before giving up and going back to idle. */
+        private const val MAX_REJOIN_ATTEMPTS = 3
 
         /** Long-poll rounds to wait out an exposure before giving up on it. */
         private const val AWAIT_CAPTURE_ATTEMPTS = 5

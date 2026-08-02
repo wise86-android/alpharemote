@@ -47,6 +47,19 @@
         android:maxLines="1"
         />
 
+    <TextView
+        android:id="@+id/status_detail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="2dp"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/status_name"
+        android:layout_alignEnd="@id/status_recording"
+        android:textSize="@dimen/notification_status_name_size"
+        android:maxLines="1"
+        android:visibility="gone"
+        />
+
     <LinearLayout
         android:id="@+id/action_buttons"
         android:layout_marginStart="4dp"

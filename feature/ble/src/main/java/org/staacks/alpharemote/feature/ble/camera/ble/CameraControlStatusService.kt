@@ -52,7 +52,10 @@ class CameraControlStatusService : BleServiceManager {
             return
         }
         statusCharacteristic = status
-        scope.launch { bleCommandQueue.subscribe(status) }
+        scope.launch {
+            val result = bleCommandQueue.subscribe(status)
+            Log.d(TAG, "Subscribed to CC09 (${status.uuid}): status=$result")
+        }
     }
 
     override fun onDisconnect() {
@@ -65,10 +68,14 @@ class CameraControlStatusService : BleServiceManager {
         newValue: ByteArray
     ) {
         if (characteristic.uuid != statusCharacteristic?.uuid) return
-        CameraControlStatusParsing.remoteControlAvailable(newValue)?.let {
-            _remoteControlAvailable.value = it
+        val parsed = CameraControlStatusParsing.remoteControlAvailable(newValue)
+        Log.d(TAG, "CC09 notification: raw=${newValue.toHexString()} remoteControlAvailable=$parsed")
+        if (parsed != null) {
+            _remoteControlAvailable.value = parsed
         }
     }
+
+    private fun ByteArray.toHexString(): String = joinToString(" ") { "%02x".format(it) }
 
     private fun BluetoothGattService.characteristicByUuidPrefix(
         prefix: String

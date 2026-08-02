@@ -2,8 +2,10 @@
     <string name="app_name">α-Remote</string>
     <string name="title_settings">Settings</string>
     <string name="camera_not_connected">No camera connected.\n\nPlease turn on your camera or check the connection in the settings tab.</string>
-    <string name="camera_remote_disabled">Bluetooth remote control is turned off on this camera, so only its position is being kept in sync.\n\nUse Wi-Fi remote control instead — it turns on the camera\'s Wi-Fi automatically over Bluetooth.</string>
+    <string name="camera_remote_disabled">Bluetooth remote control is turned off on this camera.\n\nUse Wi-Fi remote control instead — it turns on the camera\'s Wi-Fi automatically over Bluetooth.</string>
     <string name="camera_remote_disabled_wifi_button">Wi-Fi remote control</string>
+    <string name="camera_remote_disabled_connected_at">Connected at %1$s</string>
+    <string name="camera_remote_disabled_last_sync">Last position sync at %1$s</string>
     <string name="camera_button_half_shutter">Focus</string>
     <string name="camera_button_shutter">Shutter</string>
     <string name="camera_button_record">Record</string>

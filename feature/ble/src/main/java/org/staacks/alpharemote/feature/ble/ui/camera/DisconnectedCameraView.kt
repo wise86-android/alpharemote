@@ -2,6 +2,7 @@ package org.staacks.alpharemote.feature.ble.ui.camera
 import org.staacks.alpharemote.feature.ble.R
 
 import android.content.res.Configuration
+import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,16 +17,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import java.util.Date
 
 /**
  * Shown in place of the remote whenever there is no button-press control available: either no
@@ -37,9 +41,12 @@ import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 @Composable
 fun DisconnectedCameraView(
     remoteDisabled: Boolean = false,
+    connectedAt: Date? = null,
+    lastLocationSync: Date? = null,
     onGotoSettings: () -> Unit,
     onGotoWifiCamera: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -56,6 +63,25 @@ fun DisconnectedCameraView(
                 ),
                 modifier = Modifier.width(400.dp),
             )
+            if (remoteDisabled && connectedAt != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(
+                        R.string.camera_remote_disabled_connected_at,
+                        DateFormat.getTimeFormat(context).format(connectedAt)
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (lastLocationSync != null) {
+                    Text(
+                        text = stringResource(
+                            R.string.camera_remote_disabled_last_sync,
+                            DateFormat.getTimeFormat(context).format(lastLocationSync)
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(30.dp))
             if (remoteDisabled) {
                 TextButton(onClick = onGotoWifiCamera) {
@@ -98,7 +124,13 @@ private fun DisconnectedCameraViewDarkPreview() {
 private fun DisconnectedCameraViewRemoteDisabledPreview() {
     BluetoothRemoteForSonyCamerasTheme {
         Surface {
-            DisconnectedCameraView(remoteDisabled = true, onGotoSettings = {}, onGotoWifiCamera = {})
+            DisconnectedCameraView(
+                remoteDisabled = true,
+                connectedAt = Date(),
+                lastLocationSync = Date(),
+                onGotoSettings = {},
+                onGotoWifiCamera = {},
+            )
         }
     }
 }

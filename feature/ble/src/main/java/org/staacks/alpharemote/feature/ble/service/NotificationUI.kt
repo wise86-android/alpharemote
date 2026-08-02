@@ -28,6 +28,8 @@ import kotlinx.coroutines.launch
 import org.staacks.alpharemote.feature.ble.camera.FocusState
 import org.staacks.alpharemote.feature.ble.camera.ShutterState
 import java.io.Serializable
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.timerTask
@@ -55,6 +57,10 @@ class NotificationUI(private val context: Context) {
 
     private val appearanceSettings = AppearanceSettings(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    // Includes seconds, unlike the locale time format used elsewhere in the app - the
+    // notification is the one place the user asked to see sync timing at that resolution.
+    private val lastSyncTimeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     fun start(): Notification {
         scope.launch {
@@ -193,14 +199,31 @@ class NotificationUI(private val context: Context) {
                     // The camera's own "Bluetooth remote control" setting is off, so no button
                     // press would do anything — only location sync (if enabled) is active. Hide
                     // the buttons rather than showing them disabled, which would suggest they
-                    // might start working again on their own.
+                    // might start working again on their own. Same for the focus/shutter/
+                    // recording status icons: there is no live status to show, and leaving them
+                    // visible at their default (unset) tint just looks like stray clutter.
                     remoteViews.setTextViewText(
                         R.id.status_name,
                         context.getText(R.string.status_syncing_position)
                     )
+                    if (state.lastLocationSync != null) {
+                        remoteViews.setTextViewText(
+                            R.id.status_detail,
+                            context.getString(
+                                R.string.camera_remote_disabled_last_sync,
+                                lastSyncTimeFormat.format(state.lastLocationSync)
+                            )
+                        )
+                        remoteViews.setViewVisibility(R.id.status_detail, View.VISIBLE)
+                    } else {
+                        remoteViews.setViewVisibility(R.id.status_detail, View.GONE)
+                    }
                     buttonIDs.forEach { buttonID ->
                         remoteViews.setViewVisibility(buttonID, View.GONE)
                     }
+                    remoteViews.setViewVisibility(R.id.status_focus, View.GONE)
+                    remoteViews.setViewVisibility(R.id.status_shutter, View.GONE)
+                    remoteViews.setViewVisibility(R.id.status_recording, View.GONE)
                 }
 
                 else -> {

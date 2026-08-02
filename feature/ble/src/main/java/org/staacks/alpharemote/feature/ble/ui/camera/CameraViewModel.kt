@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import org.staacks.alpharemote.feature.ble.camera.CameraState
 import org.staacks.alpharemote.feature.ble.camera.CameraAction
 import org.staacks.alpharemote.feature.ble.data.AppearanceSettings
+import java.util.Date
 
 
 class CameraViewModel(application: Application) : AndroidViewModel(application) {
@@ -32,6 +33,8 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     data class CameraUIState (
         val connected: Boolean = false,
         val remoteDisabled: Boolean = false,
+        val remoteDisabledConnectedAt: Date? = null,
+        val remoteDisabledLastLocationSync: Date? = null,
         val cameraState: CameraState.Connected.Ready? = null,
     )
 
@@ -65,11 +68,14 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             repository.cameraState.collectLatest { state ->
                 val readyState = state as? CameraState.Connected.Ready
+                val remoteDisabledState = state as? CameraState.Connected.RemoteDisabled
                 _uiState.update {
                     it.copy(
                         cameraState = readyState,
                         connected = readyState != null,
-                        remoteDisabled = state is CameraState.Connected.RemoteDisabled
+                        remoteDisabled = remoteDisabledState != null,
+                        remoteDisabledConnectedAt = remoteDisabledState?.connectedAt,
+                        remoteDisabledLastLocationSync = remoteDisabledState?.lastLocationSync,
                     )
                 }
             }

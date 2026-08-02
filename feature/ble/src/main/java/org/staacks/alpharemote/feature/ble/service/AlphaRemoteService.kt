@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -45,6 +46,7 @@ import org.staacks.alpharemote.core.ble.CameraBleConnection
 import org.staacks.alpharemote.core.ble.GenericAccessService
 import org.staacks.alpharemote.feature.ble.utils.hasBluetoothPermission
 import org.staacks.alpharemote.feature.ble.utils.hasLocationPermission
+import java.util.Date
 import java.util.LinkedList
 
 class AlphaRemoteService : Service() {
@@ -68,11 +70,21 @@ class AlphaRemoteService : Service() {
     // class still needs a direct reference to, for sendCameraActionStep.
     private var remoteControlService: RemoteControlService? = null
 
+    // When the current BLE connection was established - surfaced in CameraState.Connected.RemoteDisabled
+    // so the UI can tell the user something useful is still happening even without button control.
+    private var connectedAt: Date? = null
+
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Disconnected)
     val cameraState = _cameraState.asStateFlow()
 
     companion object {
         private val TAG = AlphaRemoteService::class.java.name
+
+        // How long to wait after connecting for CC09 to answer before probing instead - long
+        // enough for a normal service-discovery-and-subscribe round trip (a few hundred ms in
+        // practice), short enough that the user isn't left staring at the wrong screen for long
+        // on a camera that never sends CC09 at all.
+        private const val REMOTE_AVAILABILITY_PROBE_DELAY_MS = 2000L
 
         const val BUTTON_INTENT_ACTION = "NOTIFICATION_BUTTON"
         const val BUTTON_INTENT_CAMERA_ACTION_EXTRA = "camera_action"
@@ -150,6 +162,7 @@ class AlphaRemoteService : Service() {
     private fun onConnect() {
         Log.d(TAG, "onConnect")
         hasConnectedDevice = true
+        connectedAt = Date()
     }
 
     private fun foregroundServiceTypes(): Int {
@@ -172,6 +185,7 @@ class AlphaRemoteService : Service() {
         // and create a fresh instance on the next connection.
         notificationUI = null
         remoteControlService = null
+        connectedAt = null
         // Cancel only the collectors of this connection. While the service is bound (e.g. by
         // AlphaRemoteRepository) it survives stopSelf() and onCreate will not run again, so the
         // service-lifetime collectors launched there must stay active for the next connection.
@@ -233,15 +247,28 @@ class AlphaRemoteService : Service() {
             return
         }
 
-        cancelPendingActionSteps()
-
         // The service was started with startForegroundService, which requires startForeground
-        // to be called within a few seconds. Bonding and connecting to the camera can take much
-        // longer (especially on first pairing), so go foreground immediately with a
-        // "connecting" notification instead of waiting for the GATT connection.
+        // to be called within a few seconds - unconditionally, regardless of what happens below.
+        // A duplicate presence event for the same appearance (see the active-connection check
+        // below) still goes through this same DEVICE_CONNECT/startForegroundService path, and
+        // skipping startForeground for it leaves that particular startForegroundService() call
+        // unsatisfied, which Android eventually kills the whole process for.
         createNotificationUI().let {
             startForeground(it.notificationId, it.start(), foregroundServiceTypes())
         }
+
+        // Android can report the same physical appearance as more than one presence event
+        // (e.g. EVENT_BLE_APPEARED followed by EVENT_BT_CONNECTED), each triggering its own
+        // connect intent. CameraBleConnection.connect() itself is a no-op in that case, but
+        // without this check we'd still have already built a fresh set of per-connection
+        // managers and pointed remoteControlService/collectCameraBleUpdates at them - orphaning
+        // the ones actually wired to the live GATT connection. Bail out before doing any of that.
+        if (CameraBleConnection.hasActiveConnection) {
+            Log.w(TAG, "doConnectAction ignored — a connection is already active.")
+            return
+        }
+
+        cancelPendingActionSteps()
 
         // Fresh per connection, same as CameraBLE itself: reused instances would carry state
         // (e.g. GenericAccessService's last-known device name) across a reconnect to a possibly
@@ -252,13 +279,13 @@ class AlphaRemoteService : Service() {
         val cameraControlStatusService = CameraControlStatusService()
         remoteControlService = newRemoteControlService
 
-        collectCameraBleUpdates(
-            genericAccessService,
-            newRemoteControlService,
-            locationService,
-            cameraControlStatusService
-        )
-
+        // connect() first, collectCameraBleUpdates() after: the latter subscribes to
+        // CameraBleConnection.state, and a fresh subscriber always gets replayed whatever the
+        // current value already is. Subscribing before connect() means that replay is always the
+        // leftover Disconnected from before this attempt even started, which used to immediately
+        // fire onDisconnect() and cancel connectionJob - tearing down the very collectors (device
+        // name, remote-control status, ...) that this connection attempt just set up, within
+        // milliseconds of creating them. See collectCameraBleUpdates for the other half of this.
         @SuppressLint("MissingPermission")
         val started = CameraBleConnection.connect(
             this,
@@ -267,7 +294,15 @@ class AlphaRemoteService : Service() {
         )
         if (!started) {
             Log.w(TAG, "onDeviceAppeared ignored — a connection is already active.")
+            return
         }
+
+        collectCameraBleUpdates(
+            genericAccessService,
+            newRemoteControlService,
+            locationService,
+            cameraControlStatusService
+        )
     }
 
     private fun createNotificationUI(): NotificationUI {
@@ -293,13 +328,16 @@ class AlphaRemoteService : Service() {
         val connectionScope =
             CoroutineScope(Dispatchers.IO + SupervisorJob(job).also { connectionJob = it })
 
-        CameraBleConnection.state.onEach {
-            Log.d(TAG, "Connection state: $it")
-            when (it) {
-                BleConnectionState.Connected -> onConnect()
-                BleConnectionState.Disconnected -> onDisconnect()
-                else -> {}
-            }
+        // See observeConnectionTransitions's doc comment: connect() runs before this is called
+        // (doConnectAction), so the transition-dropping there is what stops this connection
+        // attempt's own collectors from being torn down by the stale value a fresh subscription
+        // would otherwise be replayed.
+        observeConnectionTransitions(
+            CameraBleConnection.state,
+            onConnected = ::onConnect,
+            onDisconnected = ::onDisconnect,
+            onEachTransition = { Log.d(TAG, "Connection state: $it") },
+        ).onEach {
             notificationUI?.onCameraConnectionUpdate(it)
         }.launchIn(connectionScope)
 
@@ -334,7 +372,12 @@ class AlphaRemoteService : Service() {
         // camera knows, rather than only discovered reactively from a failed command write below.
         cameraControlStatusService.remoteControlAvailable.onEach { available ->
             when (available) {
-                false -> _cameraState.update { CameraState.Connected.RemoteDisabled }
+                false -> _cameraState.update {
+                    CameraState.Connected.RemoteDisabled(
+                        connectedAt = connectedAt ?: Date(),
+                        lastLocationSync = (it as? CameraState.Connected.RemoteDisabled)?.lastLocationSync
+                    )
+                }
                 true -> _cameraState.update {
                     if (it is CameraState.Connected.RemoteDisabled) {
                         val status = remoteControlService.deviceStatus.value
@@ -361,14 +404,13 @@ class AlphaRemoteService : Service() {
                         recording = newStatus.isRecording
                     )
 
-                    is CameraState.Connected.RemoteDisabled ->
-                        CameraState.Connected.Ready(
-                            genericAccessService.deviceName.value,
-                            CameraBleConnection.deviceAddress.orEmpty(),
-                            focus = newStatus.focus,
-                            shutter = newStatus.shutter,
-                            recording = newStatus.isRecording,
-                        )
+                    // Recovery out of RemoteDisabled is CC09's job now (the collector above) — a
+                    // camera can still send a status notification even with its own "Bluetooth
+                    // remote control" setting off, and flipping back to Ready on any one of those
+                    // (as this used to, from when status notifications were the only signal
+                    // available) would show the broken remote screen again regardless of what
+                    // CC09 is actually reporting.
+                    is CameraState.Connected.RemoteDisabled -> it
 
                     else -> it
                 }
@@ -382,9 +424,37 @@ class AlphaRemoteService : Service() {
         remoteControlService.commandStatus.onEach { newStatus ->
             if (newStatus == RemoteControlService.CommandStatus.Fail) {
                 //The command failed. This is very likely a properly bonded camera with BLE remote setting disabled
-                _cameraState.emit(CameraState.Connected.RemoteDisabled)
+                _cameraState.update {
+                    CameraState.Connected.RemoteDisabled(
+                        connectedAt = connectedAt ?: Date(),
+                        lastLocationSync = (it as? CameraState.Connected.RemoteDisabled)?.lastLocationSync
+                    )
+                }
             }
         }.launchIn(connectionScope)
+
+        // Mirrors LocationService's own last-sync timestamp into RemoteDisabled so the UI can
+        // show the user that position sync is still happening even without button control.
+        locationService.lastSyncTimestamp.onEach { timestamp ->
+            if (timestamp != null) {
+                _cameraState.update {
+                    if (it is CameraState.Connected.RemoteDisabled) it.copy(lastLocationSync = timestamp) else it
+                }
+            }
+        }.launchIn(connectionScope)
+
+        // Auto-probe: on a camera that doesn't expose CC09 at all (so the collector above can
+        // never resolve), the commandStatus fallback above only ever fires once the user presses
+        // a real button. Send one harmless command ourselves a couple seconds after connecting -
+        // releasing a button that isn't pressed is already how cancelPendingActionSteps() cleans
+        // up, and a no-op on a camera with the remote enabled - purely to force that fallback to
+        // resolve without requiring a button press. Skipped entirely once CC09 has answered.
+        connectionScope.launch {
+            delay(REMOTE_AVAILABILITY_PROBE_DELAY_MS)
+            if (cameraControlStatusService.remoteControlAvailable.value == null) {
+                sendCameraActionStep(CAButton(pressed = false, button = ButtonCode.SHUTTER_HALF))
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

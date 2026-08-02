@@ -1,5 +1,7 @@
 package org.staacks.alpharemote.feature.ble.camera
 
+import java.util.Date
+
 enum class FocusState {
     LOST,
     ACQUIRED,
@@ -16,7 +18,10 @@ sealed class CameraState {
     object NotBonded : CameraState()
 
     sealed class Connected : CameraState() {
-        object RemoteDisabled : Connected()
+        data class RemoteDisabled(
+            val connectedAt: Date,
+            val lastLocationSync: Date? = null,
+        ) : Connected()
         data class Ready(
             val name: String,
             val address: String,

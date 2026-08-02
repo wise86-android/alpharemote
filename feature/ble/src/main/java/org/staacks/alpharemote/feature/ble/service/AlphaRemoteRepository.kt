@@ -11,6 +11,7 @@ import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.location.LocationManager
 import android.os.IBinder
+import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,16 +45,19 @@ class AlphaRemoteRepository private constructor(private val context: Context) {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Log.d(TAG, "onServiceConnected: $name")
             val binder = service as AlphaRemoteService.LocalBinder
             boundService = binder.getService()
             scope.launch {
                 boundService?.cameraState?.collectLatest {
+                    Log.d(TAG, "cameraState update: $it")
                     _cameraState.value = it
                 }
             }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            Log.d(TAG, "onServiceDisconnected: $name")
             boundService = null
             _cameraState.value = CameraState.Disconnected
         }

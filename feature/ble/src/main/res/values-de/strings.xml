@@ -2,8 +2,10 @@
     <string name="app_name">α-Remote</string>
     <string name="title_settings">Einstellungen</string>
     <string name="camera_not_connected">Keine Kamera verbunden.\n\nBitte schalte die Kamera ein oder prüfe die Verbindung im Einstellungen-Tab.</string>
-    <string name="camera_remote_disabled">Die Bluetooth-Fernbedienung ist bei dieser Kamera ausgeschaltet, daher wird nur ihre Position synchronisiert.\n\nNutze stattdessen die WLAN-Fernbedienung — sie schaltet das WLAN der Kamera automatisch über Bluetooth ein.</string>
+    <string name="camera_remote_disabled">Die Bluetooth-Fernbedienung ist bei dieser Kamera ausgeschaltet.\n\nNutze stattdessen die WLAN-Fernbedienung — sie schaltet das WLAN der Kamera automatisch über Bluetooth ein.</string>
     <string name="camera_remote_disabled_wifi_button">WLAN-Fernbedienung</string>
+    <string name="camera_remote_disabled_connected_at">Verbunden um %1$s</string>
+    <string name="camera_remote_disabled_last_sync">Letzte Positionssynchronisierung um %1$s</string>
     <string name="camera_button_half_shutter">Fokus</string>
     <string name="camera_button_shutter">Auslöser</string>
     <string name="camera_button_record">Aufnahme</string>

@@ -40,6 +40,8 @@ class LocationService : BleServiceManager {
     private var locationGattService: BluetoothGattService? = null
     private val _status = MutableStateFlow(Status.Init)
     val status: StateFlow<Status> = _status.asStateFlow()
+    private val _lastSyncTimestamp = MutableStateFlow<Date?>(null)
+    val lastSyncTimestamp: StateFlow<Date?> = _lastSyncTimestamp.asStateFlow()
     private var payloadSettings: PayloadSettings? = null
 
 
@@ -62,6 +64,7 @@ class LocationService : BleServiceManager {
 
     override fun onDisconnect() {
         _status.update { Status.Init }
+        _lastSyncTimestamp.update { null }
         payloadSettings = null
         writeLocationCharacteristics = null
         locationGattService = null
@@ -150,6 +153,7 @@ class LocationService : BleServiceManager {
                             }
                         })
                 )
+                _lastSyncTimestamp.value = time
         }
     }
 

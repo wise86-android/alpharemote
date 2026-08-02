@@ -51,6 +51,16 @@ object CameraBleConnection {
         get() = _connection.value?.deviceAddress
 
     /**
+     * Whether a [CameraBLE] is currently owned (connecting, connected, or otherwise not yet
+     * released) — the same check [connect] itself uses to decide whether a request is a no-op.
+     * Callers that build per-connection state (fresh manager instances, collectors) before calling
+     * [connect] should check this first, so they don't clobber the state of an already-active
+     * connection with throwaway objects that never see a GATT callback.
+     */
+    val hasActiveConnection: Boolean
+        get() = _connection.value != null
+
+    /**
      * Attaches a manager for the rest of the process's life.
      *
      * Idempotent by reference — call it every time you are in a position to (e.g. from a
