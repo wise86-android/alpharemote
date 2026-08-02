@@ -47,6 +47,7 @@ android {
 
 dependencies {
 
+    implementation(project(":core:ble"))
     implementation(project(":feature:dof"))
     implementation(project(":feature:wificamera"))
 

@@ -31,6 +31,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     // StateFlow observers are notified.
     data class CameraUIState (
         val connected: Boolean = false,
+        val remoteDisabled: Boolean = false,
         val cameraState: CameraState.Connected.Ready? = null,
     )
 
@@ -67,7 +68,8 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
                 _uiState.update {
                     it.copy(
                         cameraState = readyState,
-                        connected = readyState != null
+                        connected = readyState != null,
+                        remoteDisabled = state is CameraState.Connected.RemoteDisabled
                     )
                 }
             }

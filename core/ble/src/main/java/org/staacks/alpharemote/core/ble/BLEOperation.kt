@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.camera.ble
+package org.staacks.alpharemote.core.ble
 
 import android.Manifest
 import android.bluetooth.BluetoothGatt
@@ -6,7 +6,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
+import org.staacks.alpharemote.core.ble.CameraBLE.Companion.TAG
 import java.util.UUID
 
 sealed interface BLEOperation{

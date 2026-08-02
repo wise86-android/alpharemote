@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.camera.ble
+package org.staacks.alpharemote.core.ble
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic

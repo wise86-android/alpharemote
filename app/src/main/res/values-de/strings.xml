@@ -7,6 +7,8 @@
     <string name="title_settings">Einstellungen</string>
 
     <string name="camera_not_connected">Keine Kamera verbunden.\n\nBitte schalte die Kamera ein oder prüfe die Verbindung im Einstellungen-Tab.</string>
+    <string name="camera_remote_disabled">Die Bluetooth-Fernbedienung ist bei dieser Kamera ausgeschaltet, daher wird nur ihre Position synchronisiert.\n\nNutze stattdessen die WLAN-Fernbedienung — sie schaltet das WLAN der Kamera automatisch über Bluetooth ein.</string>
+    <string name="camera_remote_disabled_wifi_button">WLAN-Fernbedienung</string>
 
     <string name="camera_button_half_shutter">Fokus</string>
     <string name="camera_button_shutter">Auslöser</string>
@@ -98,6 +100,7 @@
     <string name="status_offline">Offline</string>
     <string name="status_error">Fehler</string>
     <string name="status_connecting">Verbinde…</string>
+    <string name="status_syncing_position">Position wird synchronisiert…</string>
     <string name="status_focus">Status Fokus</string>
     <string name="status_shutter">Status Verschluss</string>
     <string name="status_recording">Status Aufnahme</string>

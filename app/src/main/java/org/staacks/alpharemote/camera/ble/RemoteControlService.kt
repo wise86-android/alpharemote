@@ -19,6 +19,10 @@ import org.staacks.alpharemote.camera.CameraActionStep
 import org.staacks.alpharemote.camera.FocusState
 import org.staacks.alpharemote.camera.JogCode
 import org.staacks.alpharemote.camera.ShutterState
+import org.staacks.alpharemote.core.ble.BleCommandQueue
+import org.staacks.alpharemote.core.ble.BleServiceManager
+import org.staacks.alpharemote.core.ble.SubscribeForUpdate
+import org.staacks.alpharemote.core.ble.Write
 import java.util.UUID
 import kotlin.text.toHexString
 

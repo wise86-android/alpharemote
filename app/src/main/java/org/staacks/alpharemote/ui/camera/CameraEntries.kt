@@ -20,6 +20,7 @@ fun EntryProviderScope<AlphaRemoteNavKey>.cameraEntries(
             uiState = uiState,
             customButtons = customButtons,
             onGotoSettings = { navigator.navigate(AlphaRemoteNavKey.Settings) },
+            onGotoWifiCamera = { navigator.navigate(AlphaRemoteNavKey.WifiCamera) },
             onHelp = {
                 navigator.navigate(
                     AlphaRemoteNavKey.Help(

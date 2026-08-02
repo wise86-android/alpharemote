@@ -19,6 +19,10 @@
          hardware unless a multicast lock is held. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
+    <!-- The BLE Wi-Fi handover (WifiHandover.activateWifi) reads and writes GATT
+         characteristics on the camera's core:ble connection. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <!-- The photo transfer runs as a foreground worker: it takes minutes and must outlive the
          screen, and keeping the process alive is what keeps the camera's network available. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

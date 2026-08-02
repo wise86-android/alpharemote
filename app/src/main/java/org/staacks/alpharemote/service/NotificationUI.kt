@@ -18,7 +18,7 @@ import org.staacks.alpharemote.MainActivity
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.camera.CameraAction
 import org.staacks.alpharemote.camera.CameraState
-import org.staacks.alpharemote.camera.ble.BleConnectionState
+import org.staacks.alpharemote.core.ble.BleConnectionState
 import org.staacks.alpharemote.data.AppearanceSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -188,6 +188,20 @@ class NotificationUI(private val context: Context) {
                         R.id.status_name,
                         context.getText(R.string.status_error).toString() + ": " + state.description
                     )
+                }
+
+                is CameraState.Connected.RemoteDisabled -> {
+                    // The camera's own "Bluetooth remote control" setting is off, so no button
+                    // press would do anything — only location sync (if enabled) is active. Hide
+                    // the buttons rather than showing them disabled, which would suggest they
+                    // might start working again on their own.
+                    remoteViews.setTextViewText(
+                        R.id.status_name,
+                        context.getText(R.string.status_syncing_position)
+                    )
+                    buttonIDs.forEach { buttonID ->
+                        remoteViews.setViewVisibility(buttonID, View.GONE)
+                    }
                 }
 
                 else -> {

@@ -1,11 +1,11 @@
-package org.staacks.alpharemote.camera.ble
+package org.staacks.alpharemote.core.ble
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 
 import android.util.Log
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.staacks.alpharemote.camera.CameraBLE.Companion.TAG
+import org.staacks.alpharemote.core.ble.CameraBLE.Companion.TAG
 import java.util.LinkedList
 import kotlin.coroutines.resume
 

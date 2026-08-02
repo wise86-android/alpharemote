@@ -1,7 +1,10 @@
 package org.staacks.alpharemote.feature.wificamera.ui
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Application
 import android.util.Log
+import androidx.core.content.PermissionChecker
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
@@ -33,6 +36,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.staacks.alpharemote.feature.wificamera.data.CameraCredentialsStore
 import org.staacks.alpharemote.feature.wificamera.data.DefaultWifiCameraRepository
+import org.staacks.alpharemote.feature.wificamera.data.ble.WifiHandover
+import org.staacks.alpharemote.feature.wificamera.data.ble.WifiHandoverAvailability
 import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSetting
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
@@ -144,12 +149,53 @@ class WifiCameraViewModel(application: Application) : AndroidViewModel(applicati
     val knownCamera: StateFlow<WifiCredentials?> = credentialsStore.credentials
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /**
+     * Whether a paired camera is reachable over BLE right now, for the "turn on camera Wi-Fi"
+     * prompt. A pass-through, not a `stateIn` copy: [WifiHandover] is already a process-wide
+     * singleton with its own [StateFlow], so wrapping it again would only add a second source of
+     * truth for the same value.
+     */
+    val bleAvailability: StateFlow<WifiHandoverAvailability> = WifiHandover.availability
+
+    /**
+     * Connects to the camera, preferring whichever source can give live credentials over one that
+     * can only replay what was seen before:
+     *
+     * 1. BLE handover, if a paired camera is connected right now — always fresh, needs no cache.
+     * 2. The credentials from the last successful connection (NFC tap or a previous handover).
+     * 3. Neither: prompt for an NFC tap, the only remaining way to learn a camera's credentials.
+     */
+    @SuppressLint("MissingPermission")
     fun connect() {
         viewModelScope.launch {
-            val credentials = credentialsStore.credentials.first()
+            // hasBluetoothConnectPermission is what makes the @RequiresPermission call below
+            // safe: BLE being available already implies the permission was granted once, but a
+            // user can revoke it at any time, including between that connection existing and this
+            // tap — the check is real, not just satisfying lint.
+            val bleCredentials = if (
+                bleAvailability.value == WifiHandoverAvailability.READY &&
+                hasBluetoothConnectPermission()
+            ) {
+                WifiHandover.activateWifi()
+                    .onFailure { error ->
+                        _messages.tryEmit(
+                            error.message ?: "Could not turn on the camera's Wi-Fi"
+                        )
+                    }
+                    .getOrNull()
+            } else {
+                null
+            }
+
+            val credentials = bleCredentials ?: credentialsStore.credentials.first()
             if (credentials == null) {
                 _messages.tryEmit("Touch your camera to the phone to set up the connection.")
                 return@launch
+            }
+
+            if (bleCredentials != null) {
+                // Cached so the next connection does not need BLE to be available too.
+                credentialsStore.save(bleCredentials)
             }
             repository.connect(credentials)
         }
@@ -261,6 +307,12 @@ class WifiCameraViewModel(application: Application) : AndroidViewModel(applicati
         }
         viewModelScope.launch { repository.cancelFocus() }
     }
+
+    private fun hasBluetoothConnectPermission(): Boolean =
+        PermissionChecker.checkSelfPermission(
+            getApplication(),
+            Manifest.permission.BLUETOOTH_CONNECT
+        ) == PermissionChecker.PERMISSION_GRANTED
 
     private companion object {
         const val TAG = "WifiCameraViewModel"

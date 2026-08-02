@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.camera
+package org.staacks.alpharemote.core.ble
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -7,8 +7,6 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
-import android.location.Location
-import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,14 +15,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import org.staacks.alpharemote.camera.ble.BleCommandQueue
-import org.staacks.alpharemote.camera.ble.BleConnectionState
-import org.staacks.alpharemote.camera.ble.ChangeMtu
-import org.staacks.alpharemote.camera.ble.GenericAccessService
-import org.staacks.alpharemote.camera.ble.LocationService
-import org.staacks.alpharemote.camera.ble.RemoteControlService
-import org.staacks.alpharemote.camera.ble.logAllCharacteristics
-import java.util.Date
 
 
 // Massive thanks to coral for the documentation of the camera's BLE protocol at
@@ -32,8 +22,18 @@ import java.util.Date
 // and to Greg Leeds at
 // https://gregleeds.com/reverse-engineering-sony-camera-bluetooth/
 
+/**
+ * Drives one camera's GATT connection: bonding, MTU negotiation, service discovery, and fanning
+ * callbacks out to whichever [BleServiceManager]s the caller registers.
+ *
+ * Deliberately knows nothing about what those managers do. The caller constructs its own service
+ * managers (Sony's remote-control service, location service, whatever a future feature needs),
+ * keeps its own references to read their state from, and hands the list here only so this class
+ * can dispatch connect/disconnect/characteristic-changed events to them.
+ */
 class CameraBLE(
-    private val device: BluetoothDevice
+    private val device: BluetoothDevice,
+    private val managedService: List<BleServiceManager>
 ) {
 
     private val _cameraConnectionState = MutableStateFlow(BleConnectionState.Idle)
@@ -46,21 +46,8 @@ class CameraBLE(
     // their suspend BLE operations.
     private var connectionScope: CoroutineScope? = null
 
-    private val genericAccessService = GenericAccessService()
-    private val remoteControlService = RemoteControlService()
-    private val locationService = LocationService()
-    private var managedService = listOf(
-        genericAccessService,locationService,remoteControlService
-    )
-
     val deviceAddress: String
         get() = device.address
-
-    val deviceName = genericAccessService.deviceName
-    val deviceStatus = remoteControlService.deviceStatus
-    val remoteCommandStatus = remoteControlService.commandStatus
-
-    val locationUpdateStatus = locationService.status
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
 
@@ -213,31 +200,14 @@ class CameraBLE(
         // In both cases this CameraBLE instance would linger and block future connection attempts.
         notifyDisconnect()
     }
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun executeCameraActionStep(action: CameraActionStep) {
-        Log.d(TAG, "executeCameraActionStep")
-        if (_cameraConnectionState.value !== BleConnectionState.Connected)
-            return
-        remoteControlService.sendCommand(action)
-    }
-
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    fun setCameraLocation(location: Location){
-        locationService.updateLocationAndTime(location, Date())
-    }
-
-    /**
-     * Runs the camera-side location-link enable sequence. Only call this when the user has opted
-     * in to location sync - the writes occupy the camera's location function, which on some models
-     * conflicts with the Bluetooth remote setting.
-     */
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-    suspend fun enableLocationSync() {
-        locationService.enableSync()
-    }
 
     companion object {
         const val TAG = "AlphaRemote-BLE"
-        const val PREFERRED_CONNECTION_MTU = 153
+
+        // One MTU for every attached service, since it is negotiated once for the whole GATT
+        // connection rather than per-service. 158 is what PROTOCOL.md §6 documents for the
+        // location/pairing/Wi-Fi-handover services; the remote-control service was previously
+        // tuned to 153, and a larger MTU only ever gives it more room, never less.
+        const val PREFERRED_CONNECTION_MTU = 158
     }
 }

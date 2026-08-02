@@ -8,6 +8,8 @@
     <string name="title_settings">Settings</string>
 
     <string name="camera_not_connected">No camera connected.\n\nPlease turn on your camera or check the connection in the settings tab.</string>
+    <string name="camera_remote_disabled">Bluetooth remote control is turned off on this camera, so only its position is being kept in sync.\n\nUse Wi-Fi remote control instead — it turns on the camera\'s Wi-Fi automatically over Bluetooth.</string>
+    <string name="camera_remote_disabled_wifi_button">Wi-Fi remote control</string>
 
     <string name="camera_button_half_shutter">Focus</string>
     <string name="camera_button_shutter">Shutter</string>
@@ -99,6 +101,7 @@
     <string name="status_offline">Offline</string>
     <string name="status_error">Error</string>
     <string name="status_connecting">Connecting…</string>
+    <string name="status_syncing_position">Syncing position…</string>
     <string name="status_focus">Focus status</string>
     <string name="status_shutter">Shutter status</string>
     <string name="status_recording">Recording status</string>

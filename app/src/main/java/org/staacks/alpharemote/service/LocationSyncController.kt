@@ -14,11 +14,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import org.staacks.alpharemote.camera.CameraBLE
 import org.staacks.alpharemote.camera.ble.LocationService
 import org.staacks.alpharemote.data.BehaviorSettings
 import org.staacks.alpharemote.utils.hasBluetoothPermission
 import org.staacks.alpharemote.utils.hasLocationPermission
+import java.util.Date
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -43,14 +43,14 @@ class LocationSyncController(private val context: Context) {
         .setMinUpdateIntervalMillis(10.seconds.inWholeMilliseconds)
         .build()
 
-    private var cameraBLE: CameraBLE? = null
+    private var locationService: LocationService? = null
 
     private val locationCallback: LocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val lastLocation = locationResult.lastLocation
             if (lastLocation !== null && hasBluetoothPermission(context))
                 @SuppressLint("MissingPermission")
-                cameraBLE?.setCameraLocation(lastLocation)
+                locationService?.updateLocationAndTime(lastLocation, Date())
         }
     }
 
@@ -58,11 +58,11 @@ class LocationSyncController(private val context: Context) {
      * Observes the location sync setting together with the camera readiness for the lifetime
      * of [scope] (the per-connection scope of the service).
      */
-    fun start(cameraBLE: CameraBLE, scope: CoroutineScope) {
-        this.cameraBLE = cameraBLE
+    fun start(locationService: LocationService, scope: CoroutineScope) {
+        this.locationService = locationService
         combine(
             behaviorSettings.updateCameraLocation,
-            cameraBLE.locationUpdateStatus
+            locationService.status
         ) { enabled, cameraStatus -> enabled to cameraStatus }
             .onEach { (enabled, cameraStatus) ->
                 when {
@@ -71,7 +71,7 @@ class LocationSyncController(private val context: Context) {
                     cameraStatus == LocationService.Status.CameraReady ->
                         if (hasBluetoothPermission(context)) {
                             @SuppressLint("MissingPermission")
-                            cameraBLE.enableLocationSync()
+                            locationService.enableSync()
                         }
 
                     cameraStatus == LocationService.Status.LocationUpdateEnabled ->
@@ -84,7 +84,7 @@ class LocationSyncController(private val context: Context) {
 
     fun stop() {
         stopLocationUpdates()
-        cameraBLE = null
+        locationService = null
     }
 
     private fun startLocationUpdates() {

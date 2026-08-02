@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,8 +27,19 @@ import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
+/**
+ * Shown in place of the remote whenever there is no button-press control available: either no
+ * camera is connected at all, or [remoteDisabled] — the camera is bonded and reachable over
+ * Bluetooth (position sync may be running) but its own "Bluetooth remote control" setting is
+ * off, so no button press would do anything. In that case this advertises the Wi-Fi remote
+ * instead, which still uses the Bluetooth connection to hand over the camera's Wi-Fi credentials.
+ */
 @Composable
-fun DisconnectedCameraView(onGotoSettings: () -> Unit) {
+fun DisconnectedCameraView(
+    remoteDisabled: Boolean = false,
+    onGotoSettings: () -> Unit,
+    onGotoWifiCamera: () -> Unit = {},
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -39,14 +51,24 @@ fun DisconnectedCameraView(onGotoSettings: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.camera_not_connected),
+                text = stringResource(
+                    if (remoteDisabled) R.string.camera_remote_disabled else R.string.camera_not_connected
+                ),
                 modifier = Modifier.width(400.dp),
             )
             Spacer(modifier = Modifier.height(30.dp))
-            TextButton(onClick = onGotoSettings) {
-                Icon(Icons.Default.Settings, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.title_settings))
+            if (remoteDisabled) {
+                TextButton(onClick = onGotoWifiCamera) {
+                    Icon(Icons.Default.Wifi, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.camera_remote_disabled_wifi_button))
+                }
+            } else {
+                TextButton(onClick = onGotoSettings) {
+                    Icon(Icons.Default.Settings, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.title_settings))
+                }
             }
         }
     }
@@ -67,6 +89,16 @@ private fun DisconnectedCameraViewDarkPreview() {
     BluetoothRemoteForSonyCamerasTheme {
         Surface {
             DisconnectedCameraView(onGotoSettings = {})
+        }
+    }
+}
+
+@Preview(name = "Remote disabled — syncing position", showBackground = true)
+@Composable
+private fun DisconnectedCameraViewRemoteDisabledPreview() {
+    BluetoothRemoteForSonyCamerasTheme {
+        Surface {
+            DisconnectedCameraView(remoteDisabled = true, onGotoSettings = {}, onGotoWifiCamera = {})
         }
     }
 }

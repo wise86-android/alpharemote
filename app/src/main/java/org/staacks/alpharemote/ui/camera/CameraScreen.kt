@@ -35,12 +35,17 @@ fun CameraScreen(
     uiState: CameraViewModel.CameraUIState,
     customButtons: List<CameraAction>,
     onGotoSettings: () -> Unit,
+    onGotoWifiCamera: () -> Unit,
     onHelp: () -> Unit,
     onDefaultRemoteTouch: (RemoteButton, Int) -> Boolean,
     onCustomButtonClick: (CameraAction) -> Unit,
 ) {
     if (!uiState.connected) {
-        DisconnectedCameraView(onGotoSettings = onGotoSettings)
+        DisconnectedCameraView(
+            remoteDisabled = uiState.remoteDisabled,
+            onGotoSettings = onGotoSettings,
+            onGotoWifiCamera = onGotoWifiCamera,
+        )
         return
     }
 
@@ -106,6 +111,7 @@ private fun CameraScreenPreview() {
                     CameraAction(false, null, CameraActionPreset.AF_ON),
                 ),
                 onGotoSettings = {},
+                onGotoWifiCamera = {},
                 onHelp = {},
                 onDefaultRemoteTouch = { _, _ -> true },
                 onCustomButtonClick = {},

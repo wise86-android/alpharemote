@@ -1,4 +1,4 @@
-package org.staacks.alpharemote.camera.ble
+package org.staacks.alpharemote.core.ble
 
 enum class BleConnectionState {
         Idle,
