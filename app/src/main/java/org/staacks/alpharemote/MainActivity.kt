@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             // Null when the tag turned out to carry no credentials; the UI then stays where it is
             // rather than jumping to a screen that can only report a failure.
-            WifiCameraNfc.handleTap(this@MainActivity, intent)?.let { tappedCamera = it }
+            WifiCameraNfc.handleTap(intent)?.let { tappedCamera = it }
         }
     }
 }

@@ -279,8 +279,16 @@ permission was granted once, but a user can revoke it at any time — including 
 connection existing and the tap that calls `connect()` — so the check is load-bearing, not just
 satisfying Lint. `feature:wificamera`'s manifest gained a `BLUETOOTH_CONNECT` declaration to match.
 
-`CameraCredentialsStore` has *not* yet been revisited per its own note (see below) — that is a
-reasonable candidate for a small follow-up once this has run against real hardware for a while.
+**Update:** `CameraCredentialsStore` has since been removed entirely, not just shrunk. `connect()`
+now only knows about BLE (`WifiHandover`); a fresh NFC tap is a separate, tap-driven path
+(`connectTo()`) that never touches a store. The real consequence, not just a cleanup: there is no
+longer any way to reconnect without either an active BLE-paired connection or a physical NFC tap —
+closing the app and reopening it with the camera out of BLE range now always needs a fresh tap,
+where before a cached credential would offer a "Connect" button. `ConnectionPanel` lost its
+"known camera" state and the "Forget this camera" affordance along with it (nothing left to
+forget). `DefaultWifiCameraRepository.discover()` also lost the `deviceDescriptionUrl` SSDP-skip
+hint the store used to supply — a minor speed optimization, not a capability; discovery still
+runs, just always via full SSDP now.
 
 ---
 

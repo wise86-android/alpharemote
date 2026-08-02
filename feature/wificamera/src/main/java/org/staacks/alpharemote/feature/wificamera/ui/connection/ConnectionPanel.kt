@@ -30,23 +30,21 @@ import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 import org.staacks.alpharemote.feature.wificamera.data.ble.WifiHandoverAvailability
 import org.staacks.alpharemote.feature.wificamera.domain.FailureReason
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
-import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 
 /**
  * What [WifiCameraScreenContent] shows in place of the camera back while there is no camera.
  *
  * [bleAvailability] is [WifiHandoverAvailability.READY] when a paired camera is reachable over
- * BLE right now — in that case [onConnect] will turn its Wi-Fi on itself, so the prompt is to ask
- * for that rather than to tap. It takes priority over [knownCamera] when both are true: BLE gives
- * fresh credentials without needing anything cached from an earlier tap.
+ * BLE right now — in that case [onConnect] turns its Wi-Fi on itself, so the prompt is to ask for
+ * that. Otherwise the only way in is a fresh NFC tap: there is no cached credential to fall back
+ * to, so the panel always either offers the live BLE handover or asks for a tap, never a "connect
+ * to what you tapped last time" button.
  */
 @Composable
 internal fun ConnectionPanel(
     connection: WifiCameraConnection,
-    knownCamera: WifiCredentials?,
     bleAvailability: WifiHandoverAvailability,
     onConnect: () -> Unit,
-    onForget: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Asking each time is harmless once granted, and keeps permission and connect in one gesture.
@@ -58,8 +56,6 @@ internal fun ConnectionPanel(
         connection is WifiCameraConnection.Discovering ||
         connection is WifiCameraConnection.Handshaking
     val bleReady = bleAvailability == WifiHandoverAvailability.READY
-    // Something to connect to, one way or another, once busy is ruled out.
-    val canConnect = bleReady || knownCamera != null
 
     Column(
         modifier = modifier.padding(32.dp),
@@ -79,19 +75,11 @@ internal fun ConnectionPanel(
                 modifier = Modifier.size(48.dp)
             )
 
-            // Nothing has been tapped yet, so the prompt is to tap rather than to connect.
-            knownCamera == null -> Icon(
+            else -> Icon(
                 imageVector = Icons.Filled.Nfc,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(48.dp)
-            )
-
-            else -> Icon(
-                imageVector = Icons.Filled.WifiOff,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(40.dp)
             )
         }
 
@@ -100,8 +88,7 @@ internal fun ConnectionPanel(
             text = when {
                 busy -> connection.headline()
                 bleReady -> "Camera detected nearby"
-                knownCamera == null -> "Touch your camera to the phone"
-                else -> connection.headline()
+                else -> "Touch your camera to the phone"
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground,
@@ -113,10 +100,9 @@ internal fun ConnectionPanel(
             ?: when {
                 bleReady -> "Connected over Bluetooth. Turn on its Wi-Fi to finish connecting — " +
                     "no tap needed."
-                knownCamera == null ->
+                else ->
                     "Enable NFC, then hold the phone against the N-Mark on the camera. It " +
                         "will hand over its Wi-Fi details and switch its own Wi-Fi on."
-                else -> knownCamera.ssid
             }
         Text(
             text = detail,
@@ -129,35 +115,18 @@ internal fun ConnectionPanel(
         when {
             busy -> TextButton(onClick = onConnect, enabled = false) { Text("Connecting…") }
 
-            !canConnect -> Unit
+            !bleReady -> Unit
 
-            else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Button(
-                    onClick = {
-                        permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Text(
-                        when {
-                            connection is WifiCameraConnection.Failed -> "Try again"
-                            bleReady -> "Turn on camera Wi-Fi"
-                            else -> "Connect"
-                        }
-                    )
-                }
-                if (knownCamera != null) {
-                    TextButton(onClick = onForget) {
-                        Text(
-                            "Forget this camera",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+            else -> Button(
+                onClick = {
+                    permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Text(if (connection is WifiCameraConnection.Failed) "Try again" else "Turn on camera Wi-Fi")
             }
         }
     }
@@ -181,33 +150,27 @@ private fun WifiCameraConnection.headline(): String = when (this) {
     }
 }
 
-private val previewCredentials = WifiCredentials(ssid = "DIRECT-abcd:ILCE-6600", password = "password")
-
 @Preview(name = "Nothing tapped yet", showBackground = true)
 @Composable
 private fun ConnectionPanelUnknownPreview() {
     BluetoothRemoteForSonyCamerasTheme {
         ConnectionPanel(
             connection = WifiCameraConnection.Idle,
-            knownCamera = null,
             bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-            onConnect = {},
-            onForget = {}
+            onConnect = {}
         )
     }
 }
 
-/** A paired camera is BLE-connected — takes priority over any stored credentials. */
+/** A paired camera is BLE-connected — the only state that offers a "Connect" button at all. */
 @Preview(name = "Camera detected over BLE", showBackground = true)
 @Composable
 private fun ConnectionPanelBleReadyPreview() {
     BluetoothRemoteForSonyCamerasTheme {
         ConnectionPanel(
             connection = WifiCameraConnection.Idle,
-            knownCamera = null,
             bleAvailability = WifiHandoverAvailability.READY,
-            onConnect = {},
-            onForget = {}
+            onConnect = {}
         )
     }
 }
@@ -218,29 +181,14 @@ private fun ConnectionPanelBusyPreview() {
     BluetoothRemoteForSonyCamerasTheme {
         ConnectionPanel(
             connection = WifiCameraConnection.JoiningWifi,
-            knownCamera = previewCredentials,
             bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-            onConnect = {},
-            onForget = {}
+            onConnect = {}
         )
     }
 }
 
-@Preview(name = "Known camera, disconnected", showBackground = true)
-@Composable
-private fun ConnectionPanelKnownPreview() {
-    BluetoothRemoteForSonyCamerasTheme {
-        ConnectionPanel(
-            connection = WifiCameraConnection.Idle,
-            knownCamera = previewCredentials,
-            bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-            onConnect = {},
-            onForget = {}
-        )
-    }
-}
-
-@Preview(name = "Failed", showBackground = true)
+/** No cached credentials to retry with — the only way forward is another tap. */
+@Preview(name = "Failed, no BLE", showBackground = true)
 @Composable
 private fun ConnectionPanelFailedPreview() {
     BluetoothRemoteForSonyCamerasTheme {
@@ -249,10 +197,23 @@ private fun ConnectionPanelFailedPreview() {
                 FailureReason.CAMERA_NOT_FOUND,
                 "No camera answered after 20 seconds."
             ),
-            knownCamera = previewCredentials,
             bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
-            onConnect = {},
-            onForget = {}
+            onConnect = {}
+        )
+    }
+}
+
+@Preview(name = "Failed, BLE ready", showBackground = true)
+@Composable
+private fun ConnectionPanelFailedBleReadyPreview() {
+    BluetoothRemoteForSonyCamerasTheme {
+        ConnectionPanel(
+            connection = WifiCameraConnection.Failed(
+                FailureReason.WIFI_JOIN_FAILED,
+                "Could not join the camera's Wi-Fi."
+            ),
+            bleAvailability = WifiHandoverAvailability.READY,
+            onConnect = {}
         )
     }
 }

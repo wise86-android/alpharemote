@@ -22,7 +22,6 @@ import org.staacks.alpharemote.feature.wificamera.domain.CameraOption
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSettingId
 import org.staacks.alpharemote.feature.wificamera.domain.CameraSnapshot
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCameraConnection
-import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 import org.staacks.alpharemote.feature.wificamera.ui.cameracontrol.CameraControlScreen
 import org.staacks.alpharemote.feature.wificamera.ui.cameracontrol.ShutterState
 import org.staacks.alpharemote.feature.wificamera.ui.connection.ConnectionPanel
@@ -45,7 +44,6 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val shutter by viewModel.shutter.collectAsStateWithLifecycle()
     val download by viewModel.download.collectAsStateWithLifecycle()
-    val knownCamera by viewModel.knownCamera.collectAsStateWithLifecycle()
     val bleAvailability by viewModel.bleAvailability.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -57,7 +55,6 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
         WifiCameraScreenContent(
             connection = state.connection,
             camera = state.camera,
-            knownCamera = knownCamera,
             bleAvailability = bleAvailability,
             shutter = shutter,
             download = download,
@@ -68,7 +65,6 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
             onStartDownload = viewModel::startDownload,
             onCancelDownload = viewModel::cancelDownload,
             onConnect = viewModel::connect,
-            onForget = viewModel::forgetCamera,
             liveView = {
                 // Collected here, inside the slot, rather than up in WifiCameraScreen: a frame
                 // arriving at ~30 fps then only recomposes the viewfinder, not the whole screen.
@@ -92,7 +88,6 @@ fun WifiCameraScreen(viewModel: WifiCameraViewModel) {
 internal fun WifiCameraScreenContent(
     connection: WifiCameraConnection,
     camera: CameraSnapshot,
-    knownCamera: WifiCredentials?,
     bleAvailability: WifiHandoverAvailability,
     shutter: ShutterState,
     download: DownloadUiState,
@@ -103,7 +98,6 @@ internal fun WifiCameraScreenContent(
     onStartDownload: () -> Unit,
     onCancelDownload: () -> Unit,
     onConnect: () -> Unit,
-    onForget: () -> Unit,
     liveView: @Composable BoxScope.() -> Unit = { LiveViewSurface(LiveViewState.Idle) }
 ) {
     Box(Modifier.fillMaxSize()) {
@@ -131,10 +125,8 @@ internal fun WifiCameraScreenContent(
         } else {
             ConnectionPanel(
                 connection = connection,
-                knownCamera = knownCamera,
                 bleAvailability = bleAvailability,
                 onConnect = onConnect,
-                onForget = onForget,
                 modifier = Modifier.align(Alignment.Center)
             )
         }
@@ -154,7 +146,6 @@ private fun WifiCameraScreenContentShootingPreview() {
         WifiCameraScreenContent(
             connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.REMOTE_SHOOTING),
             camera = CameraSnapshot(),
-            knownCamera = null,
             bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
             shutter = ShutterState.IDLE,
             download = DownloadUiState.Idle,
@@ -165,7 +156,6 @@ private fun WifiCameraScreenContentShootingPreview() {
             onStartDownload = {},
             onCancelDownload = {},
             onConnect = {},
-            onForget = {}
         )
     }
 }
@@ -177,7 +167,6 @@ private fun WifiCameraScreenContentDownloadPreview() {
         WifiCameraScreenContent(
             connection = WifiCameraConnection.Connected(previewIdentity, CameraMode.CONTENTS_TRANSFER),
             camera = CameraSnapshot(),
-            knownCamera = null,
             bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
             shutter = ShutterState.IDLE,
             download = DownloadUiState.Running(
@@ -192,7 +181,6 @@ private fun WifiCameraScreenContentDownloadPreview() {
             onStartDownload = {},
             onCancelDownload = {},
             onConnect = {},
-            onForget = {}
         )
     }
 }
@@ -204,7 +192,6 @@ private fun WifiCameraScreenContentDisconnectedPreview() {
         WifiCameraScreenContent(
             connection = WifiCameraConnection.Idle,
             camera = CameraSnapshot(),
-            knownCamera = null,
             bleAvailability = WifiHandoverAvailability.UNAVAILABLE,
             shutter = ShutterState.IDLE,
             download = DownloadUiState.Idle,
@@ -215,7 +202,6 @@ private fun WifiCameraScreenContentDisconnectedPreview() {
             onStartDownload = {},
             onCancelDownload = {},
             onConnect = {},
-            onForget = {}
         )
     }
 }

@@ -2,12 +2,10 @@ package org.staacks.alpharemote.feature.wificamera
 
 import android.app.Activity
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.util.Log
-import org.staacks.alpharemote.feature.wificamera.data.CameraCredentialsStore
 import org.staacks.alpharemote.feature.wificamera.data.nfc.CameraNfcReader
 import org.staacks.alpharemote.feature.wificamera.data.nfc.SonyNfcTagParser
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
@@ -28,12 +26,12 @@ object WifiCameraNfc {
     fun isCameraTap(intent: Intent?): Boolean = CameraNfcReader.isCameraTap(intent)
 
     /**
-     * Reads a tapped camera's credentials and remembers them.
+     * Reads a tapped camera's credentials.
      *
      * @return the credentials, or null if the tag was not readable — the caller can then leave the
      *   UI as it was rather than navigating somewhere that will only show an error.
      */
-    suspend fun handleTap(context: Context, intent: Intent): WifiCredentials? {
+    suspend fun handleTap(intent: Intent): WifiCredentials? {
         if (!CameraNfcReader.isCameraTap(intent)) return null
 
         val tag = CameraNfcReader.read(intent)
@@ -44,9 +42,6 @@ object WifiCameraNfc {
 
         val credentials = WifiCredentials(ssid = tag.ssid!!, password = tag.password!!)
         Log.i(TAG, "Tapped ${credentials.ssid}")
-
-        CameraCredentialsStore(context.applicationContext)
-            .save(credentials, tag.deviceDescriptionUrl)
 
         return credentials
     }
