@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.software.companion_device_setup" />
+
+    <uses-permission android:name="android.permission.REQUEST_OBSERVE_COMPANION_DEVICE_PRESENCE" />
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_START_FOREGROUND_SERVICES_FROM_BACKGROUND" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application>
+
+        <service
+            android:name=".service.CompanionAlphaRemoteService"
+            android:exported="true"
+            android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
+            <intent-filter>
+                <action android:name="android.companion.CompanionDeviceService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.AlphaRemoteService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|location"
+            android:permission="android.permission.BIND_COMPANION_DEVICE_SERVICE">
+        </service>
+
+        <receiver
+            android:name=".CameraBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="org.staacks.alpharemote.EXT_BUTTON" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

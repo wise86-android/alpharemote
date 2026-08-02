@@ -26,8 +26,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.staacks.alpharemote.BuildConfig
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
-import org.staacks.alpharemote.ui.theme.FragmentMargin
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import org.staacks.alpharemote.core.ui.theme.FragmentMargin
 
 @Composable
 fun AboutScreen(onOpenUrl: (String) -> Unit) {

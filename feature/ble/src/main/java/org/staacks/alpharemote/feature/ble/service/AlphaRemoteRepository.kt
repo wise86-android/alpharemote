@@ -1,0 +1,129 @@
+package org.staacks.alpharemote.feature.ble.service
+
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.ServiceConnection
+import android.location.LocationManager
+import android.os.IBinder
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import org.staacks.alpharemote.feature.ble.camera.CameraAction
+import org.staacks.alpharemote.feature.ble.camera.CameraState
+import org.staacks.alpharemote.feature.ble.ui.settings.CompanionDeviceHelper
+
+class AlphaRemoteRepository private constructor(private val context: Context) {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private val _cameraState = MutableStateFlow<CameraState>(CameraState.Disconnected)
+    val cameraState: StateFlow<CameraState> = _cameraState.asStateFlow()
+
+    private val _bluetoothEnabled = MutableStateFlow(false)
+    val bluetoothEnabled: StateFlow<Boolean> = _bluetoothEnabled.asStateFlow()
+
+    private val _locationEnabled = MutableStateFlow(false)
+    val locationEnabled: StateFlow<Boolean> = _locationEnabled.asStateFlow()
+
+    private val _associations = MutableStateFlow<List<String>>(emptyList())
+    val associations: StateFlow<List<String>> = _associations.asStateFlow()
+
+    private var boundService: AlphaRemoteService? = null
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as AlphaRemoteService.LocalBinder
+            boundService = binder.getService()
+            scope.launch {
+                boundService?.cameraState?.collectLatest {
+                    _cameraState.value = it
+                }
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            boundService = null
+            _cameraState.value = CameraState.Disconnected
+        }
+    }
+
+    init {
+        checkInitialStates()
+        registerReceivers()
+        bindToService()
+    }
+
+    private fun checkInitialStates() {
+        val bluetoothManager = ContextCompat.getSystemService(context, BluetoothManager::class.java)
+        _bluetoothEnabled.value = bluetoothManager?.adapter?.isEnabled == true
+
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        _locationEnabled.value = locationManager.isLocationEnabled
+
+        _associations.value = CompanionDeviceHelper.getAssociation(context)
+    }
+
+    private fun registerReceivers() {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                        val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                        _bluetoothEnabled.value = state == BluetoothAdapter.STATE_ON
+                    }
+                    LocationManager.MODE_CHANGED_ACTION -> {
+                        val locationManager = context?.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+                        _locationEnabled.value = locationManager?.isLocationEnabled == true
+                    }
+                    BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
+                        _associations.value = CompanionDeviceHelper.getAssociation(context!!)
+                    }
+                }
+            }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(LocationManager.MODE_CHANGED_ACTION)
+            addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        }
+        context.registerReceiver(receiver, filter)
+    }
+
+    private fun bindToService() {
+        val intent = Intent(context, AlphaRemoteService::class.java)
+        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    fun sendCameraAction(action: CameraAction, event: Int?) {
+        boundService?.executeCameraAction(action, 
+            down = event == android.view.MotionEvent.ACTION_DOWN,
+            up = event == android.view.MotionEvent.ACTION_UP || event == android.view.MotionEvent.ACTION_CANCEL
+        )
+    }
+
+    companion object {
+        private const val TAG = "AlphaRemoteRepository"
+        
+        @Volatile
+        private var INSTANCE: AlphaRemoteRepository? = null
+
+        fun getInstance(context: Context): AlphaRemoteRepository {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: AlphaRemoteRepository(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+    }
+}

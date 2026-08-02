@@ -1,0 +1,121 @@
+package org.staacks.alpharemote.feature.ble.ui.settings
+import org.staacks.alpharemote.feature.ble.R
+
+import android.content.ClipData
+import android.content.ClipDescription
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import org.staacks.alpharemote.feature.ble.ui.components.SettingsSection
+import org.staacks.alpharemote.feature.ble.camera.CameraAction
+import org.staacks.alpharemote.feature.ble.camera.CameraActionPreset
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
+
+@Composable
+fun CustomButtonsSettingsSection(
+    buttons: List<CameraAction>,
+    onAddClick: () -> Unit,
+    onHelpClick: () -> Unit,
+    onEditClick: (Int, CameraAction) -> Unit,
+    onMove: (Int, Int) -> Unit,
+    onDelete: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingsSection(
+        title = stringResource(R.string.settings_custom_buttons),
+        description = stringResource(R.string.settings_custom_buttons_explanation),
+        modifier = modifier,
+    ) {
+            buttons.mapIndexed { index, action ->
+                NotificationButtonRow(
+                    action = action,
+                    onEditClick = { onEditClick(index, action) },
+                    onDelete = { onDelete(index) },
+                    dragHandleTransferData = {
+                        DragAndDropTransferData(
+                            ClipData.newPlainText("custom_button_index", index.toString()),
+                        )
+                    },
+                    modifier = Modifier
+                        .dragAndDropTarget(shouldStartDragAndDrop = { event ->
+                            event.mimeTypes().contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                        }, target = remember(index, onMove) {
+                            // Keyed on index/onMove: an unkeyed remember would keep the target
+                            // from the first composition, dropping onto stale indices after the
+                            // list is reordered.
+                            object : DragAndDropTarget {
+                                override fun onDrop(event: DragAndDropEvent): Boolean {
+                                    val draggedData = event.toAndroidDragEvent().clipData.getItemAt(0).text.toString().toInt()
+                                    onMove(draggedData, index)
+                                    return true
+                                }
+                            }
+                        })
+                )
+            }
+
+
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            TextButton(onClick = onAddClick) {
+                Text(text = stringResource(R.string.settings_custom_buttons_add))
+            }
+            TextButton(onClick = onHelpClick) {
+                Text(text = stringResource(R.string.help))
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CustomButtonsSettingsSectionEmptyPreview() {
+    BluetoothRemoteForSonyCamerasTheme {
+        CustomButtonsSettingsSection(
+            buttons = emptyList(),
+            onAddClick = {},
+            onHelpClick = {},
+            onEditClick = { _, _ -> },
+            onMove = { _, _ -> },
+            onDelete = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CustomButtonsSettingsSectionThreeButtonsPreview() {
+    val sampleButtons = listOf(
+        CameraAction(false, null, CameraActionPreset.TRIGGER_ONCE),
+        CameraAction(false, null, CameraActionPreset.SHUTTER),
+        CameraAction(false, null, CameraActionPreset.RECORD),
+    )
+
+    BluetoothRemoteForSonyCamerasTheme {
+        CustomButtonsSettingsSection(
+            buttons = sampleButtons,
+            onAddClick = {},
+            onHelpClick = {},
+            onEditClick = { _, _ -> },
+            onMove = { _, _ -> },
+            onDelete = {},
+        )
+    }
+}
+

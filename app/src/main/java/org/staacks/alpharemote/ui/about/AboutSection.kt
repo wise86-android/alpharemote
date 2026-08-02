@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 @Composable
 fun AboutSection(title: String, text: String, content: @Composable () -> Unit) {

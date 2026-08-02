@@ -48,6 +48,8 @@ android {
 dependencies {
 
     implementation(project(":core:ble"))
+    implementation(project(":core:ui"))
+    implementation(project(":feature:ble"))
     implementation(project(":feature:dof"))
     implementation(project(":feature:wificamera"))
 
@@ -78,7 +80,6 @@ dependencies {
     implementation(libs.androidx.window)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.play.services.location)
     implementation(libs.accompanist.permissions)
 
     testImplementation(libs.junit)

@@ -18,7 +18,7 @@ import androidx.navigation3.runtime.serialization.NavBackStackSerializer
 import androidx.navigation3.runtime.serialization.NavKeySerializer
 import androidx.savedstate.compose.serialization.serializers.MutableStateSerializer
 import kotlinx.serialization.Serializable
-import org.staacks.alpharemote.camera.CameraAction
+import org.staacks.alpharemote.feature.ble.camera.CameraAction
 
 @Serializable
 sealed interface AlphaRemoteNavKey : NavKey {

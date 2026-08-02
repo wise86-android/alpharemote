@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="permission_dialog_title">Berechtigung erforderlich</string>
+    <string name="permission_dialog_location_precise_rationale">Um zu speichern, wo jedes Foto aufgenommen wurde, benötigt die App während der Nutzung genauen Standortzugriff.</string>
+    <string name="permission_dialog_background_location_rationale">Damit die Geotagging-Funktion auch im Hintergrund zuverlässig funktioniert, erlaube bitte den Standortzugriff im Hintergrund.</string>
+    <string name="permission_dialog_confirm_button">Erlauben</string>
+</resources>

@@ -117,9 +117,12 @@ The heart of the protocol, implemented by
 | Command | `0000ff01-…` | Write | Button/jog commands sent phone → camera. |
 | Status | `0000ff02-…` | Notify | Focus / shutter / recording feedback camera → phone. |
 
-> **Detecting "remote disabled".** If the camera is bonded but the user has the BLE-remote setting
-> turned off in the camera menus, command writes fail. The app surfaces this as
-> `Connected.RemoteDisabled` rather than a hard error.
+> **Detecting "remote disabled".** The authoritative, live signal is the camera control service's
+> (`8000CC00`) `CC09` notification — a `RemoteControlAvailable` TLV field, decoded by
+> [`CameraControlStatusService`](../app/src/main/java/org/staacks/alpharemote/camera/ble/CameraControlStatusService.kt).
+> The app surfaces `false` there as `Connected.RemoteDisabled` as soon as the camera reports it,
+> rather than waiting for a command to fail. A failed command write (this service's
+> `commandStatus`) is kept as a fallback for the same state, in case a body doesn't expose `CC09`.
 
 ### 2.3 Location Service (Sony `8000dd00-dd00-ffff-ffff-ffffffffffff`)
 

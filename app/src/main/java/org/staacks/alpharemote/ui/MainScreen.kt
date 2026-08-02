@@ -27,12 +27,12 @@ import androidx.navigation3.ui.NavDisplay
 import org.staacks.alpharemote.R
 import org.staacks.alpharemote.ui.about.aboutEntries
 import org.staacks.alpharemote.feature.dof.DofViewModel
-import org.staacks.alpharemote.ui.camera.CameraViewModel
+import org.staacks.alpharemote.feature.ble.ui.camera.CameraViewModel
 import org.staacks.alpharemote.ui.camera.cameraEntries
 import org.staacks.alpharemote.ui.dof.depthOfFieldEntries
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 import org.staacks.alpharemote.feature.wificamera.ui.WifiCameraViewModel
-import org.staacks.alpharemote.ui.settings.SettingsViewModel
+import org.staacks.alpharemote.feature.ble.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.settings.settingsEntries
 import org.staacks.alpharemote.ui.wificamera.wifiCameraEntries
 

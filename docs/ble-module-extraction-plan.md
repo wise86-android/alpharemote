@@ -1,6 +1,13 @@
 # Plan: extract `core:ble` and `feature:ble`, and reach the camera's Wi-Fi over BLE
 
-Written to be picked up cold, later. Nothing here has been implemented yet.
+**Status: all six steps are implemented.** Every step below now carries a short "As built" note
+where the real implementation sharpened or departed from the original sketch — read those before
+touching the code. Step 6 in particular departed from its own sketch in several load-bearing ways
+(see its note): a new `core:ui` module had to be introduced, the `*Entries.kt` split turned out to
+cut through `camera/` and `ui/settings/` at the file level rather than the folder level, and a
+cross-feature dependency that didn't exist when this plan was written (`feature:ble` registering
+`feature:wificamera`'s standing BLE manager) had to be relocated to a new `app`-level
+`Application` subclass to keep the "no feature depends on another feature" rule intact.
 
 ## Goal
 
@@ -22,16 +29,20 @@ hardware.
 ## End state
 
 ```
-                    app  (composition root: MainActivity, Navigation, theme)
+                    app  (composition root: MainActivity, Navigation, *Entries.kt, theme wiring)
                   ╱   │   ╲
       feature:ble     │    feature:wificamera      feature:dof
-             ╲        │       ╱
-              ╲       │      ╱
-               core:ble  (connection + command queue + BleServiceManager SPI)
+             ╲        │       ╱          ╲
+              ╲       │      ╱            ╲
+               core:ble  (connection …)   core:ui (theme, shared by app + feature:ble)
 ```
 
 No feature depends on another feature. Both BLE-touching features contribute a `BleServiceManager`
-to one shared connection and never refer to each other.
+to one shared connection and never refer to each other — `app`'s `AlphaRemoteApplication` is what
+wires `feature:wificamera`'s standing manager into `feature:ble`'s connection, since neither feature
+may know about the other (see step 6's "As built" note). `core:ui` did not exist when this plan was
+first drafted; it was added during step 6 once `ui/theme` turned out to be needed by both `app` and
+`feature:ble` with no valid one-sided placement.
 
 **Split the responsibilities by this rule:**
 
@@ -77,6 +88,18 @@ site and becomes the place that decides which managers exist.
 **Done when:** the app builds and behaves identically, with the manager list supplied from outside
 `CameraBLE`.
 
+**As built:** the coupling ran deeper than the sketch above shows. `CameraBLE` did not just
+construct its three managers — it exposed *typed* pass-through accessors for them
+(`deviceName`, `deviceStatus`, `remoteCommandStatus`, `locationUpdateStatus`) and Sony-specific
+methods (`executeCameraActionStep`, `setCameraLocation`, `enableLocationSync`) that reached
+directly into `RemoteControlService`/`LocationService`. That is exactly the kind of Sony product
+knowledge `core:ble` is not supposed to carry. Fixed by removing all of it: `CameraBLE` now only
+does GATT plumbing and callback fan-out, and `AlphaRemoteService` constructs
+`GenericAccessService`/`RemoteControlService`/`LocationService` itself, holds the references it
+needs (`remoteControlService` as a field), and reads their state directly instead of through
+`CameraBLE`. `LocationSyncController.start()` now takes a `LocationService` instead of a
+`CameraBLE` for the same reason.
+
 ---
 
 ### Step 2 — Create `core:ble` and move the mechanism into it
@@ -101,6 +124,13 @@ manifest. Keep `utils/PermissionUtils.kt` reachable — either duplicate the gua
 move it to a `core:common`; do not let `core:ble` depend on `app`.
 
 **Done when:** `app` builds against `core:ble` and the remote still works on hardware.
+
+**As built:** exactly as planned — `GenericAccessService.kt` was the only file whose move was
+worth a second look, and it turned out to have no Sony-specific knowledge either (it reads the
+standard GATT Generic Access service), so it belongs in `core:ble` as documented. Nothing in
+`RemoteControlService`/`LocationService` needed a new `PermissionUtils` dependency on `core:ble` —
+neither file calls a permission-check function, only the `@RequiresPermission` annotation, so that
+concern in the original plan text turned out not to apply.
 
 ---
 
@@ -130,6 +160,31 @@ teardown path needs care — a stale singleton holding a dead `BluetoothGatt` is
 
 **Done when:** connect, disconnect, bonding and the remote buttons behave as before, including
 after the camera goes out of range and returns.
+
+**As built:** the single `register(vararg managers)` in the sketch turned out to conflate two
+things that need different lifetimes, and splitting them is the load-bearing decision of this
+step:
+
+- **Per-connection managers** — `GenericAccessService`/`RemoteControlService`/`LocationService`.
+  Fresh instances every time, exactly as `CameraBLE` itself always was, so no manager's state (a
+  cached device name, a pending command) survives into a reconnect that might be to a different
+  camera. These are passed to `connect(context, device, managers)` directly, not through
+  `register`.
+- **Standing managers** — anything that wants to be attached whenever a connection exists, without
+  itself deciding when one should. `WifiHandoverService` (step 4) is the only one so far. These go
+  through `register(manager)`, which had to be made idempotent by reference: the component calling
+  it (`AlphaRemoteService.onCreate`) is itself recreated on every reconnect cycle, so `register`
+  being safe to call every time is what keeps the standing list from growing unbounded.
+
+`CameraBleConnection.connect()` also self-clears its held `CameraBLE` the moment the connection
+reports `Disconnected`, rather than relying on `AlphaRemoteService.onDisconnect()` to remember to —
+this is the direct fix for the "stale singleton" risk named below, not just documentation of it.
+
+One more consequence: with the connection itself now living independently of any one
+`AlphaRemoteService` instance, that service no longer needs to cancel and rebuild its collectors
+on every reconnect (`connectionJob`/`connectionScope`). It sets them up once, in `onCreate`, and
+they simply keep observing `CameraBleConnection.state` and the per-connection services' flows
+across however many connect/disconnect cycles follow.
 
 ---
 
@@ -176,6 +231,17 @@ the camera's battery all day.
 
 **Done when:** `WifiHandover.activateWifi()` returns real credentials from the camera.
 
+**As built:** matches the sketch, plus two things the sketch didn't mention. First,
+`CameraBLE.PREFERRED_CONNECTION_MTU` was 153, tuned previously for the remote-control service;
+PROTOCOL.md §6 documents 158 for this service. Since one MTU is negotiated for the whole GATT
+connection (not per-service), it was raised to 158 — larger only ever gives the remote-control
+characteristics more room, never less, but this is the one change in the whole plan that really
+does need hardware to confirm, since there is no way to verify a BLE MTU negotiation without a
+camera. Second, the byte-level decoding (launch-status byte, failure-reason byte, ASCII-from-byte-3)
+was factored into a pure `WifiHandoverParsing` object specifically so it has unit tests — it is
+otherwise the only part of this whole plan that had any test coverage at all, everything else
+being GATT/Android-framework code with no practical way to exercise it off a real camera.
+
 ---
 
 ### Step 5 — Use it in the Wi-Fi connection flow
@@ -204,6 +270,17 @@ worth keeping as a DataStore at that point, rather than an in-memory cache.
 
 **Done when:** powering on a paired camera leads to a live Wi-Fi session with no user interaction
 beyond opening the app.
+
+**As built:** matches the sketch. One addition the sketch didn't need to mention because it
+predates the Wi-Fi module's `BLUETOOTH_CONNECT` requirement existing at all: `activateWifi()` is
+gated behind an explicit `PermissionChecker` check in `WifiCameraViewModel.connect()`, not just the
+`@RequiresPermission` annotation on the call chain. A live BLE connection already implies the
+permission was granted once, but a user can revoke it at any time — including between that
+connection existing and the tap that calls `connect()` — so the check is load-bearing, not just
+satisfying Lint. `feature:wificamera`'s manifest gained a `BLUETOOTH_CONNECT` declaration to match.
+
+`CameraCredentialsStore` has *not* yet been revisited per its own note (see below) — that is a
+reasonable candidate for a small follow-up once this has run against real hardware for a while.
 
 ---
 
@@ -248,6 +325,69 @@ entries.
 `ui/settings/SettingScreen.kt` is a mix of BLE-specific and app-level concerns and needs splitting
 rather than moving wholesale — expect this to be the fiddliest file.
 
+**As built:** several things in the sketch above turned out wrong once actually checked against
+usage, each discovered the same way — grep every consumer of a thing before deciding where it goes,
+not just the folder it happened to sit in:
+
+- **`ui/components/` and `utils/PermissionUtils.kt` do *not* stay in `app`.** Both were checked
+  against every call site first: `PermissionWarning`/`LabeledSwitchRow`/`SettingsSection` were used
+  by nothing outside `ui/settings/`+`ui/camera/`, and `hasBluetoothPermission`/
+  `hasLocationPermission`/`rememberBlePermissionState` likewise had no caller outside what was
+  moving. Leaving them in `app` would have made `feature:ble` depend on `app` — backwards. Both
+  moved into `feature:ble` in full; only `utils/IntentUtils.kt` (`Context.openUrl`) actually stays,
+  since its only callers (`AboutEntries.kt`, `SettingsEntries.kt`) both stay too.
+- **`ui/theme/` needed a real `core:ui` module, not just a note about one.** The sketch floated
+  "`Colors.kt`/`Dimens.kt` move to `feature:ble` or a small `core:ui`" as an open choice. It isn't
+  open once checked: `MainActivity` and `ui/about/` (both staying in `app`) use the theme directly,
+  so parking it inside `feature:ble` would make `app` depend on a feature for its own root theme.
+  `core:ui` (`Colors.kt`/`Dimens.kt`/`Theme.kt`/`Type.kt`, namespace `org.staacks.alpharemote.core.ui`)
+  is the only placement both `app` and `feature:ble` can reach without a backwards edge.
+- **The `*Entries.kt` split cuts through `camera/` and `ui/settings/` at the file level, not the
+  folder level.** `CameraEntries.kt` and `SettingsEntries.kt` reference `AlphaRemoteNavKey` and
+  `Navigator` (both staying in `app`, per this plan's own "stays in app" list) — so they cannot
+  move into `feature:ble` themselves, even though nearly everything else in their folders does.
+  They stay at their original paths, in the original (unmoved) `org.staacks.alpharemote.ui.camera`
+  / `org.staacks.alpharemote.ui.settings` packages — matching the existing pattern
+  `WifiCameraEntries.kt`/`DofEntries.kt` already set, living in `app/ui/wificamera/`,
+  `app/ui/dof/` rather than inside their features — and pick up explicit imports for the types
+  (`CameraViewModel`, `CameraScreen`, `SettingsViewModel`, `SettingScreen`, `CompanionDeviceHelper`,
+  `CameraActionPickerContent`) that used to be same-package and now aren't.
+- **A cross-feature dependency had appeared since this plan was written.** `AlphaRemoteService`
+  (added after step 5 shipped) called `CameraBleConnection.register(WifiHandover.serviceManager())`
+  — fine while it lived in `app`, but once it moved into `feature:ble` that becomes `feature:ble`
+  importing `feature:wificamera`, which the plan's own rule forbids. Moved to a new
+  `AlphaRemoteApplication : Application()` in `app`, registered via `android:name` on
+  `<application>`, calling that one line in `onCreate()`. Has to be `Application.onCreate()` and
+  not `MainActivity.onCreate()`: a paired camera can start `CompanionAlphaRemoteService` directly
+  from Companion Device presence with no activity ever created first.
+- **Two direct `MainActivity` references had to be replaced, not just re-pointed.** Three files
+  used `MainActivity.TAG` purely as a shared logcat tag — given each a local `TAG` constant instead.
+  `NotificationUI` builds a `PendingIntent` that opens `MainActivity` on tap — genuinely functional,
+  not just logging, and `feature:ble` cannot import `app`'s `MainActivity` class. Replaced
+  `Intent(context, MainActivity::class.java)` with
+  `context.packageManager.getLaunchIntentForPackage(context.packageName)`, which resolves to the
+  same launcher activity without a compile-time reference, then applies the same
+  `FLAG_ACTIVITY_NEW_TASK`/`FLAG_ACTIVITY_SINGLE_TOP` flags as before.
+- **`ui/settings/CameraActionPicker.kt` carried a dead `DialogFragment` class** (superseded by the
+  Navigation3 dialog entry in `SettingsEntries.kt`, zero references anywhere else in the codebase).
+  Dropped rather than migrated — moving it would have pulled an otherwise-unneeded
+  `androidx.fragment` dependency into `feature:ble` for code nothing calls.
+- **Resource ownership needed the same per-usage check as the Kotlin files.** 66 of the ~90 checked
+  `R.string` entries turned out to be used only by what's moving and were re-homed into
+  `feature:ble/src/main/res/values{,-de}/strings.xml`; `app_name` and `title_settings` are needed
+  by both sides (manifest label / notification channel name vs. bottom-nav label) and are the only
+  two duplicated rather than shared. `colors.xml`, `dimens.xml`, `permission.xml`, and both
+  notification `layout/` files moved wholesale (nothing outside the moving code touched them).
+  `ca_stop.xml` and the adaptive-launcher-icon drawables (needed by `NotificationUI`'s
+  `setSmallIcon`, since it cannot reach `app`'s `R.mipmap`) are the two cases duplicated rather than
+  moved, because `app`'s About screen and manifest still need their own copies respectively.
+  `permission.xml` picked up a `values-de/` translation it didn't have before — a pre-existing gap,
+  fixed in passing since splitting it into its own module surfaced it as that module's own
+  first-class lint failure rather than one line lost in `app`'s pre-existing count.
+- Manifest components moved as expected: `AlphaRemoteService`, `CompanionAlphaRemoteService`, and
+  `CameraBroadcastReceiver` (plus the permissions only they need) are declared in
+  `feature/ble/src/main/AndroidManifest.xml` now, merged into `app`'s manifest as normal.
+
 ## Risks
 
 | Risk | Mitigation |
@@ -267,12 +407,25 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ```
 
 Note `./gradlew build` already fails on pre-existing missing German translations in `:app:lintDebug`
-— that is not caused by this work.
+— that is not caused by this work. After step 6, `:app:lintDebug` still fails, but on 3 strings
+now (`settings_bluetooth_required_title`/`_message`, `settings_open_settings` — all used only by
+`SettingsEntries.kt`, which stays in `app`); the other 4 pre-existing gaps were `permission.xml`'s
+strings, which moved to `feature:ble` and got German translations added there as part of the move,
+so they no longer count against anyone. `core:ble:lintDebug`, `core:ui:lintDebug`,
+`feature:ble:lintDebug`, `feature:dof:lintDebug`, and `feature:wificamera:lintDebug` are all clean.
+
+All six steps have run through `:app:assembleDebug`, `:app:assembleDebugAndroidTest` (compiles —
+not run, no device here), unit tests across every module, and lint for every module except `app`
+(the pre-existing failure above). None of that has been run against real hardware — nothing in this
+plan can be, short of a camera. The one change worth specifically re-verifying on a device before
+trusting it is the MTU bump to 158 (step 4's "As built" note); step 6 is a pure code-motion
+refactor with no behavioural change to re-verify, beyond confirming the app still launches, pairs,
+and controls a camera exactly as before.
 
 On hardware, watch the handover with:
 
 ```bash
-adb logcat -s WifiCameraEvent WifiCameraNfc CameraBLE
+adb logcat -s WifiCameraEvent WifiCameraNfc AlphaRemote-BLE CameraBleConnection WifiHandoverService
 ```
 
 ## Reference

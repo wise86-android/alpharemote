@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import org.staacks.alpharemote.R
+import org.staacks.alpharemote.feature.ble.ui.camera.CameraScreen
+import org.staacks.alpharemote.feature.ble.ui.camera.CameraViewModel
 import org.staacks.alpharemote.ui.AlphaRemoteNavKey
 import org.staacks.alpharemote.ui.Navigator
 

@@ -26,14 +26,17 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.scene.DialogSceneStrategy
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import org.staacks.alpharemote.R
-import org.staacks.alpharemote.camera.CameraAction
-import org.staacks.alpharemote.camera.CameraActionPreset
-import org.staacks.alpharemote.service.AlphaRemoteRepository
-import org.staacks.alpharemote.service.AlphaRemoteService
+import org.staacks.alpharemote.feature.ble.camera.CameraAction
+import org.staacks.alpharemote.feature.ble.camera.CameraActionPreset
+import org.staacks.alpharemote.feature.ble.service.AlphaRemoteService
+import org.staacks.alpharemote.feature.ble.ui.settings.CameraActionPickerContent
+import org.staacks.alpharemote.feature.ble.ui.settings.CompanionDeviceHelper
+import org.staacks.alpharemote.feature.ble.ui.settings.SettingScreen
+import org.staacks.alpharemote.feature.ble.ui.settings.SettingsViewModel
 import org.staacks.alpharemote.ui.AlphaRemoteNavKey
 import org.staacks.alpharemote.ui.Navigator
 import org.staacks.alpharemote.utils.openUrl
-import org.staacks.alpharemote.utils.rememberBlePermissionState
+import org.staacks.alpharemote.feature.ble.utils.rememberBlePermissionState
 
 @OptIn(ExperimentalPermissionsApi::class)
 fun EntryProviderScope<AlphaRemoteNavKey>.settingsEntries(

@@ -1,0 +1,113 @@
+package org.staacks.alpharemote.feature.ble.ui.camera
+import org.staacks.alpharemote.feature.ble.R
+
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import org.staacks.alpharemote.feature.ble.camera.CameraState
+import org.staacks.alpharemote.feature.ble.camera.FocusState
+import org.staacks.alpharemote.feature.ble.camera.ShutterState
+import org.staacks.alpharemote.core.ui.theme.ActivityStatusSize
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
+
+@Composable
+fun StatusHeader(
+    uiState: CameraViewModel.CameraUIState,
+    onHelp: () -> Unit,
+) {
+    val state = uiState.cameraState
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column {
+            Text(
+                text = state?.name ?: stringResource(R.string.settings_camera_unknown_name),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusIcon(
+                    icon = R.drawable.status_focus,
+                    alpha = if (state?.focus == FocusState.ACQUIRED) 1f else 0.5f,
+                    content = R.string.status_focus,
+                )
+                StatusIcon(
+                    icon = R.drawable.status_shutter,
+                    alpha = if (state?.shutter == ShutterState.PRESSED) 1f else 0.5f,
+                    content = R.string.status_shutter,
+                )
+                StatusIcon(
+                    icon = R.drawable.status_recording,
+                    alpha = if (state?.recording == true) 1f else 0.5f,
+                    content = R.string.status_recording,
+                )
+            }
+        }
+
+        IconButton(onClick = onHelp) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Help,
+                contentDescription = stringResource(R.string.help),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusIcon(@DrawableRes icon: Int, alpha: Float, @StringRes content: Int) {
+    Icon(
+        painter = painterResource(icon),
+        contentDescription = stringResource(content),
+        tint = colorResource(R.color.white),
+        modifier = Modifier
+            .padding(androidx.compose.ui.unit.Dp(4f))
+            .alpha(alpha)
+            .height(ActivityStatusSize)
+            .aspectRatio(1f),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun StatusHeaderPreview() {
+    BluetoothRemoteForSonyCamerasTheme {
+        Surface {
+            StatusHeader(
+                uiState = CameraViewModel.CameraUIState(
+                    connected = true,
+                    cameraState = CameraState.Connected.Ready(
+                        name = "Alpha 7",
+                        address = "00:00:00:00:00:00",
+                        focus = FocusState.ACQUIRED,
+                        shutter = ShutterState.RELEASED,
+                        recording = true,
+                    ),
+                ),
+                onHelp = {},
+            )
+        }
+    }
+}

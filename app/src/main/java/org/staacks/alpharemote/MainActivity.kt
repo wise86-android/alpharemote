@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import org.staacks.alpharemote.feature.wificamera.WifiCameraNfc
 import org.staacks.alpharemote.feature.wificamera.domain.WifiCredentials
 import org.staacks.alpharemote.ui.MainScreen
-import org.staacks.alpharemote.ui.theme.BluetoothRemoteForSonyCamerasTheme
+import org.staacks.alpharemote.core.ui.theme.BluetoothRemoteForSonyCamerasTheme
 
 class MainActivity : ComponentActivity() {
 
