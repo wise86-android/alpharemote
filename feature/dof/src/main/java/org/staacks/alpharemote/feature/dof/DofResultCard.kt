@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import org.staacks.alpharemote.core.ui.theme.FragmentMargin
 
 /**
  * The computed near and far limits and the depth between them, spelled out as numbers next to the
@@ -26,7 +27,7 @@ internal fun DofResultCard(result: DofResult, modifier: Modifier = Modifier) {
 
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(ScreenMargin),
+            modifier = Modifier.padding(FragmentMargin),
             verticalArrangement = Arrangement.spacedBy(LabelSpacing)
         ) {
             ResultRow(

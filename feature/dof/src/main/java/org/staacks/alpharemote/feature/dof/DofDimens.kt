@@ -3,12 +3,12 @@ package org.staacks.alpharemote.feature.dof
 import androidx.compose.ui.unit.dp
 
 /**
- * Spacing shared by the depth of field composables. The app's own `ui/theme/Dimens.kt` lives in the
- * application module and cannot be reached from a library, so this module keeps its own copy of the
- * few values it needs.
+ * Spacing specific to the depth of field composables. The screen margin itself is
+ * [org.staacks.alpharemote.core.ui.theme.FragmentMargin] — the same value every other screen
+ * uses — so it is not redefined here; only the values below have no equivalent outside this
+ * feature.
  */
 
-internal val ScreenMargin = 16.dp
 internal val SectionSpacing = 24.dp
 internal val ItemSpacing = 12.dp
 internal val LabelSpacing = 4.dp

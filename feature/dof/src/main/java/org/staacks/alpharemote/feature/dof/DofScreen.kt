@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.staacks.alpharemote.core.ui.theme.FragmentMargin
 
 /**
  * Depth of field calculator. Self-contained: it needs no camera connection, so it works whether or
@@ -61,7 +62,7 @@ internal fun DofScreenContent(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .verticalScroll(rememberScrollState())
-                .padding(ScreenMargin),
+                .padding(FragmentMargin),
             verticalArrangement = Arrangement.spacedBy(ItemSpacing)
         ) {
             Text(
